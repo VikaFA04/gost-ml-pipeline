@@ -1,0 +1,308 @@
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+from src.config import (
+    EXTRACTED_DIR,
+    GENERATED_DOCX_DIR,
+    METRICS_DIR,
+    MODELS_DIR,
+    PREDICTIONS_DIR,
+    REPORTS_DIR,
+)
+from src.evaluate import evaluate_predictions, save_evaluation
+from src.generate.inplace_formatter import audit_or_format_docx
+from src.io.block_extractor import extract_blocks_from_docx
+from src.predict_blocks import load_blocks_csv, predict_blocks
+from src.train import run_training
+
+
+def now_ts() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def ensure_parent_dir(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def get_latest_model_path() -> Path:
+    candidates = sorted(MODELS_DIR.glob("svm_block_classifier_*.joblib"))
+    if not candidates:
+        raise FileNotFoundError(
+            f"В папке {MODELS_DIR} не найдена обученная модель. "
+            f"Сначала запусти команду train."
+        )
+    return candidates[-1]
+
+
+def resolve_model_path(model_path: Optional[str]) -> Path:
+    if model_path is None:
+        return get_latest_model_path()
+    return Path(model_path)
+
+
+def default_extracted_csv_path(input_docx: str | Path) -> Path:
+    input_docx = Path(input_docx)
+    return EXTRACTED_DIR / f"{input_docx.stem}_blocks_{now_ts()}.csv"
+
+
+def default_predictions_csv_path() -> Path:
+    return PREDICTIONS_DIR / f"predictions_{now_ts()}.csv"
+
+
+def default_evaluation_json_path() -> Path:
+    return METRICS_DIR / f"evaluation_{now_ts()}.json"
+
+
+def default_audit_report_path(input_docx: str | Path) -> Path:
+    input_docx = Path(input_docx)
+    return REPORTS_DIR / f"{input_docx.stem}_audit_{now_ts()}.csv"
+
+
+def default_format_report_path(input_docx: str | Path) -> Path:
+    input_docx = Path(input_docx)
+    return REPORTS_DIR / f"{input_docx.stem}_format_report_{now_ts()}.csv"
+
+
+def default_output_docx_path(input_docx: str | Path) -> Path:
+    input_docx = Path(input_docx)
+    return GENERATED_DOCX_DIR / f"{input_docx.stem}_formatted_{now_ts()}.docx"
+
+
+def cmd_train() -> None:
+    result = run_training()
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def cmd_extract_docx(input_docx: str, output_csv: Optional[str]) -> None:
+    input_docx_path = Path(input_docx)
+    if not input_docx_path.exists():
+        raise FileNotFoundError(f"Не найден DOCX-файл: {input_docx_path}")
+
+    df = extract_blocks_from_docx(input_docx_path)
+
+    output_path = Path(output_csv) if output_csv else default_extracted_csv_path(input_docx_path)
+    ensure_parent_dir(output_path)
+    df.to_csv(output_path, index=False, encoding="utf-8-sig")
+
+    print(f"Извлеченные блоки сохранены в: {output_path}")
+    print(f"Количество блоков: {len(df)}")
+
+
+def cmd_predict(model_path: Optional[str], input_csv: str, output_csv: Optional[str]) -> None:
+    input_csv_path = Path(input_csv)
+    if not input_csv_path.exists():
+        raise FileNotFoundError(f"Не найден CSV-файл: {input_csv_path}")
+
+    model = resolve_model_path(model_path)
+    if not model.exists():
+        raise FileNotFoundError(f"Не найдена модель: {model}")
+
+    df = load_blocks_csv(input_csv_path)
+    pred_df = predict_blocks(model_path=model, blocks_df=df, apply_rules=False)
+
+    output_path = Path(output_csv) if output_csv else default_predictions_csv_path()
+    ensure_parent_dir(output_path)
+    pred_df.to_csv(output_path, index=False, encoding="utf-8-sig")
+
+    print(f"Использована модель: {model}")
+    print(f"Предсказания сохранены в: {output_path}")
+    print(f"Количество строк: {len(pred_df)}")
+
+
+def cmd_evaluate(model_path: Optional[str], input_csv: str) -> None:
+    input_csv_path = Path(input_csv)
+    if not input_csv_path.exists():
+        raise FileNotFoundError(f"Не найден CSV-файл: {input_csv_path}")
+
+    model = resolve_model_path(model_path)
+    if not model.exists():
+        raise FileNotFoundError(f"Не найдена модель: {model}")
+
+    df = load_blocks_csv(input_csv_path)
+    pred_df = predict_blocks(model_path=model, blocks_df=df, apply_rules=False)
+
+    result = evaluate_predictions(pred_df)
+    output_path = default_evaluation_json_path()
+    save_evaluation(result, output_path)
+
+    print(f"Использована модель: {model}")
+    print(f"Оценка сохранена в: {output_path}")
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def cmd_audit_docx(input_docx: str, predictions_csv: str, report_csv: Optional[str]) -> None:
+    input_docx_path = Path(input_docx)
+    predictions_csv_path = Path(predictions_csv)
+
+    if not input_docx_path.exists():
+        raise FileNotFoundError(f"Не найден DOCX-файл: {input_docx_path}")
+    if not predictions_csv_path.exists():
+        raise FileNotFoundError(f"Не найден CSV с предсказаниями: {predictions_csv_path}")
+
+    report_path = Path(report_csv) if report_csv else default_audit_report_path(input_docx_path)
+    ensure_parent_dir(report_path)
+
+    result = audit_or_format_docx(
+        input_docx=input_docx_path,
+        predictions_csv=predictions_csv_path,
+        report_csv=report_path,
+        output_docx=None,
+        apply_safe=False,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def cmd_format_docx(
+    input_docx: str,
+    predictions_csv: str,
+    report_csv: Optional[str],
+    output_docx: Optional[str],
+    apply_safe: bool,
+) -> None:
+    input_docx_path = Path(input_docx)
+    predictions_csv_path = Path(predictions_csv)
+
+    if not input_docx_path.exists():
+        raise FileNotFoundError(f"Не найден DOCX-файл: {input_docx_path}")
+    if not predictions_csv_path.exists():
+        raise FileNotFoundError(f"Не найден CSV с предсказаниями: {predictions_csv_path}")
+
+    report_path = Path(report_csv) if report_csv else default_format_report_path(input_docx_path)
+    ensure_parent_dir(report_path)
+
+    resolved_output_docx: Path | None = None
+    if apply_safe:
+        resolved_output_docx = Path(output_docx) if output_docx else default_output_docx_path(input_docx_path)
+        ensure_parent_dir(resolved_output_docx)
+
+    result = audit_or_format_docx(
+        input_docx=input_docx_path,
+        predictions_csv=predictions_csv_path,
+        report_csv=report_path,
+        output_docx=resolved_output_docx,
+        apply_safe=apply_safe,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="CLI для системы автоматизированного оформления документов по ГОСТ"
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    subparsers.add_parser("train", help="Обучить модель на prepared dataset")
+
+    extract_parser = subparsers.add_parser(
+        "extract-docx",
+        help="Извлечь блоки из DOCX в CSV",
+    )
+    extract_parser.add_argument("--input-docx", required=True, help="Путь к исходному DOCX")
+    extract_parser.add_argument("--output-csv", required=False, help="Путь для сохранения CSV")
+
+    predict_parser = subparsers.add_parser(
+        "predict",
+        help="Построить предсказания по CSV блоков",
+    )
+    predict_parser.add_argument(
+        "--model-path",
+        required=False,
+        help="Путь к .joblib модели. Если не указан, берется последняя обученная модель.",
+    )
+    predict_parser.add_argument("--input-csv", required=True, help="CSV с блоками документа")
+    predict_parser.add_argument("--output-csv", required=False, help="Куда сохранить предсказания")
+
+    eval_parser = subparsers.add_parser(
+        "evaluate",
+        help="Оценить качество модели на размеченном CSV",
+    )
+    eval_parser.add_argument(
+        "--model-path",
+        required=False,
+        help="Путь к .joblib модели. Если не указан, берется последняя обученная модель.",
+    )
+    eval_parser.add_argument("--input-csv", required=True, help="CSV с true labels")
+
+    audit_parser = subparsers.add_parser(
+        "audit-docx",
+        help="Построить отчет нормоконтроля без изменения DOCX",
+    )
+    audit_parser.add_argument("--input-docx", required=True, help="Путь к исходному DOCX")
+    audit_parser.add_argument("--predictions-csv", required=True, help="CSV с предсказаниями")
+    audit_parser.add_argument("--report-csv", required=False, help="Куда сохранить отчет")
+
+    format_parser = subparsers.add_parser(
+        "format-docx",
+        help="Выполнить безопасное форматирование DOCX",
+    )
+    format_parser.add_argument("--input-docx", required=True, help="Путь к исходному DOCX")
+    format_parser.add_argument("--predictions-csv", required=True, help="CSV с предсказаниями")
+    format_parser.add_argument("--report-csv", required=False, help="Куда сохранить отчет")
+    format_parser.add_argument("--output-docx", required=False, help="Куда сохранить исправленный DOCX")
+    format_parser.add_argument(
+        "--apply-safe",
+        action="store_true",
+        help="Применить только безопасные изменения. Без этого флага будет только отчет.",
+    )
+
+    return parser
+
+
+def main() -> None:
+    parser = build_parser()
+    args = parser.parse_args()
+
+    if args.command == "train":
+        cmd_train()
+        return
+
+    if args.command == "extract-docx":
+        cmd_extract_docx(
+            input_docx=args.input_docx,
+            output_csv=args.output_csv,
+        )
+        return
+
+    if args.command == "predict":
+        cmd_predict(
+            model_path=args.model_path,
+            input_csv=args.input_csv,
+            output_csv=args.output_csv,
+        )
+        return
+
+    if args.command == "evaluate":
+        cmd_evaluate(
+            model_path=args.model_path,
+            input_csv=args.input_csv,
+        )
+        return
+
+    if args.command == "audit-docx":
+        cmd_audit_docx(
+            input_docx=args.input_docx,
+            predictions_csv=args.predictions_csv,
+            report_csv=args.report_csv,
+        )
+        return
+
+    if args.command == "format-docx":
+        cmd_format_docx(
+            input_docx=args.input_docx,
+            predictions_csv=args.predictions_csv,
+            report_csv=args.report_csv,
+            output_docx=args.output_docx,
+            apply_safe=args.apply_safe,
+        )
+        return
+
+    raise ValueError(f"Неизвестная команда: {args.command}")
+
+
+if __name__ == "__main__":
+    main()

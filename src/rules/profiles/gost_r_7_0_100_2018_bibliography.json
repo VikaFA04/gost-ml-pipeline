@@ -1,0 +1,197 @@
+{
+  "profile_id": "gost_r_7_0_100_2018_bibliography",
+  "profile_name": "ГОСТ Р 7.0.100-2018 (список литературы)",
+  "profile_type": "bibliography",
+  "source_type": "standard",
+  "source_name": "ГОСТ Р 7.0.100-2018",
+  "description": "Профиль библиографического описания для списка использованных источников",
+  "version": "1.0",
+  "language": "ru",
+  "is_default": false,
+  "base_profiles": [
+    "gost_7_32_2017"
+  ],
+  "document_rules": {
+    "page": {
+      "paper_size": "A4",
+      "margin_left_cm": 3.0,
+      "margin_right_cm": 1.0,
+      "margin_top_cm": 2.0,
+      "margin_bottom_cm": 2.0
+    },
+    "default_font": {
+      "font_name": "Times New Roman",
+      "font_size_pt": 14
+    },
+    "default_line_spacing": 1.5
+  },
+  "labels": {
+    "bibliography_title": {
+      "enabled": true,
+      "kind": [
+        "paragraph"
+      ],
+      "style_profile": {
+        "alignment": "CENTER",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 1.25,
+        "line_spacing": 1.5,
+        "space_before_pt": 6.0,
+        "space_after_pt": 6.0,
+        "font_size_pt": 14,
+        "bold": false
+      },
+      "audit_policy": {
+        "allow_auto_fix": true,
+        "review_on_low_confidence": true,
+        "review_on_uncertain_fields": false
+      }
+    },
+    "bibliography_item": {
+      "enabled": true,
+      "kind": [
+        "paragraph"
+      ],
+      "style_profile": {
+        "alignment": "JUSTIFY",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 0.0,
+        "line_spacing": 1.5,
+        "space_before_pt": 0.0,
+        "space_after_pt": 0.0,
+        "font_size_pt": 14,
+        "bold": false
+      },
+      "text_constraints": {
+        "entry_types": [
+          "book",
+          "journal_article",
+          "web_resource",
+          "standard",
+          "law",
+          "thesis"
+        ],
+        "require_year": true,
+        "allow_url": true,
+        "allow_access_date": true
+      },
+      "audit_policy": {
+        "allow_auto_fix": false,
+        "review_on_low_confidence": true,
+        "review_on_uncertain_fields": true
+      }
+    }
+  },
+  "numbering_rules": {
+    "bibliography_items": {
+      "allow_numeric_prefix": true,
+      "numeric_prefix_pattern": "^\\d+[\\.|\\)]\\s+"
+    }
+  },
+  "bibliography_rules": {
+    "enabled": true,
+    "general": {
+      "require_author_or_title": true,
+      "require_year": true,
+      "require_source_title_for_articles": true,
+      "require_url_for_web_resource": true,
+      "allow_double_slash_for_article_source": true,
+      "allow_dash_separators": true
+    },
+    "entry_patterns": {
+      "book": [
+        "^.+\\s+—\\s+.+,\\s+\\d{4}\\.\\s+—\\s+\\d+\\s*с\\.?$",
+        "^.+\\s*:\\s*.+\\s*\\/\\s*.+\\s+—\\s+.+,\\s+\\d{4}\\.\\s+—\\s+\\d+\\s*с\\.?$"
+      ],
+      "journal_article": [
+        "^.+\\s*\\/\\s*.+\\s*(//|\\/\\/)\\s*.+\\.\\s+—\\s+\\d{4}\\.\\s+—\\s*№\\s*.+\\.\\s+—\\s+С\\.\\s*.+$"
+      ],
+      "web_resource": [
+        "^.+\\[Электронный ресурс\\].+URL:\\s*.+$",
+        "^.+URL:\\s*https?://.+$"
+      ],
+      "standard": [
+        "^ГОСТ\\s+.+$",
+        "^ГОСТ\\s+Р\\s+.+$"
+      ],
+      "law": [
+        "^.+\\s+от\\s+\\d{2}\\.\\d{2}\\.\\d{4}.+$"
+      ],
+      "thesis": [
+        "^.+\\s*:\\s*дис\\..+$",
+        "^.+\\s*:\\s*автореф\\..+$"
+      ]
+    },
+    "soft_features": {
+      "book_markers": [
+        "с.",
+        "изд.",
+        "— Москва",
+        "— СПб.",
+        "— М."
+      ],
+      "journal_markers": [
+        "//",
+        "№",
+        "С.",
+        "Т.",
+        "Вып."
+      ],
+      "web_markers": [
+        "[Электронный ресурс]",
+        "URL:",
+        "Режим доступа:"
+      ],
+      "standard_markers": [
+        "ГОСТ",
+        "ГОСТ Р"
+      ]
+    }
+  },
+  "citation_rules": {
+    "enabled": true,
+    "in_text_reference_patterns": [
+      "^\\[[0-9]+\\]$",
+      "^\\[[0-9]+,\\s*с\\.\\s*[0-9\\-]+\\]$",
+      "^\\[[0-9]+\\.[0-9]+\\]$",
+      "^\\[[0-9]+\\.[0-9]+,\\s*с\\.\\s*[0-9\\-]+\\]$"
+    ]
+  },
+  "global_audit_policy": {
+    "default_low_confidence_threshold": 0.8,
+    "review_unknown_labels": true,
+    "review_tables_by_default": false,
+    "allow_safe_formatting": false
+  },
+  "nn_context": {
+    "expected_section_keywords": [
+      "список использованных источников",
+      "список литературы"
+    ],
+    "expected_bibliography_keywords": [
+      "URL",
+      "Электронный ресурс",
+      "С.",
+      "//",
+      "ГОСТ"
+    ],
+    "prefix_patterns": {
+      "bibliography_numeric_prefix": "^\\d+[\\.|\\)]\\s+"
+    },
+    "reference_entry_types": [
+      "book",
+      "journal_article",
+      "web_resource",
+      "standard",
+      "law",
+      "thesis"
+    ]
+  },
+  "extraction_meta": {
+    "generated_automatically": false,
+    "generated_from_methodical_guidelines": false,
+    "source_file_name": null,
+    "extraction_confidence": null,
+    "needs_manual_review": false
+  }
+}

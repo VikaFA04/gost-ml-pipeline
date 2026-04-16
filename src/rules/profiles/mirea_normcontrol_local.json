@@ -1,0 +1,226 @@
+{
+  "profile_id": "mirea_normcontrol_local",
+  "profile_name": "Локальный профиль МИРЭА",
+  "profile_type": "university_local",
+  "source_type": "manual",
+  "source_name": "Методические рекомендации по нормоконтролю",
+  "description": "Локальный профиль оформления на основе методички по нормоконтролю",
+  "version": "1.0",
+  "language": "ru",
+  "is_default": false,
+  "base_profiles": [
+    "gost_7_32_2017",
+    "gost_r_7_0_100_2018_bibliography"
+  ],
+  "document_rules": {
+    "page": {
+      "paper_size": "A4",
+      "margin_left_cm": 3.0,
+      "margin_right_cm": 1.0,
+      "margin_top_cm": 2.0,
+      "margin_bottom_cm": 2.0
+    },
+    "default_font": {
+      "font_name": "Times New Roman",
+      "font_size_pt": 14
+    },
+    "default_line_spacing": 1.5
+  },
+  "labels": {
+    "title_section": {
+      "style_profile": {
+        "alignment": "LEFT",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 1.25,
+        "line_spacing": 1.5,
+        "space_before_pt": 0.0,
+        "space_after_pt": 10.0,
+        "font_size_pt": 18,
+        "bold": true
+      },
+      "text_constraints": {
+        "uppercase_preferred": true,
+        "forbid_trailing_period": true
+      }
+    },
+    "title_subsection": {
+      "style_profile": {
+        "alignment": "LEFT",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 1.25,
+        "line_spacing": 1.5,
+        "space_before_pt": 15.0,
+        "space_after_pt": 10.0,
+        "font_size_pt": 16,
+        "bold": true
+      }
+    },
+    "body_text": {
+      "style_profile": {
+        "alignment": "JUSTIFY",
+        "first_line_indent_cm": 1.25,
+        "left_indent_cm": 0.0,
+        "line_spacing": 1.5,
+        "space_before_pt": 0.0,
+        "space_after_pt": 0.0,
+        "font_size_pt": 14,
+        "bold": false
+      }
+    },
+    "list_item": {
+      "style_profile": {
+        "alignment": "JUSTIFY",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 1.25,
+        "line_spacing": 1.5,
+        "space_before_pt": 0.0,
+        "space_after_pt": 0.0,
+        "font_size_pt": 14,
+        "bold": false
+      },
+      "text_constraints": {
+        "allowed_markers": [
+          "-",
+          "—",
+          "●",
+          "■",
+          "○",
+          "1.",
+          "а)"
+        ]
+      }
+    },
+    "figure_caption": {
+      "style_profile": {
+        "alignment": "CENTER",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 0.0,
+        "line_spacing": 1.0,
+        "space_before_pt": 0.0,
+        "space_after_pt": 6.0,
+        "font_size_pt": 12,
+        "bold": true
+      }
+    },
+    "table_caption": {
+      "style_profile": {
+        "alignment": "LEFT",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 0.0,
+        "line_spacing": 1.0,
+        "space_before_pt": 6.0,
+        "space_after_pt": 0.0,
+        "font_size_pt": 12,
+        "bold": false
+      }
+    },
+    "bibliography_title": {
+      "style_profile": {
+        "alignment": "CENTER",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 1.25,
+        "line_spacing": 1.5,
+        "space_before_pt": 6.0,
+        "space_after_pt": 6.0,
+        "font_size_pt": 14,
+        "bold": false
+      }
+    },
+    "bibliography_item": {
+      "style_profile": {
+        "alignment": "JUSTIFY",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 0.0,
+        "line_spacing": 1.5,
+        "space_before_pt": 0.0,
+        "space_after_pt": 0.0,
+        "font_size_pt": 14,
+        "bold": false
+      }
+    },
+    "appendix_title": {
+      "style_profile": {
+        "alignment": "CENTER",
+        "first_line_indent_cm": 0.0,
+        "left_indent_cm": 0.0,
+        "line_spacing": 1.5,
+        "space_before_pt": 12.0,
+        "space_after_pt": 6.0,
+        "font_size_pt": 14,
+        "bold": false
+      }
+    }
+  },
+  "numbering_rules": {
+    "title_section": {
+      "enabled": true,
+      "pattern": "^\\d+\\s+.+$"
+    },
+    "title_subsection": {
+      "enabled": true,
+      "pattern": "^\\d+\\.\\d+\\s+.+$"
+    },
+    "unnumbered_sections": [
+      "СОДЕРЖАНИЕ",
+      "ВВЕДЕНИЕ",
+      "ЗАКЛЮЧЕНИЕ",
+      "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
+      "ПРИЛОЖЕНИЯ"
+    ]
+  },
+  "bibliography_rules": {
+    "enabled": true,
+    "general": {
+      "require_author_or_title": true,
+      "require_year": true,
+      "require_url_for_web_resource": true
+    }
+  },
+  "citation_rules": {
+    "enabled": true,
+    "in_text_reference_patterns": [
+      "^\\[[0-9]+\\.[0-9]+\\]$",
+      "^\\[[0-9]+\\.[0-9]+,\\s*с\\.[0-9\\-]+\\]$"
+    ]
+  },
+  "global_audit_policy": {
+    "default_low_confidence_threshold": 0.8,
+    "review_unknown_labels": true,
+    "review_tables_by_default": false,
+    "allow_safe_formatting": true
+  },
+  "nn_context": {
+    "expected_section_keywords": [
+      "введение",
+      "заключение",
+      "содержание",
+      "список использованных источников",
+      "приложения"
+    ],
+    "expected_bibliography_keywords": [
+      "электронный ресурс",
+      "URL",
+      "ГОСТ",
+      "№",
+      "С."
+    ],
+    "prefix_patterns": {
+      "figure_caption": "^Рисунок\\s+\\d+\\.\\d+",
+      "table_caption": "^Таблица\\s+\\d+\\.\\d+",
+      "appendix_title": "^Приложение\\s+[А-ЯA-Z]"
+    },
+    "reference_entry_types": [
+      "book",
+      "journal_article",
+      "web_resource",
+      "standard"
+    ]
+  },
+  "extraction_meta": {
+    "generated_automatically": false,
+    "generated_from_methodical_guidelines": false,
+    "source_file_name": "Нормоконтроль.pdf",
+    "extraction_confidence": 1.0,
+    "needs_manual_review": false
+  }
+}
