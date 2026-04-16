@@ -1,0 +1,18 @@
+{
+  "dataset_path": "data/prepared/annotations_prepared_all_59_clean.csv",
+  "output_root": ".",
+  "model_name": "cointegrated/rubert-tiny2",
+  "random_seed": 42,
+  "max_length": 128,
+  "batch_size": 16,
+  "learning_rate": 2e-05,
+  "weight_decay": 0.01,
+  "max_epochs": 20,
+  "min_epochs": 5,
+  "early_stopping_patience": 2,
+  "warmup_ratio": 0.1,
+  "selection_metric": "weighted_f1",
+  "device": "cuda",
+  "effective_epochs": 8,
+  "best_epoch": 6
+}

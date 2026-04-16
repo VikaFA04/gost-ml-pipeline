@@ -1,0 +1,42 @@
+Transformer Training Report
+model_name: cointegrated/rubert-tiny2
+device: cuda
+train_rows: 14734
+val_rows: 2571
+max_epochs: 20
+min_epochs: 5
+early_stopping_patience: 2
+batch_size: 16
+learning_rate: 2e-05
+best_epoch: 6
+
+Epoch Metrics:
+- epoch_1: train_loss=2.110265, val_loss=1.549265, accuracy=0.754181, weighted_f1=0.743648, is_best=True
+- epoch_2: train_loss=1.111463, val_loss=0.926737, accuracy=0.718009, weighted_f1=0.735613, is_best=False
+- epoch_3: train_loss=0.560138, val_loss=0.640167, accuracy=0.799689, weighted_f1=0.807601, is_best=True
+- epoch_4: train_loss=0.337955, val_loss=0.620229, accuracy=0.795799, weighted_f1=0.808635, is_best=True
+- epoch_5: train_loss=0.240235, val_loss=0.501889, accuracy=0.852198, weighted_f1=0.855767, is_best=True
+- epoch_6: train_loss=0.178558, val_loss=0.475350, accuracy=0.862310, weighted_f1=0.864778, is_best=True
+- epoch_7: train_loss=0.131735, val_loss=0.497920, accuracy=0.861532, weighted_f1=0.864550, is_best=False
+- epoch_8: train_loss=0.111131, val_loss=0.528975, accuracy=0.856865, weighted_f1=0.861566, is_best=False
+
+Summary Metrics:
+- accuracy: 0.862310
+- weighted_precision: 0.873261
+- weighted_recall: 0.862310
+- weighted_f1: 0.864778
+- validation_loss: 0.475350
+- best_epoch: 6.000000
+- selection_metric_value: 0.864778
+
+Per-class Metrics:
+- appendix_title: precision=1.000000, recall=1.000000, f1=1.000000, support=21
+- bibliography_item: precision=0.928571, recall=0.688742, f1=0.790875, support=151
+- bibliography_title: precision=1.000000, recall=1.000000, f1=1.000000, support=9
+- body_text: precision=0.904070, recall=0.876674, f1=0.890161, support=1419
+- figure_caption: precision=0.996212, recall=0.919580, f1=0.956364, support=286
+- ignore: precision=0.867021, recall=0.885870, f1=0.876344, support=184
+- list_item: precision=0.712919, recall=0.803235, f1=0.755387, support=371
+- table_caption: precision=1.000000, recall=0.600000, f1=0.750000, support=5
+- title_section: precision=0.724638, recall=1.000000, f1=0.840336, support=50
+- title_subsection: precision=0.558559, recall=0.826667, f1=0.666667, support=75

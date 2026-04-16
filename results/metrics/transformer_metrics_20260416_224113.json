@@ -1,0 +1,9 @@
+{
+  "accuracy": 0.8623103850641773,
+  "weighted_precision": 0.8732611692691326,
+  "weighted_recall": 0.8623103850641773,
+  "weighted_f1": 0.8647775375484805,
+  "validation_loss": 0.4753501849503528,
+  "best_epoch": 6.0,
+  "selection_metric_value": 0.8647775375484805
+}
