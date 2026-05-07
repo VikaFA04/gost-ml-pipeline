@@ -463,7 +463,7 @@ def parse_args() -> TransformerConfig:
     parser.add_argument(
         "--dataset-path",
         type=Path,
-        default=Path("data/prepared/annotations_prepared_all_59_clean.csv"),
+        default=Path("dataset/annotations_train_ready.csv"),
         help="Path to the prepared CSV dataset.",
     )
     parser.add_argument(

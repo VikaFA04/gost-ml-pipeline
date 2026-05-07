@@ -22,9 +22,16 @@ dist/
 # ML artifacts and experiment outputs
 artifacts/
 results/
+tests_runtime/
 
 # Local data scratch/intermediate files
 data/interim/
+
+# Local agent/editor state
+.codex
+.continue-here.md
+.obsidian/
+.planning/
 
 # Logs
 *.log

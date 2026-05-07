@@ -1,0 +1,108 @@
+{
+  "rules": [
+    {
+      "id": "body_text_alignment",
+      "applicable_labels": ["body_text"],
+      "parameter": "alignment",
+      "expected_value": "JUSTIFY",
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 20
+    },
+    {
+      "id": "body_text_indent",
+      "applicable_labels": ["body_text"],
+      "parameter": "first_line_indent_cm",
+      "expected_value": 1.25,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 20
+    },
+    {
+      "id": "body_text_line_spacing",
+      "applicable_labels": ["body_text"],
+      "parameter": "line_spacing",
+      "expected_value": 1.5,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": true,
+      "priority": 10
+    },
+    {
+      "id": "heading_alignment",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "alignment",
+      "expected_value": "LEFT",
+      "action": "fix",
+      "severity": "high",
+      "autocorrect": true,
+      "priority": 40
+    },
+    {
+      "id": "heading_indent",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "first_line_indent_cm",
+      "expected_value": 0.0,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 30
+    },
+    {
+      "id": "heading_bold",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "bold",
+      "expected_value": true,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 20
+    },
+    {
+      "id": "list_item_layout",
+      "applicable_labels": ["list_item"],
+      "parameter": "list_format",
+      "expected_value": {
+        "default_type": "list",
+        "levels": {
+          "0": {
+            "left_indent_cm": 2.25,
+            "first_line_indent_cm": -1.0,
+            "tab_stop_cm": 2.25
+          },
+          "1": {
+            "left_indent_cm": 2.5,
+            "first_line_indent_cm": -1.0,
+            "tab_stop_cm": 2.5
+          }
+        }
+      },
+      "action": "fix",
+      "severity": "high",
+      "autocorrect": true,
+      "priority": 100
+    },
+    {
+      "id": "list_item_alignment",
+      "applicable_labels": ["list_item"],
+      "parameter": "alignment",
+      "expected_value": "JUSTIFY",
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 20
+    },
+    {
+      "id": "list_item_line_spacing",
+      "applicable_labels": ["list_item"],
+      "parameter": "line_spacing",
+      "expected_value": 1.5,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": true,
+      "priority": 10
+    }
+  ]
+}

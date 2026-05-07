@@ -18,6 +18,8 @@ from src.rules.profile_loader import (
     get_target_style_profile,
     load_profile,
 )
+from src.rules.rule_engine import apply_rules_to_paragraph
+from src.rules.rule_loader import load_rules
 
 LABEL_COL_CANDIDATES = ["postprocessed_label", "predicted_label"]
 
@@ -26,7 +28,7 @@ def resolve_label_column(df: pd.DataFrame) -> str:
     for col in LABEL_COL_CANDIDATES:
         if col in df.columns:
             return col
-    raise ValueError("В CSV нет ни 'postprocessed_label', ни 'predicted_label'")
+    raise ValueError("Predictions CSV must contain either 'postprocessed_label' or 'predicted_label'.")
 
 
 def safe_text(value: Any) -> str:
@@ -37,7 +39,6 @@ def safe_text(value: Any) -> str:
 
 def extract_table_text(table: Table) -> str:
     rows: list[str] = []
-
     for row in table.rows:
         cells: list[str] = []
         for cell in row.cells:
@@ -45,11 +46,9 @@ def extract_table_text(table: Table) -> str:
                 p.text.strip() for p in cell.paragraphs if p.text and p.text.strip()
             ).strip()
             cells.append(cell_text)
-
         row_text = " | ".join(cells).strip()
         if row_text:
             rows.append(row_text)
-
     return "\n".join(rows).strip()
 
 
@@ -59,7 +58,6 @@ def normalize_compare_text(text: str) -> str:
 
 def build_filtered_docx_blocks(document: Document) -> list[tuple[object, str, str]]:
     filtered_blocks: list[tuple[object, str, str]] = []
-
     for block in iter_block_items(document):
         if isinstance(block, Paragraph):
             text = safe_text(block.text)
@@ -72,7 +70,6 @@ def build_filtered_docx_blocks(document: Document) -> list[tuple[object, str, st
 
         if text:
             filtered_blocks.append((block, kind, text))
-
     return filtered_blocks
 
 
@@ -245,41 +242,56 @@ def build_reason(
     low_confidence: bool,
 ) -> str:
     if low_confidence:
-        return "Низкая уверенность модели в классификации блока."
+        return "Model confidence is too low for automatic formatting."
 
-    if action in {"suggest_change", "changed"} and changed_fields:
-        return f"Обнаружены отличия профиля оформления: {', '.join(changed_fields)}"
+    if action in {"changed", "review"} and changed_fields:
+        return f"Formatting differences detected: {', '.join(changed_fields)}"
 
     if action == "review" and uncertain_fields:
-        return (
-            "Недостаточно данных для уверенной проверки параметров: "
-            + ", ".join(uncertain_fields)
-        )
+        return "Manual review is required because some formatting parameters could not be verified."
 
     if action == "no_change":
-        return f"Блок '{label}' соответствует ожидаемому профилю."
+        return f"Block '{label}' already matches the expected formatting profile."
 
-    return "Дополнительная проверка не требуется."
+    if action == "error":
+        return "An error occurred while applying formatting rules."
+
+    return "No additional action required."
 
 
 def build_recommendation(
     action: str,
     changed_fields: list[str],
     low_confidence: bool,
+    manual_review_required: bool = False,
+    suggested_fixes: list[str] | None = None,
+    unsafe_auto_fix_reason: str = "",
 ) -> str:
     if low_confidence:
-        return "Проверить корректность распознанного типа блока вручную."
+        return "Verify the predicted block type manually."
 
-    if action in {"suggest_change", "changed"} and changed_fields:
-        return f"Скорректировать параметры: {', '.join(changed_fields)}"
+    if action == "changed" and changed_fields:
+        return f"Applied fixes: {', '.join(changed_fields)}"
+
+    if manual_review_required and suggested_fixes:
+        return f"Manual decision required for: {', '.join(suggested_fixes)}"
+
+    if unsafe_auto_fix_reason:
+        return f"Unsafe auto-fix blocked: {unsafe_auto_fix_reason}"
+
+    if action == "review" and changed_fields:
+        return f"Review and optionally correct: {', '.join(changed_fields)}"
 
     if action == "no_change":
-        return "Изменения не требуются."
+        return "No changes required."
 
     if action == "review":
-        return "Требуется ручная проверка."
+        return "Manual review required."
 
-    return "Без действий."
+    if action == "error":
+        return "Inspect the block and rule configuration manually."
+
+    return "No action."
 
 
 def decide_action(
@@ -295,7 +307,7 @@ def decide_action(
     if changed_fields:
         if apply_safe and audit_policy.get("allow_auto_fix", False):
             return "changed"
-        return "suggest_change"
+        return "review"
 
     if uncertain_fields and audit_policy.get("review_on_uncertain_fields", True):
         return "review"
@@ -317,6 +329,7 @@ def audit_or_format_docx(
     report_csv = Path(report_csv)
 
     profile = load_profile(profile_path=profile_path, profile_id=profile_id)
+    rules = load_rules()
     global_policy = get_global_audit_policy(profile)
     labels_cfg = profile.get("labels", {})
     default_font_name = (
@@ -330,26 +343,26 @@ def audit_or_format_docx(
         df = df.sort_values("block_id").reset_index(drop=True)
 
     label_col = resolve_label_column(df)
-
     document = Document(str(input_docx))
     filtered_docx_blocks = build_filtered_docx_blocks(document)
 
     if len(filtered_docx_blocks) != len(df):
         raise ValueError(
-            f"Количество отфильтрованных блоков не совпадает: "
-            f"в DOCX={len(filtered_docx_blocks)}, в CSV={len(df)}"
+            f"Filtered block count mismatch: DOCX={len(filtered_docx_blocks)}, CSV={len(df)}"
         )
 
     report_rows: list[dict[str, Any]] = []
     changed_count = 0
-    suggested_count = 0
     review_count = 0
     no_change_count = 0
+    error_count = 0
+    blocked_unsafe_autofix_count = 0
 
     for i, ((block, actual_kind, docx_text), row) in enumerate(
         zip(filtered_docx_blocks, df.itertuples(index=False)),
         start=1,
     ):
+        row_data = row._asdict()
         csv_kind = str(getattr(row, "kind", "paragraph"))
         csv_text = str(getattr(row, "text", "")).strip()
         label = str(getattr(row, label_col, ""))
@@ -357,36 +370,32 @@ def audit_or_format_docx(
         confidence_score = getattr(row, "confidence_score", None)
 
         if actual_kind != csv_kind:
-            raise ValueError(
-                f"Несовпадение kind на позиции {i}: DOCX={actual_kind}, CSV={csv_kind}"
-            )
+            raise ValueError(f"Kind mismatch at block {i}: DOCX={actual_kind}, CSV={csv_kind}")
 
         if normalize_compare_text(docx_text) != normalize_compare_text(csv_text):
             raise ValueError(
-                f"Несовпадение текста на позиции {i}.\n"
-                f"DOCX: {docx_text[:120]}\n"
-                f"CSV : {csv_text[:120]}"
+                f"Text mismatch at block {i}.\nDOCX: {docx_text[:120]}\nCSV : {csv_text[:120]}"
             )
 
         action = "skip"
         changed_fields: list[str] = []
         uncertain_fields: list[str] = []
+        violated_rules: list[str] = []
+        applied_fixes: list[str] = []
+        suggested_fixes: list[str] = []
+        suggested_rule_ids: list[str] = []
+        manual_review_required = False
+        blocked_unsafe_autofix = False
+        unsafe_auto_fix_reason = ""
+        explanation = ""
 
         if isinstance(block, Table):
-            action = (
-                "review"
-                if global_policy.get("review_tables_by_default", False)
-                else "skip_table"
-            )
+            action = "review" if global_policy.get("review_tables_by_default", False) else "skip_table"
             if action == "review":
                 review_count += 1
 
         elif label not in labels_cfg:
-            action = (
-                "review"
-                if global_policy.get("review_unknown_labels", True)
-                else "skip_label"
-            )
+            action = "review" if global_policy.get("review_unknown_labels", True) else "skip_label"
             if action == "review":
                 review_count += 1
 
@@ -399,76 +408,120 @@ def audit_or_format_docx(
             if actual_kind not in allowed_kinds:
                 action = "review"
                 review_count += 1
-
+                explanation = "Block kind is not allowed for the predicted label."
             elif target_profile is None:
-                action = "skip_label"
-
+                action = "review"
+                review_count += 1
+                explanation = "No formatting profile is configured for this label."
             elif not isinstance(block, Paragraph):
-                action = "skip_kind"
-
+                action = "review"
+                review_count += 1
+                explanation = "Paragraph-level rules cannot be applied to this block."
             else:
-                current_profile = get_current_paragraph_profile(block)
-                changed_fields, uncertain_fields = compare_profiles(
-                    current=current_profile,
-                    target=target_profile,
-                )
-
-                action = decide_action(
-                    changed_fields=changed_fields,
-                    uncertain_fields=uncertain_fields,
-                    low_confidence=low_confidence,
-                    apply_safe=apply_safe,
-                    audit_policy=audit_policy,
-                )
-
-                if action == "changed":
-                    before_text = block.text
-                    apply_profile_to_paragraph(
+                try:
+                    rule_result = apply_rules_to_paragraph(
                         paragraph=block,
-                        style_profile=target_profile,
+                        label=label,
+                        row_data=row_data,
+                        rules=rules,
+                        apply_safe=apply_safe,
                         default_font_name=default_font_name,
                     )
-                    after_text = block.text
 
-                    if before_text != after_text:
-                        raise ValueError(
-                            f"Текст изменился на блоке {i}, что недопустимо"
+                    if rule_result is not None:
+                        action = str(rule_result["status"])
+                        violated_rules = list(rule_result["violated_rules"])
+                        applied_fixes = list(rule_result["applied_fixes"])
+                        suggested_fixes = list(rule_result.get("suggested_fixes", []))
+                        suggested_rule_ids = list(rule_result.get("suggested_rule_ids", []))
+                        manual_review_required = bool(rule_result.get("manual_review_required", False))
+                        blocked_unsafe_autofix = bool(rule_result.get("blocked_unsafe_autofix", False))
+                        unsafe_auto_fix_reason = str(rule_result.get("unsafe_auto_fix_reason", ""))
+                        changed_fields = applied_fixes.copy()
+                        explanation = str(rule_result["explanation"])
+                    else:
+                        current_profile = get_current_paragraph_profile(block)
+                        changed_fields, uncertain_fields = compare_profiles(
+                            current=current_profile,
+                            target=target_profile,
                         )
+                        action = decide_action(
+                            changed_fields=changed_fields,
+                            uncertain_fields=uncertain_fields,
+                            low_confidence=low_confidence,
+                            apply_safe=apply_safe,
+                            audit_policy=audit_policy,
+                        )
+                        if action == "changed":
+                            before_text = block.text
+                            apply_profile_to_paragraph(
+                                paragraph=block,
+                                style_profile=target_profile,
+                                default_font_name=default_font_name,
+                            )
+                            after_text = block.text
+                            if before_text != after_text:
+                                raise ValueError(f"Formatting changed the text content of block {i}, which is not allowed.")
+                            applied_fixes = changed_fields.copy()
+                        explanation = build_reason(
+                            action=action,
+                            label=label,
+                            changed_fields=changed_fields,
+                            uncertain_fields=uncertain_fields,
+                            low_confidence=low_confidence,
+                        )
+                except Exception as exc:
+                    action = "error"
+                    explanation = f"Rule/formatting error: {exc}"
+                    error_count += 1
 
+                if blocked_unsafe_autofix:
+                    blocked_unsafe_autofix_count += 1
+
+                if action == "changed":
                     changed_count += 1
-
-                elif action == "suggest_change":
-                    suggested_count += 1
-
                 elif action == "review":
                     review_count += 1
-
                 elif action == "no_change":
                     no_change_count += 1
+
+        reason = explanation or build_reason(
+            action=action,
+            label=label,
+            changed_fields=changed_fields,
+            uncertain_fields=uncertain_fields,
+            low_confidence=low_confidence,
+        )
 
         report_rows.append(
             {
                 "block_id": getattr(row, "block_id", i),
                 "kind": csv_kind,
                 "label": label,
+                "status": action,
                 "action": action,
                 "profile_id": profile.get("profile_id"),
                 "profile_name": profile.get("profile_name"),
                 "confidence_score": confidence_score,
                 "low_confidence": low_confidence,
+                "manual_review_required": manual_review_required,
+                "blocked_unsafe_autofix": blocked_unsafe_autofix,
+                "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
+                "violated_rules": ", ".join(violated_rules),
+                "suggested_rule_ids": ", ".join(suggested_rule_ids),
+                "applied_fixes": ", ".join(applied_fixes),
+                "suggested_fix": ", ".join(suggested_fixes),
                 "changed_fields": ", ".join(changed_fields),
                 "uncertain_fields": ", ".join(uncertain_fields),
-                "reason": build_reason(
-                    action,
-                    label,
-                    changed_fields,
-                    uncertain_fields,
-                    low_confidence,
-                ),
+                "reason": reason,
+                "explanation": reason,
                 "recommendation": build_recommendation(
-                    action,
-                    changed_fields,
-                    low_confidence,
+                    action=action,
+                    changed_fields=changed_fields,
+                    low_confidence=low_confidence,
+                    manual_review_required=manual_review_required,
+                    suggested_fixes=suggested_fixes,
+                    unsafe_auto_fix_reason=unsafe_auto_fix_reason,
                 ),
                 "text": csv_text[:500],
             }
@@ -481,7 +534,7 @@ def audit_or_format_docx(
     saved_output_docx = None
     if apply_safe:
         if output_docx is None:
-            raise ValueError("При apply_safe необходимо передать output_docx")
+            raise ValueError("output_docx is required when apply_safe=True.")
 
         output_docx = Path(output_docx)
         output_docx.parent.mkdir(parents=True, exist_ok=True)
@@ -497,8 +550,9 @@ def audit_or_format_docx(
         "profile_name": profile.get("profile_name"),
         "blocks_total": len(df),
         "no_change": no_change_count,
-        "suggest_change": suggested_count,
         "review": review_count,
         "changed": changed_count,
+        "error": error_count,
+        "blocked_unsafe_autofix": blocked_unsafe_autofix_count,
         "mode": "apply_safe" if apply_safe else "audit_only",
     }

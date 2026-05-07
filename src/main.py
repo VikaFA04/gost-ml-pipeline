@@ -17,6 +17,7 @@ from src.config import (
 from src.evaluate import evaluate_predictions, save_evaluation
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.io.block_extractor import extract_blocks_from_docx
+from src.rules.methodical_extractor import extract_methodical_profile
 from src.predict_blocks import load_blocks_csv, predict_blocks
 from src.train import run_training
 
@@ -103,7 +104,7 @@ def cmd_predict(model_path: Optional[str], input_csv: str, output_csv: Optional[
         raise FileNotFoundError(f"Не найдена модель: {model}")
 
     df = load_blocks_csv(input_csv_path)
-    pred_df = predict_blocks(model_path=model, blocks_df=df, apply_rules=False)
+    pred_df = predict_blocks(model_path=model, blocks_df=df, apply_rules=True)
 
     output_path = Path(output_csv) if output_csv else default_predictions_csv_path()
     ensure_parent_dir(output_path)
@@ -124,7 +125,7 @@ def cmd_evaluate(model_path: Optional[str], input_csv: str) -> None:
         raise FileNotFoundError(f"Не найдена модель: {model}")
 
     df = load_blocks_csv(input_csv_path)
-    pred_df = predict_blocks(model_path=model, blocks_df=df, apply_rules=False)
+    pred_df = predict_blocks(model_path=model, blocks_df=df, apply_rules=True)
 
     result = evaluate_predictions(pred_df)
     output_path = default_evaluation_json_path()
@@ -190,6 +191,38 @@ def cmd_format_docx(
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+def cmd_extract_methodical_profile(
+    input_path: str,
+    output_dir: Optional[str],
+    profile_name: Optional[str],
+    base_profile_ids: list[str],
+) -> None:
+    input_path_obj = Path(input_path)
+    if not input_path_obj.exists():
+        raise FileNotFoundError(f"Не найден файл методички: {input_path_obj}")
+
+    profile, output_path = extract_methodical_profile(
+        input_path=input_path_obj,
+        output_dir=output_dir,
+        base_profile_ids=base_profile_ids or None,
+        profile_name=profile_name,
+    )
+    print(f"Профиль сохранен в: {output_path}")
+    print(
+        json.dumps(
+            {
+                "profile_id": profile.get("profile_id"),
+                "profile_name": profile.get("profile_name"),
+                "profile_type": profile.get("profile_type"),
+                "source_type": profile.get("source_type"),
+                "base_profiles": profile.get("base_profiles", []),
+            },
+            ensure_ascii=True,
+            indent=2,
+        )
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="CLI для системы автоматизированного оформления документов по ГОСТ"
@@ -250,6 +283,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Применить только безопасные изменения. Без этого флага будет только отчет.",
     )
 
+    methodical_parser = subparsers.add_parser(
+        "extract-methodical-profile",
+        help="Извлечь профиль оформления из локальной методички PDF/DOCX/TXT",
+    )
+    methodical_parser.add_argument("--input-path", required=True, help="Путь к PDF/DOCX/TXT/MD файлу")
+    methodical_parser.add_argument(
+        "--output-dir",
+        required=False,
+        help="Папка для сохранения профиля JSON",
+    )
+    methodical_parser.add_argument(
+        "--profile-name",
+        required=False,
+        help="Человекочитаемое имя профиля",
+    )
+    methodical_parser.add_argument(
+        "--base-profile-ids",
+        nargs="+",
+        default=["gost_7_32_2017", "gost_r_7_0_100_2018_bibliography"],
+        help="Базовые profile_id, которые нужно слить перед извлечением",
+    )
+
     return parser
 
 
@@ -298,6 +353,15 @@ def main() -> None:
             report_csv=args.report_csv,
             output_docx=args.output_docx,
             apply_safe=args.apply_safe,
+        )
+        return
+
+    if args.command == "extract-methodical-profile":
+        cmd_extract_methodical_profile(
+            input_path=args.input_path,
+            output_dir=args.output_dir,
+            profile_name=args.profile_name,
+            base_profile_ids=args.base_profile_ids,
         )
         return
 

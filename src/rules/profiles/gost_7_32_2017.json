@@ -22,7 +22,38 @@
       "font_name": "Times New Roman",
       "font_size_pt": 14
     },
-    "default_line_spacing": 1.5
+    "default_line_spacing": 1.5,
+    "writer": {
+      "styles": {
+        "title_section": {
+          "style_name": "Heading 1"
+        },
+        "bibliography_title": {
+          "style_name": "Heading 1"
+        },
+        "appendix_title": {
+          "style_name": "Heading 1"
+        },
+        "title_subsection": {
+          "style_name": "Heading 2"
+        },
+        "figure_caption": {
+          "style_name": "Normal"
+        },
+        "table_caption": {
+          "style_name": "Normal"
+        },
+        "bibliography_item": {
+          "style_name": "List Paragraph"
+        },
+        "list_item": {
+          "style_name": "List Paragraph"
+        },
+        "body_text": {
+          "style_name": "Normal"
+        }
+      }
+    }
   },
 
   "labels": {
@@ -141,7 +172,7 @@
         "forbid_trailing_period": true
       },
       "audit_policy": {
-        "allow_auto_fix": true,
+        "allow_auto_fix": false,
         "review_on_low_confidence": true,
         "review_on_uncertain_fields": true
       }
@@ -165,7 +196,7 @@
         "forbid_trailing_period": true
       },
       "audit_policy": {
-        "allow_auto_fix": true,
+        "allow_auto_fix": false,
         "review_on_low_confidence": true,
         "review_on_uncertain_fields": true
       }
@@ -267,7 +298,12 @@
 
   "citation_rules": {
     "enabled": true,
-    "in_text_reference_pattern": "^\\[[^\\]]+\\]$"
+    "in_text_reference_patterns": [
+      "^\\[[0-9]+\\]$",
+      "^\\[[0-9]+,\\s*с\\.\\s*[0-9\\-]+\\]$",
+      "^\\[[0-9]+\\.[0-9]+\\]$",
+      "^\\[[0-9]+\\.[0-9]+,\\s*с\\.\\s*[0-9\\-]+\\]$"
+    ]
   },
 
   "global_audit_policy": {

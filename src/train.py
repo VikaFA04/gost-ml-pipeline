@@ -35,6 +35,7 @@ from src.config import (
     RANDOM_STATE,
     MODEL_FILENAME_PREFIX,
 )
+from src.features.pattern_features import TextPatternFeatures
 
 
 def _timestamp() -> str:
@@ -98,6 +99,7 @@ def build_pipeline() -> Pipeline:
     preprocess = ColumnTransformer(
         transformers=[
             ("text", text_transformer, TEXT_COL),
+            ("patterns", TextPatternFeatures(), [TEXT_COL]),
             ("cat", cat_transformer, CAT_COLS),
             ("num", num_transformer, NUM_COLS),
         ],

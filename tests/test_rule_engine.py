@@ -1,0 +1,526 @@
+from __future__ import annotations
+
+from pathlib import Path
+import shutil
+import uuid
+
+import pandas as pd
+from docx import Document
+from docx.shared import Cm
+
+from src.generate.inplace_formatter import audit_or_format_docx
+from src.rules.profile_loader import load_profile
+from src.rules.rule_engine import apply_rules_to_paragraph
+from src.rules.rule_loader import load_rules
+
+
+def build_prediction_csv(path: Path, text: str, label: str, list_level: int | None = None) -> None:
+    df = pd.DataFrame(
+        [
+            {
+                "doc_id": "doc_1",
+                "block_id": 1,
+                "text": text,
+                "kind": "paragraph",
+                "alignment": "LEFT",
+                "style": "Normal",
+                "bold_ratio": 0.0,
+                "file_name": "sample.docx",
+                "predicted_label": label,
+                "postprocessed_label": label,
+                "confidence_score": 0.99,
+                "low_confidence": False,
+                "list_type": "numbered" if label == "list_item" else None,
+                "list_level": list_level,
+            }
+        ]
+    )
+    df.to_csv(path, index=False, encoding="utf-8-sig")
+
+
+def build_workspace_temp_dir() -> Path:
+    base_dir = Path("tests_runtime")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    temp_dir = base_dir / f"case_{uuid.uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    return temp_dir
+
+
+def test_rule_loading() -> None:
+    rules = load_rules()
+    assert rules
+    assert any(rule["id"] == "list_item_layout" for rule in rules)
+    assert all("priority" in rule for rule in rules)
+
+
+def test_caption_profiles_require_review_not_autofix() -> None:
+    profile = load_profile(profile_id="gost_7_32_2017")
+
+    assert profile["labels"]["figure_caption"]["audit_policy"]["allow_auto_fix"] is False
+    assert profile["labels"]["table_caption"]["audit_policy"]["allow_auto_fix"] is False
+
+
+def test_rule_application_review_without_fix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("1.\tList item")
+    paragraph.paragraph_format.left_indent = None
+    paragraph.paragraph_format.first_line_indent = None
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={"list_level": 0, "list_type": "numbered"},
+        rules=load_rules(),
+        apply_safe=False,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert "list_item_layout" in result["violated_rules"]
+    assert result["applied_fixes"] == []
+
+
+def test_inherited_body_text_formatting_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Обычный текст с форматированием из стиля Word.")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data={"confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph.alignment is None
+    assert paragraph.paragraph_format.first_line_indent is None
+    assert paragraph.paragraph_format.line_spacing is None
+
+
+def test_inherited_heading_bold_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("1 Заголовок")
+    paragraph.style = "Heading 1"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data={"confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph.runs[0].bold is None
+
+
+def test_heading_style_direct_alignment_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Список источников")
+    paragraph.style = "Heading 2"
+    paragraph.alignment = 1
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_subsection",
+        row_data={"text": paragraph.text, "confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph.alignment == 1
+
+
+def test_list_like_paragraph_predicted_as_body_text_is_not_autofixed() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("1.\tList item")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data={
+            "text": "1.\tList item",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["blocked_unsafe_autofix"] is True
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
+
+
+def test_body_text_alignment_mismatch_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Обычный абзац с явным выравниванием.")
+    paragraph.alignment = 0
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data={"text": paragraph.text, "confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph.alignment == 0
+
+
+def test_body_text_hanging_indent_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Источник с висячим отступом.")
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data={"text": paragraph.text, "confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
+
+
+def test_list_formatting_fix_level_1() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("a)\tNested item")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(1.0)
+    paragraph.paragraph_format.first_line_indent = Cm(0.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "a)\tNested item",
+            "list_level": 1,
+            "list_type": "numbered",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "left_indent_cm" in result["applied_fixes"]
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.5
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
+    tab_stops = list(paragraph.paragraph_format.tab_stops)
+    assert tab_stops
+    assert round(tab_stops[0].position.cm, 2) == 2.5
+
+
+def test_marker_only_list_item_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("- marker-only list item")
+    paragraph.paragraph_format.first_line_indent = Cm(1.25)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "- marker-only list item",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["blocked_unsafe_autofix"] is True
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == 1.25
+
+
+def test_list_item_alignment_mismatch_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("List style item")
+    paragraph.style = "List Paragraph"
+    paragraph.alignment = 0
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "List style item",
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph.alignment == 0
+
+
+def test_accepted_positive_list_layout_ignores_inferred_level() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Bibliography-like item")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Bibliography-like item",
+            "list_level": 1,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
+
+
+def test_inherited_list_paragraph_layout_is_not_autofixed() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("List style item")
+    paragraph.style = "List Paragraph"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "List style item",
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert paragraph.paragraph_format.left_indent is None
+    assert paragraph.paragraph_format.first_line_indent is None
+
+
+def test_positive_corpus_list_layout_is_not_autofixed() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("пункт списка;")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "пункт списка;",
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
+
+
+def test_low_confidence_list_item_blocks_unsafe_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("1.\tList item")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "1.\tList item",
+            "list_level": 0,
+            "list_type": "numbered",
+            "confidence_score": 0.65,
+            "low_confidence": True,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["blocked_unsafe_autofix"] is True
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+
+
+def test_long_paragraph_is_not_auto_fixed_as_list() -> None:
+    document = Document()
+    text = "1. " + "длинный текст " * 50
+    paragraph = document.add_paragraph(text)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": text,
+            "list_level": 0,
+            "list_type": "numbered",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["blocked_unsafe_autofix"] is True
+    assert "ordinary paragraph" in result["unsafe_auto_fix_reason"]
+
+
+def test_audit_mode_reports_review_and_fix_mode_changes() -> None:
+    tmp_path = build_workspace_temp_dir()
+    try:
+        input_docx = tmp_path / "input.docx"
+        document = Document()
+        paragraph = document.add_paragraph("1.\tList item")
+        paragraph.style = "List Paragraph"
+        paragraph.paragraph_format.left_indent = Cm(1.0)
+        paragraph.paragraph_format.first_line_indent = Cm(0.0)
+        document.save(input_docx)
+
+        predictions_csv = tmp_path / "predictions.csv"
+        build_prediction_csv(predictions_csv, "1.\tList item", "list_item", list_level=0)
+
+        audit_report = tmp_path / "audit.csv"
+        audit_summary = audit_or_format_docx(
+            input_docx=input_docx,
+            predictions_csv=predictions_csv,
+            report_csv=audit_report,
+            apply_safe=False,
+            profile_id="gost_7_32_2017",
+        )
+        assert audit_summary["review"] == 1
+        assert audit_summary["changed"] == 0
+
+        fixed_docx = tmp_path / "fixed.docx"
+        fix_report = tmp_path / "fix.csv"
+        fix_summary = audit_or_format_docx(
+            input_docx=input_docx,
+            predictions_csv=predictions_csv,
+            report_csv=fix_report,
+            output_docx=fixed_docx,
+            apply_safe=True,
+            profile_id="gost_7_32_2017",
+        )
+        assert fix_summary["changed"] == 1
+        assert fixed_docx.exists()
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_fix_mode_is_idempotent() -> None:
+    tmp_path = build_workspace_temp_dir()
+    try:
+        input_docx = tmp_path / "input.docx"
+        document = Document()
+        paragraph = document.add_paragraph("1.\tList item")
+        paragraph.style = "List Paragraph"
+        paragraph.paragraph_format.left_indent = Cm(1.0)
+        paragraph.paragraph_format.first_line_indent = Cm(0.0)
+        document.save(input_docx)
+
+        predictions_csv = tmp_path / "predictions.csv"
+        build_prediction_csv(predictions_csv, "1.\tList item", "list_item", list_level=0)
+
+        first_output = tmp_path / "fixed_1.docx"
+        audit_or_format_docx(
+            input_docx=input_docx,
+            predictions_csv=predictions_csv,
+            report_csv=tmp_path / "fix_1.csv",
+            output_docx=first_output,
+            apply_safe=True,
+            profile_id="gost_7_32_2017",
+        )
+
+        second_output = tmp_path / "fixed_2.docx"
+        second_summary = audit_or_format_docx(
+            input_docx=first_output,
+            predictions_csv=predictions_csv,
+            report_csv=tmp_path / "fix_2.csv",
+            output_docx=second_output,
+            apply_safe=True,
+            profile_id="gost_7_32_2017",
+        )
+
+        assert second_summary["changed"] == 0
+        assert second_summary["no_change"] == 1
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)

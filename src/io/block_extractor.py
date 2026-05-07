@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import re
 
 import pandas as pd
 from docx import Document
@@ -23,6 +24,10 @@ ALIGNMENT_MAP = {
     WD_ALIGN_PARAGRAPH.JUSTIFY_LOW: "JUSTIFY",
     WD_ALIGN_PARAGRAPH.THAI_JUSTIFY: "JUSTIFY",
 }
+
+LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
+NUMBERED_MARKER_RE = re.compile(r"^\s*(?:\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])\s+")
+BULLET_MARKER_RE = re.compile(r"^\s*[-—–•●■◦]\s+")
 
 
 def safe_text(value: Any) -> str:
@@ -71,6 +76,53 @@ def compute_bold_ratio_from_runs(paragraph: Paragraph) -> float:
     return bold_chars / total_chars
 
 
+def extract_list_metadata(paragraph: Paragraph) -> tuple[str | None, int | None]:
+    """Extract conservative list metadata from paragraph numbering and visible markers."""
+    list_type: str | None = None
+    list_level: int | None = None
+    has_numbering = False
+
+    try:
+        p_pr = paragraph._p.pPr
+        if p_pr is not None and p_pr.numPr is not None and p_pr.numPr.ilvl is not None:
+            list_level = int(p_pr.numPr.ilvl.val)
+            has_numbering = True
+    except Exception:
+        list_level = None
+
+    text = safe_text(paragraph.text)
+    style_name = get_style_name(paragraph)
+    word_count = len(text.split())
+    is_short_candidate = len(text) <= 300 and word_count <= 40
+
+    if has_numbering and BULLET_MARKER_RE.match(text):
+        list_type = "bullet"
+    elif has_numbering and NUMBERED_MARKER_RE.match(text):
+        list_type = "numbered"
+    elif has_numbering:
+        list_type = "list"
+    elif BULLET_MARKER_RE.match(text) and is_short_candidate:
+        list_type = "bullet"
+    elif NUMBERED_MARKER_RE.match(text) and is_short_candidate:
+        list_type = "numbered"
+    elif LIST_STYLE_RE.search(style_name) and is_short_candidate and paragraph.paragraph_format.left_indent is not None:
+        list_type = "list"
+
+    if list_level is None and list_type is not None:
+        leading_tabs = len(text) - len(text.lstrip("\t"))
+        leading_spaces = len(text) - len(text.lstrip(" "))
+        if leading_tabs > 0:
+            list_level = min(1, leading_tabs)
+        elif leading_spaces >= 4:
+            list_level = min(1, leading_spaces // 4)
+        elif re.match(r"^\s*\d+\.\d+", text):
+            list_level = 1
+        else:
+            list_level = 0
+
+    return list_type, list_level
+
+
 def extract_paragraph_block(
     paragraph: Paragraph,
     doc_id: str,
@@ -78,6 +130,7 @@ def extract_paragraph_block(
     file_name: str,
 ) -> dict[str, Any]:
     text = safe_text(paragraph.text)
+    list_type, list_level = extract_list_metadata(paragraph)
 
     return {
         "doc_id": doc_id,
@@ -87,6 +140,8 @@ def extract_paragraph_block(
         "alignment": normalize_alignment(paragraph),
         "style": get_style_name(paragraph),
         "bold_ratio": round(compute_bold_ratio_from_runs(paragraph), 4),
+        "list_type": list_type,
+        "list_level": list_level,
         "file_name": file_name,
     }
 
@@ -181,6 +236,8 @@ def extract_blocks_from_docx(
                 "alignment",
                 "style",
                 "bold_ratio",
+                "list_type",
+                "list_level",
                 "file_name",
             ]
         )

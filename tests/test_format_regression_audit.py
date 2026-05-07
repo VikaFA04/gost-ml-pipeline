@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+from src.evaluation.format_regression_audit import (
+    audit_negative_pair,
+    audits_to_frame,
+    best_positive_match,
+    text_jaccard,
+)
+
+
+def write_docx(path, paragraphs: list[str]) -> None:
+    document = Document()
+    for text in paragraphs:
+        document.add_paragraph(text)
+    document.save(path)
+
+
+def test_text_jaccard_scores_overlap() -> None:
+    assert text_jaccard({"a", "b"}, {"b", "c"}) == 1 / 3
+    assert text_jaccard(set(), set()) == 1.0
+
+
+def test_best_positive_match_uses_docx_text(tmp_path) -> None:
+    positive_one = tmp_path / "1.docx"
+    positive_two = tmp_path / "2.docx"
+    negative = tmp_path / "negative.docx"
+    write_docx(positive_one, ["alpha beta"])
+    write_docx(positive_two, ["database sql query"])
+    write_docx(negative, ["sql query database"])
+
+    match, similarity = best_positive_match(negative, [positive_one, positive_two])
+
+    assert match == positive_two
+    assert similarity == 1.0
+
+
+def test_audit_negative_pair_reports_before_after_diff(tmp_path) -> None:
+    positive = tmp_path / "positive.docx"
+    positive_doc = Document()
+    positive_doc.add_paragraph("Paragraph")
+    positive_doc.save(positive)
+
+    negative = tmp_path / "negative.docx"
+    negative_doc = Document()
+    paragraph = negative_doc.add_paragraph("Paragraph")
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    negative_doc.save(negative)
+
+    audit = audit_negative_pair(
+        positive_path=positive,
+        negative_path=negative,
+        workspace_dir=tmp_path / "workspace",
+    )
+    frame = audits_to_frame([audit])
+
+    assert audit.before.changed_paragraphs == 1
+    assert audit.after.changed_paragraphs == 1
+    assert audit.formatter_summary["error"] == 0
+    assert frame.loc[0, "negative"] == "negative.docx"

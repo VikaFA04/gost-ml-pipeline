@@ -8,6 +8,7 @@ PROJECT_ROOT = SRC_DIR.parent
 
 DATA_DIR = PROJECT_ROOT / "data"
 PREPARED_DIR = DATA_DIR / "prepared"
+DATASET_DIR = PROJECT_ROOT / "dataset"
 
 RESULTS_DIR = PROJECT_ROOT / "results"
 MODELS_DIR = RESULTS_DIR / "models"
@@ -17,15 +18,15 @@ REPORTS_DIR = RESULTS_DIR / "reports"
 GENERATED_DOCX_DIR = RESULTS_DIR / "generated_docx"
 EXTRACTED_DIR = RESULTS_DIR / "extracted_blocks"
 
-# ОСНОВНЫЕ PREPARED DATASET ФАЙЛЫ
-TRAIN_CSV = PREPARED_DIR / "annotations_train_59_clean.csv"
-VAL_CSV = PREPARED_DIR / "annotations_val_59_clean.csv"
-TEST_CSV = PREPARED_DIR / "annotations_test_59_clean.csv"
-DOCUMENT_SPLITS_CSV = PREPARED_DIR / "document_splits_59_clean.csv"
+# ОСНОВНЫЕ DATASET ФАЙЛЫ
+TRAIN_CSV = DATASET_DIR / "annotations_train.csv"
+VAL_CSV = DATASET_DIR / "annotations_val.csv"
+TEST_CSV = DATASET_DIR / "annotations_test.csv"
+DOCUMENT_SPLITS_CSV = DATASET_DIR / "document_splits.csv"
 
 # КОЛОНКИ ДАННЫХ
 TEXT_COL = "text"
-TARGET_COL = "label_baseline"
+TARGET_COL = "label_core"
 
 FEATURE_COLUMNS = [
     "text",
