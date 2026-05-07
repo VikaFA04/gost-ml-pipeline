@@ -3,18 +3,19 @@ from pathlib import Path
 import pandas as pd
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
 
 from src.generate.docx_styles import (
-    apply_run_font,
+    configure_document_styles,
     setup_document_page,
-    style_bibliography_item,
-    style_body_paragraph,
-    style_caption,
-    style_list_item,
-    style_section_title,
-    style_subsection_title,
 )
+from src.rules.docx_style_profile import (
+    apply_style_profile_to_paragraph,
+    get_default_font_name,
+    get_label_style_profile,
+    resolve_writer_style_name,
+    resolve_writer_template_path,
+)
+from src.rules.profile_loader import load_profile
 
 LABEL_COL_CANDIDATES = ["postprocessed_label", "predicted_label"]
 
@@ -25,33 +26,23 @@ def resolve_label_column(df: pd.DataFrame) -> str:
     raise ValueError("В DataFrame нет ни 'postprocessed_label', ни 'predicted_label'")
 
 
-def add_styled_paragraph(document: Document, text: str, label: str):
+def add_styled_paragraph(document: Document, text: str, label: str, profile: dict | None = None):
     paragraph = document.add_paragraph()
-    run = paragraph.add_run(text)
+    style_name = resolve_writer_style_name(profile, label)
+    try:
+        paragraph.style = style_name
+    except Exception:
+        paragraph.style = "Normal"
 
-    if label in {"title_section", "bibliography_title", "appendix_title"}:
-        apply_run_font(run, font_size=14, bold=True)
-        style_section_title(paragraph)
+    paragraph.add_run(text)
 
-    elif label in {"title_subsection"}:
-        apply_run_font(run, font_size=14, bold=True)
-        style_subsection_title(paragraph)
-
-    elif label in {"figure_caption", "table_caption"}:
-        apply_run_font(run, font_size=12, bold=False)
-        style_caption(paragraph)
-
-    elif label in {"bibliography_item"}:
-        apply_run_font(run, font_size=14, bold=False)
-        style_bibliography_item(paragraph)
-
-    elif label in {"list_item"}:
-        apply_run_font(run, font_size=14, bold=False)
-        style_list_item(paragraph)
-
-    else:
-        apply_run_font(run, font_size=14, bold=False)
-        style_body_paragraph(paragraph)
+    style_profile = get_label_style_profile(profile, label)
+    if style_profile:
+        apply_style_profile_to_paragraph(
+            paragraph=paragraph,
+            style_profile=style_profile,
+            default_font_name=get_default_font_name(profile),
+        )
 
     return paragraph
 
@@ -83,17 +74,19 @@ def add_table_from_text(document: Document, table_text: str) -> None:
         for j in range(max_cols):
             value = row[j] if j < len(row) else ""
             cell_par = table.cell(i, j).paragraphs[0]
-            run = cell_par.add_run(value)
-            apply_run_font(run, font_size=12, bold=False)
+            cell_par.add_run(value)
             cell_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
 
 def generate_docx_from_predictions(
     predictions_csv: str | Path,
     output_docx: str | Path,
+    profile_path: str | Path | None = None,
+    profile_id: str | None = None,
 ) -> None:
     predictions_csv = Path(predictions_csv)
     output_docx = Path(output_docx)
+    profile = load_profile(profile_path=profile_path, profile_id=profile_id)
 
     df = pd.read_csv(predictions_csv)
     if "block_id" in df.columns:
@@ -101,8 +94,15 @@ def generate_docx_from_predictions(
 
     label_col = resolve_label_column(df)
 
-    document = Document()
+    template_path = resolve_writer_template_path(profile)
+    if template_path is not None:
+        if not template_path.exists():
+            raise FileNotFoundError(f"Шаблон DOCX не найден: {template_path}")
+        document = Document(str(template_path))
+    else:
+        document = Document()
     setup_document_page(document)
+    configure_document_styles(document)
 
     for _, row in df.iterrows():
         text = str(row.get("text", "")).strip()
@@ -116,7 +116,7 @@ def generate_docx_from_predictions(
             add_table_from_text(document, text)
             continue
 
-        add_styled_paragraph(document, text, label)
+        add_styled_paragraph(document, text, label, profile=profile)
 
     output_docx.parent.mkdir(parents=True, exist_ok=True)
     document.save(str(output_docx))

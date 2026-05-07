@@ -119,27 +119,41 @@ def load_profile(
 
 
 def list_available_profiles(
-    profiles_dir: str | Path | None = None,
+    profiles_dir: str | Path | list[str | Path] | tuple[str | Path, ...] | None = None,
 ) -> list[dict[str, str]]:
-    base_dir = Path(profiles_dir) if profiles_dir else PROFILES_DIR
+    if profiles_dir is None:
+        dirs = [PROFILES_DIR]
+    elif isinstance(profiles_dir, (list, tuple)):
+        dirs = [Path(item) for item in profiles_dir]
+    else:
+        dirs = [Path(profiles_dir)]
+
     items: list[dict[str, str]] = []
 
-    if not base_dir.exists():
-        return items
+    seen_profile_ids: set[str] = set()
 
-    for path in sorted(base_dir.glob("*.json")):
-        try:
-            raw = load_profile_file(path)
-            items.append(
-                {
-                    "profile_id": str(raw.get("profile_id", path.stem)),
-                    "profile_name": str(raw.get("profile_name", path.stem)),
-                    "profile_type": str(raw.get("profile_type", "unknown")),
-                    "path": str(path),
-                }
-            )
-        except Exception:
+    for base_dir in dirs:
+        if not base_dir.exists():
             continue
+
+        for path in sorted(base_dir.glob("*.json")):
+            try:
+                raw = load_profile_file(path)
+                profile_id = str(raw.get("profile_id", path.stem))
+                if profile_id in seen_profile_ids:
+                    continue
+                items.append(
+                    {
+                        "profile_id": profile_id,
+                        "profile_name": str(raw.get("profile_name", path.stem)),
+                        "profile_type": str(raw.get("profile_type", "unknown")),
+                        "source_type": str(raw.get("source_type", "unknown")),
+                        "path": str(path),
+                    }
+                )
+                seen_profile_ids.add(profile_id)
+            except Exception:
+                continue
 
     return items
 

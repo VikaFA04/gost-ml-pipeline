@@ -1,0 +1,63 @@
+from __future__ import annotations
+
+import pandas as pd
+
+from src.postprocess.postprocess_rules import apply_postprocess_rules
+
+
+def _row(block_id: int, text: str, predicted_label: str) -> dict[str, object]:
+    return {
+        "doc_id": "doc_1",
+        "block_id": block_id,
+        "text": text,
+        "style": "Normal",
+        "predicted_label": predicted_label,
+    }
+
+
+def test_long_numbered_list_run_becomes_bibliography_items() -> None:
+    df = pd.DataFrame(
+        [_row(1, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", "bibliography_title")]
+        + [_row(index + 2, f"{index + 1}. Источник {index + 1}", "list_item") for index in range(8)]
+    )
+
+    result = apply_postprocess_rules(df)
+
+    assert result.loc[result["block_id"] == 1, "postprocessed_label"].item() == "bibliography_title"
+    assert set(result.loc[result["block_id"] > 1, "postprocessed_label"]) == {"bibliography_item"}
+
+
+def test_long_numbered_list_without_bibliography_context_stays_list_items() -> None:
+    df = pd.DataFrame(
+        [_row(1, "Перед списком:", "body_text")]
+        + [_row(index + 2, f"{index + 1}. Пункт {index + 1}", "list_item") for index in range(8)]
+    )
+
+    result = apply_postprocess_rules(df)
+
+    assert set(result.loc[result["block_id"] > 1, "postprocessed_label"]) == {"list_item"}
+
+
+def test_short_numbered_list_run_stays_list_items() -> None:
+    df = pd.DataFrame(
+        [_row(1, "Перед списком:", "body_text")]
+        + [_row(index + 2, f"{index + 1}. Пункт {index + 1}", "list_item") for index in range(3)]
+    )
+
+    result = apply_postprocess_rules(df)
+
+    assert set(result.loc[result["block_id"] > 1, "postprocessed_label"]) == {"list_item"}
+
+
+def test_postprocess_preserves_non_list_predictions() -> None:
+    df = pd.DataFrame(
+        [
+            _row(1, "Рисунок 1 - Схема", "figure_caption"),
+            _row(2, "Обычный текст", "body_text"),
+            _row(3, "Таблица 1 - Данные", "table_caption"),
+        ]
+    )
+
+    result = apply_postprocess_rules(df)
+
+    assert result["postprocessed_label"].tolist() == ["figure_caption", "body_text", "table_caption"]
