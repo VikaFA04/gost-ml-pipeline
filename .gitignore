@@ -26,6 +26,12 @@ tests_runtime/
 
 # Local data scratch/intermediate files
 data/interim/
+dataset/
+positive_examples/
+negative_examples/
+normocontrol/
+interface/
+PRD_gost_formatter.md
 
 # Local agent/editor state
 .codex
