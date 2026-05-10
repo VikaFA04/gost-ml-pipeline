@@ -94,12 +94,14 @@ def apply_postprocess_rules(
         group = group.copy().sort_values("block_id")
         labels = [str(value) for value in group[pred_col].tolist()]
         texts = [_safe_text(value) for value in group["text"].tolist()]
+        section_indices: list[int | None] = [None] * len(labels)
 
         for position, (_, row) in enumerate(group.iterrows()):
             if labels[position] == "body_text" and _is_structural_list_item(row, texts[position]):
                 labels[position] = "list_item"
 
         in_bibliography = False
+        bibliography_section_index = 0
         for position, (_, row) in enumerate(group.iterrows()):
             text = texts[position]
             label = labels[position]
@@ -112,9 +114,12 @@ def apply_postprocess_rules(
             if not in_bibliography:
                 continue
             if _is_bibliography_subheading(text):
+                bibliography_section_index += 1
                 labels[position] = "bibliography_title"
+                section_indices[position] = bibliography_section_index
             elif label in {"body_text", "list_item"} and _looks_like_bibliography_entry(row, text):
                 labels[position] = "bibliography_item"
+                section_indices[position] = bibliography_section_index or None
 
         index = 0
         while index < len(labels):
@@ -136,6 +141,7 @@ def apply_postprocess_rules(
                 index += 1
 
         group[out_col] = labels
+        group["bibliography_section_index"] = pd.Series(section_indices, dtype=object).to_numpy()
         result_parts.append(group)
 
     return pd.concat(result_parts, axis=0).sort_index()

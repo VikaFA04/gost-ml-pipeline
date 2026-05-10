@@ -105,6 +105,16 @@
       "priority": 10
     },
     {
+      "id": "bibliography_section_title_prefix",
+      "applicable_labels": ["bibliography_title"],
+      "parameter": "bibliography_section_title",
+      "expected_value": true,
+      "action": "fix",
+      "severity": "high",
+      "autocorrect": true,
+      "priority": 95
+    },
+    {
       "id": "bibliography_item_format",
       "applicable_labels": ["bibliography_item"],
       "parameter": "bibliography_format",

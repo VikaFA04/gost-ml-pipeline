@@ -300,6 +300,55 @@ def test_bibliography_item_gets_numbered_word_style_without_text_change() -> Non
     assert paragraph.text == before_text
 
 
+def test_bibliography_item_numbering_uses_section_prefix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Data normalization / URL: https://example.test")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="bibliography_item",
+        row_data={
+            "text": paragraph.text,
+            "bibliography_section_index": 2,
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "numbering" in result["applied_fixes"]
+    numbering_xml = paragraph.part.numbering_part.element.xml
+    assert 'w:val="2.%1"' in numbering_xml
+
+
+def test_bibliography_subheading_gets_section_number_prefix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Практическая часть")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="bibliography_title",
+        row_data={
+            "text": paragraph.text,
+            "bibliography_section_index": 2,
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "bibliography_section_prefix" in result["applied_fixes"]
+    assert paragraph.text == "2 ПРАКТИЧЕСКАЯ ЧАСТЬ"
+
+
 def test_marker_only_list_item_requires_review_not_autofix() -> None:
     document = Document()
     paragraph = document.add_paragraph("- marker-only list item")

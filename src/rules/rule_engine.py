@@ -35,7 +35,7 @@ ACCEPTED_LIST_LAYOUTS = {
     (2.25, -1.0),
     (2.5, -1.0),
 }
-_BIBLIOGRAPHY_NUM_IDS: dict[int, int] = {}
+_BIBLIOGRAPHY_NUM_IDS: dict[tuple[int, int | None], int] = {}
 
 
 def normalize_alignment(value) -> str | None:
@@ -149,7 +149,11 @@ def apply_list_format(paragraph: Paragraph, level_config: dict[str, Any]) -> lis
     return ["left_indent_cm", "first_line_indent_cm", "tab_stop_cm"]
 
 
-def apply_bibliography_format(paragraph: Paragraph, config: dict[str, Any]) -> list[str]:
+def apply_bibliography_format(
+    paragraph: Paragraph,
+    config: dict[str, Any],
+    section_index: int | None = None,
+) -> list[str]:
     applied = []
     style_name = str(config.get("style_name", "List Number"))
     try:
@@ -159,7 +163,7 @@ def apply_bibliography_format(paragraph: Paragraph, config: dict[str, Any]) -> l
     except Exception:
         pass
 
-    applied.extend(apply_bibliography_numbering(paragraph))
+    applied.extend(apply_bibliography_numbering(paragraph, section_index))
 
     scalar_fields = [
         "alignment",
@@ -200,6 +204,15 @@ def _find_decimal_abstract_num_id(numbering_root) -> str:
     return "0"
 
 
+def _next_abstract_num_id(numbering_root) -> int:
+    existing = [
+        int(abstract_num.get(qn("w:abstractNumId")))
+        for abstract_num in numbering_root.findall(qn("w:abstractNum"))
+        if abstract_num.get(qn("w:abstractNumId")) is not None
+    ]
+    return (max(existing) if existing else 0) + 1
+
+
 def _next_num_id(numbering_root) -> int:
     existing = [
         int(num.get(qn("w:numId")))
@@ -209,13 +222,52 @@ def _next_num_id(numbering_root) -> int:
     return (max(existing) if existing else 0) + 1
 
 
-def _get_bibliography_num_id(paragraph: Paragraph) -> int:
+def _create_section_abstract_num_id(numbering_root, section_index: int) -> str:
+    abstract_num_id = _next_abstract_num_id(numbering_root)
+
+    abstract_num = OxmlElement("w:abstractNum")
+    abstract_num.set(qn("w:abstractNumId"), str(abstract_num_id))
+
+    multi_level_type = OxmlElement("w:multiLevelType")
+    multi_level_type.set(qn("w:val"), "singleLevel")
+    abstract_num.append(multi_level_type)
+
+    level = OxmlElement("w:lvl")
+    level.set(qn("w:ilvl"), "0")
+
+    start = OxmlElement("w:start")
+    start.set(qn("w:val"), "1")
+    level.append(start)
+
+    num_fmt = OxmlElement("w:numFmt")
+    num_fmt.set(qn("w:val"), "decimal")
+    level.append(num_fmt)
+
+    level_text = OxmlElement("w:lvlText")
+    level_text.set(qn("w:val"), f"{section_index}.%1")
+    level.append(level_text)
+
+    level_jc = OxmlElement("w:lvlJc")
+    level_jc.set(qn("w:val"), "left")
+    level.append(level_jc)
+
+    abstract_num.append(level)
+    numbering_root.append(abstract_num)
+
+    return str(abstract_num_id)
+
+
+def _get_bibliography_num_id(paragraph: Paragraph, section_index: int | None = None) -> int:
     numbering_root = paragraph.part.numbering_part.element
-    root_key = id(numbering_root)
+    root_key = (id(numbering_root), section_index)
     if root_key in _BIBLIOGRAPHY_NUM_IDS:
         return _BIBLIOGRAPHY_NUM_IDS[root_key]
 
-    abstract_num_id = _find_decimal_abstract_num_id(numbering_root)
+    abstract_num_id = (
+        _create_section_abstract_num_id(numbering_root, section_index)
+        if section_index is not None
+        else _find_decimal_abstract_num_id(numbering_root)
+    )
     num_id = _next_num_id(numbering_root)
 
     num = OxmlElement("w:num")
@@ -229,7 +281,25 @@ def _get_bibliography_num_id(paragraph: Paragraph) -> int:
     return num_id
 
 
-def apply_bibliography_numbering(paragraph: Paragraph) -> list[str]:
+def _safe_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        if pd_is_na(value):
+            return None
+    except Exception:
+        pass
+    try:
+        return int(float(value))
+    except Exception:
+        return None
+
+
+def pd_is_na(value: Any) -> bool:
+    return value != value
+
+
+def apply_bibliography_numbering(paragraph: Paragraph, section_index: int | None = None) -> list[str]:
     p_pr = paragraph._p.get_or_add_pPr()
     num_pr = p_pr.find(qn("w:numPr"))
     if num_pr is None:
@@ -242,7 +312,7 @@ def apply_bibliography_numbering(paragraph: Paragraph) -> list[str]:
         num_pr.append(ilvl)
     ilvl.set(qn("w:val"), "0")
 
-    num_id_value = str(_get_bibliography_num_id(paragraph))
+    num_id_value = str(_get_bibliography_num_id(paragraph, section_index))
     num_id = num_pr.find(qn("w:numId"))
     if num_id is None:
         num_id = OxmlElement("w:numId")
@@ -250,6 +320,37 @@ def apply_bibliography_numbering(paragraph: Paragraph) -> list[str]:
     num_id.set(qn("w:val"), num_id_value)
 
     return ["numbering"]
+
+
+def _bibliography_section_index(row_data: dict[str, Any]) -> int | None:
+    raw_value = row_data.get("bibliography_section_index")
+    value = _safe_int(raw_value)
+    if value is None or value < 1:
+        return None
+    return value
+
+
+def _bibliography_section_title(text: str, section_index: int) -> str:
+    title = re.sub(r"^\s*\d+\s+", "", text).strip().upper()
+    return f"{section_index} {title}"
+
+
+def bibliography_section_title_matches(paragraph: Paragraph, row_data: dict[str, Any]) -> bool:
+    section_index = _bibliography_section_index(row_data)
+    if section_index is None:
+        return True
+    return paragraph.text.strip() == _bibliography_section_title(paragraph.text, section_index)
+
+
+def apply_bibliography_section_title(paragraph: Paragraph, row_data: dict[str, Any]) -> list[str]:
+    section_index = _bibliography_section_index(row_data)
+    if section_index is None:
+        return []
+    expected_text = _bibliography_section_title(paragraph.text, section_index)
+    if paragraph.text.strip() == expected_text:
+        return []
+    paragraph.text = expected_text
+    return ["bibliography_section_prefix"]
 
 
 def bibliography_format_matches(paragraph: Paragraph, config: dict[str, Any]) -> bool:
@@ -434,6 +535,18 @@ def apply_rules_to_paragraph(
         if label == "list_item" and parameter == "bold":
             continue
 
+        if parameter == "bibliography_section_title":
+            if bibliography_section_title_matches(paragraph, row_data):
+                continue
+            violated_rules.append(rule["id"])
+            suggested_fixes.append("bibliography_section_prefix")
+            explanations.append(f"{rule['id']}: bibliography section title needs numbering")
+            if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+                applied_fixes.extend(apply_bibliography_section_title(paragraph, row_data))
+            else:
+                manual_review_required = True
+            continue
+
         if parameter == "bibliography_format":
             expected_value = rule["expected_value"]
             if bibliography_format_matches(paragraph, expected_value):
@@ -449,7 +562,13 @@ def apply_rules_to_paragraph(
             )
             explanations.append(f"{rule['id']}: bibliography item is not numbered/formatted")
             if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
-                applied_fixes.extend(apply_bibliography_format(paragraph, expected_value))
+                applied_fixes.extend(
+                    apply_bibliography_format(
+                        paragraph,
+                        expected_value,
+                        _bibliography_section_index(row_data),
+                    )
+                )
             else:
                 manual_review_required = True
             continue

@@ -61,6 +61,7 @@ def test_bibliography_context_overrides_body_text_and_list_predictions() -> None
         "bibliography_item",
         "body_text",
     ]
+    assert result["bibliography_section_index"].tolist() == [None, 1, 1, 2, 2, None]
 
 
 def test_long_numbered_list_run_becomes_bibliography_items() -> None:
