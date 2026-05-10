@@ -15,6 +15,30 @@ def _row(block_id: int, text: str, predicted_label: str) -> dict[str, object]:
     }
 
 
+def test_structural_list_paragraph_overrides_body_text_prediction() -> None:
+    row = _row(1, "Проверить форматирование списка;", "body_text")
+    row["style"] = "List Paragraph"
+    row["list_type"] = "list"
+    row["list_level"] = 0
+    df = pd.DataFrame([row])
+
+    result = apply_postprocess_rules(df)
+
+    assert result.loc[0, "postprocessed_label"] == "list_item"
+
+
+def test_formula_like_list_paragraph_stays_body_text() -> None:
+    row = _row(1, ",\t(1.1)", "body_text")
+    row["style"] = "List Paragraph"
+    row["list_type"] = "list"
+    row["list_level"] = 0
+    df = pd.DataFrame([row])
+
+    result = apply_postprocess_rules(df)
+
+    assert result.loc[0, "postprocessed_label"] == "body_text"
+
+
 def test_long_numbered_list_run_becomes_bibliography_items() -> None:
     df = pd.DataFrame(
         [_row(1, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", "bibliography_title")]

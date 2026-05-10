@@ -219,6 +219,27 @@ def test_body_text_hanging_indent_requires_review_not_autofix() -> None:
     assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
 
 
+def test_body_text_line_spacing_mismatch_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Обычный абзац с явным межстрочным интервалом.")
+    paragraph.paragraph_format.line_spacing = 1.0
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data={"confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph.paragraph_format.line_spacing == 1.0
+
+
 def test_list_formatting_fix_level_1() -> None:
     document = Document()
     paragraph = document.add_paragraph("a)\tNested item")

@@ -23,7 +23,12 @@ BULLET_MARKER_RE = re.compile(r"^\s*[-—–•●■◦]\s+")
 HIGH_CONFIDENCE_THRESHOLD = 0.9
 MAX_FALLBACK_LIST_WORDS = 40
 MAX_FALLBACK_LIST_CHARS = 300
-BODY_TEXT_REVIEW_ONLY_PARAMETERS = {"alignment", "first_line_indent_cm", "left_indent_cm"}
+BODY_TEXT_REVIEW_ONLY_PARAMETERS = {
+    "alignment",
+    "first_line_indent_cm",
+    "left_indent_cm",
+    "line_spacing",
+}
 LIST_ITEM_REVIEW_ONLY_PARAMETERS = {"alignment", "line_spacing"}
 ACCEPTED_LIST_LAYOUTS = {
     (2.25, -1.0),
