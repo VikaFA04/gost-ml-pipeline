@@ -39,6 +39,30 @@ def test_formula_like_list_paragraph_stays_body_text() -> None:
     assert result.loc[0, "postprocessed_label"] == "body_text"
 
 
+def test_bibliography_context_overrides_body_text_and_list_predictions() -> None:
+    df = pd.DataFrame(
+        [
+            _row(1, "СПИСОК ИСПОЛЬЗУЕМЫХ ИСТОЧНИКОВ", "body_text"),
+            _row(2, "Теоретическая часть", "body_text"),
+            _row(3, "Иванов И. И. Учебник. — Москва, 2020. — 120 с.", "body_text"),
+            _row(4, "Практическая часть", "body_text"),
+            _row(5, "Data normalization / URL: https://example.test", "list_item"),
+            _row(6, "ЗАКЛЮЧЕНИЕ", "body_text"),
+        ]
+    )
+
+    result = apply_postprocess_rules(df)
+
+    assert result["postprocessed_label"].tolist() == [
+        "bibliography_title",
+        "bibliography_title",
+        "bibliography_item",
+        "bibliography_title",
+        "bibliography_item",
+        "body_text",
+    ]
+
+
 def test_long_numbered_list_run_becomes_bibliography_items() -> None:
     df = pd.DataFrame(
         [_row(1, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", "bibliography_title")]

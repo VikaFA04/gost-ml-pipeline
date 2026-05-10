@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 from docx.text.paragraph import Paragraph
@@ -34,6 +35,7 @@ ACCEPTED_LIST_LAYOUTS = {
     (2.25, -1.0),
     (2.5, -1.0),
 }
+_BIBLIOGRAPHY_NUM_IDS: dict[int, int] = {}
 
 
 def normalize_alignment(value) -> str | None:
@@ -145,6 +147,120 @@ def apply_list_format(paragraph: Paragraph, level_config: dict[str, Any]) -> lis
     fmt.first_line_indent = Cm(float(level_config["first_line_indent_cm"]))
     fmt.tab_stops.add_tab_stop(Cm(float(level_config["tab_stop_cm"])))
     return ["left_indent_cm", "first_line_indent_cm", "tab_stop_cm"]
+
+
+def apply_bibliography_format(paragraph: Paragraph, config: dict[str, Any]) -> list[str]:
+    applied = []
+    style_name = str(config.get("style_name", "List Number"))
+    try:
+        if paragraph.style is None or paragraph.style.name != style_name:
+            paragraph.style = style_name
+            applied.append("style_name")
+    except Exception:
+        pass
+
+    applied.extend(apply_bibliography_numbering(paragraph))
+
+    scalar_fields = [
+        "alignment",
+        "first_line_indent_cm",
+        "left_indent_cm",
+        "line_spacing",
+        "space_before_pt",
+        "space_after_pt",
+    ]
+    for field in scalar_fields:
+        if field not in config:
+            continue
+        applied.extend(
+            apply_scalar_fix(
+                paragraph=paragraph,
+                parameter=field,
+                expected_value=config[field],
+                default_font_name="Times New Roman",
+            )
+        )
+    return sorted(set(applied))
+
+
+def _find_decimal_abstract_num_id(numbering_root) -> str:
+    for abstract_num in numbering_root.findall(qn("w:abstractNum")):
+        level = abstract_num.find(qn("w:lvl"))
+        if level is None:
+            continue
+        num_fmt = level.find(qn("w:numFmt"))
+        level_text = level.find(qn("w:lvlText"))
+        if (
+            num_fmt is not None
+            and num_fmt.get(qn("w:val")) == "decimal"
+            and level_text is not None
+            and level_text.get(qn("w:val")) in {"%1.", "%1)"}
+        ):
+            return str(abstract_num.get(qn("w:abstractNumId")))
+    return "0"
+
+
+def _next_num_id(numbering_root) -> int:
+    existing = [
+        int(num.get(qn("w:numId")))
+        for num in numbering_root.findall(qn("w:num"))
+        if num.get(qn("w:numId")) is not None
+    ]
+    return (max(existing) if existing else 0) + 1
+
+
+def _get_bibliography_num_id(paragraph: Paragraph) -> int:
+    numbering_root = paragraph.part.numbering_part.element
+    root_key = id(numbering_root)
+    if root_key in _BIBLIOGRAPHY_NUM_IDS:
+        return _BIBLIOGRAPHY_NUM_IDS[root_key]
+
+    abstract_num_id = _find_decimal_abstract_num_id(numbering_root)
+    num_id = _next_num_id(numbering_root)
+
+    num = OxmlElement("w:num")
+    num.set(qn("w:numId"), str(num_id))
+    abstract_ref = OxmlElement("w:abstractNumId")
+    abstract_ref.set(qn("w:val"), abstract_num_id)
+    num.append(abstract_ref)
+    numbering_root.append(num)
+
+    _BIBLIOGRAPHY_NUM_IDS[root_key] = num_id
+    return num_id
+
+
+def apply_bibliography_numbering(paragraph: Paragraph) -> list[str]:
+    p_pr = paragraph._p.get_or_add_pPr()
+    num_pr = p_pr.find(qn("w:numPr"))
+    if num_pr is None:
+        num_pr = OxmlElement("w:numPr")
+        p_pr.append(num_pr)
+
+    ilvl = num_pr.find(qn("w:ilvl"))
+    if ilvl is None:
+        ilvl = OxmlElement("w:ilvl")
+        num_pr.append(ilvl)
+    ilvl.set(qn("w:val"), "0")
+
+    num_id_value = str(_get_bibliography_num_id(paragraph))
+    num_id = num_pr.find(qn("w:numId"))
+    if num_id is None:
+        num_id = OxmlElement("w:numId")
+        num_pr.append(num_id)
+    num_id.set(qn("w:val"), num_id_value)
+
+    return ["numbering"]
+
+
+def bibliography_format_matches(paragraph: Paragraph, config: dict[str, Any]) -> bool:
+    num_pr = paragraph._p.pPr.numPr if paragraph._p.pPr is not None else None
+    current = get_current_paragraph_profile(paragraph)
+    for field, expected in config.items():
+        if field == "style_name":
+            continue
+        if not compare_scalar(current.get(field), expected):
+            return False
+    return True
 
 
 def compare_scalar(current_value: Any, expected_value: Any) -> bool:
@@ -316,6 +432,26 @@ def apply_rules_to_paragraph(
     for rule in applicable_rules:
         parameter = str(rule["parameter"])
         if label == "list_item" and parameter == "bold":
+            continue
+
+        if parameter == "bibliography_format":
+            expected_value = rule["expected_value"]
+            if bibliography_format_matches(paragraph, expected_value):
+                continue
+            violated_rules.append(rule["id"])
+            suggested_fixes.extend(
+                [
+                    "style_name",
+                    "first_line_indent_cm",
+                    "left_indent_cm",
+                    "numbering",
+                ]
+            )
+            explanations.append(f"{rule['id']}: bibliography item is not numbered/formatted")
+            if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+                applied_fixes.extend(apply_bibliography_format(paragraph, expected_value))
+            else:
+                manual_review_required = True
             continue
 
         if parameter == "list_format":

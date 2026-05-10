@@ -272,6 +272,34 @@ def test_list_formatting_fix_level_1() -> None:
     assert round(tab_stops[0].position.cm, 2) == 2.5
 
 
+def test_bibliography_item_gets_numbered_word_style_without_text_change() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Иванов И. И. Учебник. — Москва, 2020. — 120 с.")
+    paragraph.style = "Normal"
+    before_text = paragraph.text
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="bibliography_item",
+        row_data={
+            "text": before_text,
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "numbering" in result["applied_fixes"]
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is not None
+    assert paragraph._p.pPr.numPr.numId is not None
+    assert paragraph.text == before_text
+
+
 def test_marker_only_list_item_requires_review_not_autofix() -> None:
     document = Document()
     paragraph = document.add_paragraph("- marker-only list item")
