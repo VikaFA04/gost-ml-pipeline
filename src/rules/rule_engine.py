@@ -19,6 +19,7 @@ ALIGNMENT_MAP = {
 
 LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
 HEADING_STYLE_RE = re.compile(r"heading|заголов", re.IGNORECASE)
+BIBLIOGRAPHY_SUBHEADING_RE = re.compile(r"^(?:\d+\s*)?(теоретическая\s+часть|практическая\s+часть)$", re.IGNORECASE)
 NUMBERED_MARKER_RE = re.compile(r"^\s*(?:\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])\s+")
 BULLET_MARKER_RE = re.compile(r"^\s*[-—–•●■◦]\s+")
 HIGH_CONFIDENCE_THRESHOLD = 0.9
@@ -140,13 +141,86 @@ def clear_tab_stops(paragraph: Paragraph) -> None:
         p_pr.remove(tabs)
 
 
-def apply_list_format(paragraph: Paragraph, level_config: dict[str, Any]) -> list[str]:
+def _num_id_exists(paragraph: Paragraph, num_id: str | int | None) -> bool:
+    if num_id is None:
+        return False
+    numbering_root = paragraph.part.numbering_part.element
+    expected = str(num_id)
+    return any(num.get(qn("w:numId")) == expected for num in numbering_root.findall(qn("w:num")))
+
+
+def paragraph_numbering_reference_is_valid(paragraph: Paragraph) -> bool:
+    try:
+        num_pr = paragraph._p.pPr.numPr if paragraph._p.pPr is not None else None
+        if num_pr is None or num_pr.numId is None:
+            return False
+        return _num_id_exists(paragraph, num_pr.numId.val)
+    except Exception:
+        return False
+
+
+def _find_abstract_num_id_by_format(numbering_root, num_format: str) -> str:
+    for abstract_num in numbering_root.findall(qn("w:abstractNum")):
+        level = abstract_num.find(qn("w:lvl"))
+        if level is None:
+            continue
+        num_fmt = level.find(qn("w:numFmt"))
+        if num_fmt is not None and num_fmt.get(qn("w:val")) == num_format:
+            return str(abstract_num.get(qn("w:abstractNumId")))
+    return _find_decimal_abstract_num_id(numbering_root)
+
+
+def _create_num_for_abstract(numbering_root, abstract_num_id: str) -> int:
+    num_id = _next_num_id(numbering_root)
+    num = OxmlElement("w:num")
+    num.set(qn("w:numId"), str(num_id))
+    abstract_ref = OxmlElement("w:abstractNumId")
+    abstract_ref.set(qn("w:val"), abstract_num_id)
+    num.append(abstract_ref)
+    numbering_root.append(num)
+    return num_id
+
+
+def apply_list_numbering(paragraph: Paragraph, list_type: Any) -> list[str]:
+    if paragraph_numbering_reference_is_valid(paragraph):
+        return []
+    numbering_root = paragraph.part.numbering_part.element
+    num_format = "decimal" if str(list_type) == "numbered" else "bullet"
+    abstract_num_id = _find_abstract_num_id_by_format(numbering_root, num_format)
+    num_id = _create_num_for_abstract(numbering_root, abstract_num_id)
+
+    p_pr = paragraph._p.get_or_add_pPr()
+    num_pr = p_pr.find(qn("w:numPr"))
+    if num_pr is None:
+        num_pr = OxmlElement("w:numPr")
+        p_pr.append(num_pr)
+    ilvl = num_pr.find(qn("w:ilvl"))
+    if ilvl is None:
+        ilvl = OxmlElement("w:ilvl")
+        num_pr.append(ilvl)
+    ilvl.set(qn("w:val"), "0")
+    num_id_element = num_pr.find(qn("w:numId"))
+    if num_id_element is None:
+        num_id_element = OxmlElement("w:numId")
+        num_pr.append(num_id_element)
+    num_id_element.set(qn("w:val"), str(num_id))
+    return ["numbering"]
+
+
+def apply_list_format(
+    paragraph: Paragraph,
+    level_config: dict[str, Any],
+    list_type: Any = None,
+) -> list[str]:
     fmt = paragraph.paragraph_format
+    applied = []
     clear_tab_stops(paragraph)
     fmt.left_indent = Cm(float(level_config["left_indent_cm"]))
     fmt.first_line_indent = Cm(float(level_config["first_line_indent_cm"]))
     fmt.tab_stops.add_tab_stop(Cm(float(level_config["tab_stop_cm"])))
-    return ["left_indent_cm", "first_line_indent_cm", "tab_stop_cm"]
+    applied.extend(["left_indent_cm", "first_line_indent_cm", "tab_stop_cm"])
+    applied.extend(apply_list_numbering(paragraph, list_type))
+    return sorted(set(applied))
 
 
 def apply_bibliography_format(
@@ -257,6 +331,35 @@ def _create_section_abstract_num_id(numbering_root, section_index: int) -> str:
     return str(abstract_num_id)
 
 
+def bibliography_numbering_matches(paragraph: Paragraph, section_index: int | None) -> bool:
+    try:
+        num_pr = paragraph._p.pPr.numPr if paragraph._p.pPr is not None else None
+        if num_pr is None or num_pr.numId is None or not _num_id_exists(paragraph, num_pr.numId.val):
+            return False
+        if section_index is None:
+            return True
+        numbering_root = paragraph.part.numbering_part.element
+        num_id = str(num_pr.numId.val)
+        abstract_num_id = None
+        for num in numbering_root.findall(qn("w:num")):
+            if num.get(qn("w:numId")) == num_id:
+                abstract_ref = num.find(qn("w:abstractNumId"))
+                abstract_num_id = abstract_ref.get(qn("w:val")) if abstract_ref is not None else None
+                break
+        if abstract_num_id is None:
+            return False
+        expected_level_text = f"{section_index}.%1"
+        for abstract_num in numbering_root.findall(qn("w:abstractNum")):
+            if abstract_num.get(qn("w:abstractNumId")) != abstract_num_id:
+                continue
+            level = abstract_num.find(qn("w:lvl"))
+            level_text = level.find(qn("w:lvlText")) if level is not None else None
+            return bool(level_text is not None and level_text.get(qn("w:val")) == expected_level_text)
+    except Exception:
+        return False
+    return False
+
+
 def _get_bibliography_num_id(paragraph: Paragraph, section_index: int | None = None) -> int:
     numbering_root = paragraph.part.numbering_part.element
     root_key = (id(numbering_root), section_index)
@@ -335,6 +438,10 @@ def _bibliography_section_title(text: str, section_index: int) -> str:
     return f"{section_index} {title}"
 
 
+def _is_bibliography_section_heading(text: str) -> bool:
+    return BIBLIOGRAPHY_SUBHEADING_RE.search(text) is not None
+
+
 def bibliography_section_title_matches(paragraph: Paragraph, row_data: dict[str, Any]) -> bool:
     section_index = _bibliography_section_index(row_data)
     if section_index is None:
@@ -353,15 +460,19 @@ def apply_bibliography_section_title(paragraph: Paragraph, row_data: dict[str, A
     return ["bibliography_section_prefix"]
 
 
-def bibliography_format_matches(paragraph: Paragraph, config: dict[str, Any]) -> bool:
-    num_pr = paragraph._p.pPr.numPr if paragraph._p.pPr is not None else None
+def bibliography_format_matches(
+    paragraph: Paragraph,
+    config: dict[str, Any],
+    row_data: dict[str, Any],
+) -> bool:
+    section_index = _bibliography_section_index(row_data)
     current = get_current_paragraph_profile(paragraph)
     for field, expected in config.items():
         if field == "style_name":
             continue
         if not compare_scalar(current.get(field), expected):
             return False
-    return True
+    return bibliography_numbering_matches(paragraph, section_index)
 
 
 def compare_scalar(current_value: Any, expected_value: Any) -> bool:
@@ -529,6 +640,16 @@ def apply_rules_to_paragraph(
     unsafe_auto_fix_reason = ""
     list_assessment = assess_list_auto_fix_safety(paragraph, row_data) if label == "list_item" else None
     body_label_on_list_like_paragraph = label == "body_text" and is_list_like_paragraph(paragraph, row_data)
+    bibliography_section_index = _bibliography_section_index(row_data)
+
+    if label in {"title_section", "title_subsection"} and bibliography_section_index is not None:
+        expected_text = _bibliography_section_title(paragraph.text, bibliography_section_index)
+        if paragraph.text.strip() != expected_text:
+            if apply_safe:
+                paragraph.text = expected_text
+                applied_fixes.append("bibliography_section_prefix")
+            else:
+                manual_review_required = True
 
     for rule in applicable_rules:
         parameter = str(rule["parameter"])
@@ -549,7 +670,7 @@ def apply_rules_to_paragraph(
 
         if parameter == "bibliography_format":
             expected_value = rule["expected_value"]
-            if bibliography_format_matches(paragraph, expected_value):
+            if bibliography_format_matches(paragraph, expected_value, row_data):
                 continue
             violated_rules.append(rule["id"])
             suggested_fixes.extend(
@@ -584,7 +705,17 @@ def apply_rules_to_paragraph(
                 continue
             expected_value = rule["expected_value"]["levels"].get(str(level), rule["expected_value"]["levels"]["0"])
             current_list = get_current_list_profile(paragraph)
-            if list_layout_is_inherited(paragraph, current_list) or list_layout_is_accepted(current_list):
+            if list_layout_is_inherited(paragraph, current_list):
+                continue
+            if list_layout_is_accepted(current_list):
+                if _paragraph_has_numbering(paragraph) and not paragraph_numbering_reference_is_valid(paragraph):
+                    violated_rules.append(rule["id"])
+                    suggested_fixes.append("numbering")
+                    explanations.append(f"{rule['id']}: broken list numbering reference")
+                    if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+                        applied_fixes.extend(apply_list_numbering(paragraph, list_assessment["list_type"]))
+                    else:
+                        manual_review_required = True
                 continue
             if current_list.get("left_indent_cm") is None or current_list.get("first_line_indent_cm") is None:
                 violated_rules.append(rule["id"])
@@ -607,7 +738,7 @@ def apply_rules_to_paragraph(
             suggested_fixes.extend(violated)
             explanations.append(f"{rule['id']}: incorrect list layout for level {level}")
             if apply_safe and rule["autocorrect"] and rule["action"] == "fix" and list_assessment["safe_to_autofix"]:
-                applied_fixes.extend(apply_list_format(paragraph, expected_value))
+                applied_fixes.extend(apply_list_format(paragraph, expected_value, list_assessment["list_type"]))
             elif apply_safe and violated:
                 blocked_unsafe_autofix = True
                 manual_review_required = True

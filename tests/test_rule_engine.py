@@ -6,6 +6,8 @@ import uuid
 
 import pandas as pd
 from docx import Document
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Cm
 
 from src.generate.inplace_formatter import audit_or_format_docx
@@ -272,6 +274,79 @@ def test_list_formatting_fix_level_1() -> None:
     assert round(tab_stops[0].position.cm, 2) == 2.5
 
 
+def test_list_formatting_repairs_broken_numbering_reference() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Broken bullet item")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(1.0)
+    paragraph.paragraph_format.first_line_indent = Cm(0.0)
+    num_pr = OxmlElement("w:numPr")
+    ilvl = OxmlElement("w:ilvl")
+    ilvl.set(qn("w:val"), "0")
+    num_id = OxmlElement("w:numId")
+    num_id.set(qn("w:val"), "999")
+    num_pr.append(ilvl)
+    num_pr.append(num_id)
+    paragraph._p.get_or_add_pPr().append(num_pr)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Broken bullet item",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "numbering" in result["applied_fixes"]
+    repaired_num_id = paragraph._p.pPr.numPr.numId.val
+    numbering_xml = paragraph.part.numbering_part.element.xml
+    assert f'w:numId="{repaired_num_id}"' in numbering_xml
+
+
+def test_accepted_list_layout_still_repairs_broken_numbering_reference() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Accepted layout with broken marker")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+    num_pr = OxmlElement("w:numPr")
+    ilvl = OxmlElement("w:ilvl")
+    ilvl.set(qn("w:val"), "0")
+    num_id = OxmlElement("w:numId")
+    num_id.set(qn("w:val"), "999")
+    num_pr.append(ilvl)
+    num_pr.append(num_id)
+    paragraph._p.get_or_add_pPr().append(num_pr)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Accepted layout with broken marker",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert result["applied_fixes"] == ["numbering"]
+
+
 def test_bibliography_item_gets_numbered_word_style_without_text_change() -> None:
     document = Document()
     paragraph = document.add_paragraph("Иванов И. И. Учебник. — Москва, 2020. — 120 с.")
@@ -325,6 +400,33 @@ def test_bibliography_item_numbering_uses_section_prefix() -> None:
     assert 'w:val="2.%1"' in numbering_xml
 
 
+def test_bibliography_item_replaces_wrong_existing_section_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Иванов И. И. Учебник. — Москва, 2020. — 120 с.")
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+    paragraph._p.get_or_add_pPr().append(OxmlElement("w:numPr"))
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="bibliography_item",
+        row_data={
+            "text": paragraph.text,
+            "bibliography_section_index": 1,
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "numbering" in result["applied_fixes"]
+    assert 'w:val="1.%1"' in paragraph.part.numbering_part.element.xml
+
+
 def test_bibliography_subheading_gets_section_number_prefix() -> None:
     document = Document()
     paragraph = document.add_paragraph("Практическая часть")
@@ -347,6 +449,30 @@ def test_bibliography_subheading_gets_section_number_prefix() -> None:
     assert result["status"] == "changed"
     assert "bibliography_section_prefix" in result["applied_fixes"]
     assert paragraph.text == "2 ПРАКТИЧЕСКАЯ ЧАСТЬ"
+
+
+def test_numbered_bibliography_title_section_gets_section_number_prefix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("1 Теоретическая часть")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data={
+            "text": paragraph.text,
+            "bibliography_section_index": 1,
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "bibliography_section_prefix" in result["applied_fixes"]
+    assert paragraph.text == "1 ТЕОРЕТИЧЕСКАЯ ЧАСТЬ"
 
 
 def test_marker_only_list_item_requires_review_not_autofix() -> None:

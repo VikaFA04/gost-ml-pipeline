@@ -43,9 +43,9 @@ def test_bibliography_context_overrides_body_text_and_list_predictions() -> None
     df = pd.DataFrame(
         [
             _row(1, "СПИСОК ИСПОЛЬЗУЕМЫХ ИСТОЧНИКОВ", "body_text"),
-            _row(2, "Теоретическая часть", "body_text"),
+            _row(2, "1 Теоретическая часть", "title_section"),
             _row(3, "Иванов И. И. Учебник. — Москва, 2020. — 120 с.", "body_text"),
-            _row(4, "Практическая часть", "body_text"),
+            _row(4, "2 Практическая часть", "title_section"),
             _row(5, "Data normalization / URL: https://example.test", "list_item"),
             _row(6, "ЗАКЛЮЧЕНИЕ", "body_text"),
         ]
@@ -55,13 +55,36 @@ def test_bibliography_context_overrides_body_text_and_list_predictions() -> None
 
     assert result["postprocessed_label"].tolist() == [
         "bibliography_title",
-        "bibliography_title",
+        "title_section",
         "bibliography_item",
-        "bibliography_title",
+        "title_section",
         "bibliography_item",
         "body_text",
     ]
     assert result["bibliography_section_index"].tolist() == [None, 1, 1, 2, 2, None]
+
+
+def test_numbered_bibliography_section_titles_keep_section_context() -> None:
+    df = pd.DataFrame(
+        [
+            _row(1, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", "body_text"),
+            _row(2, "1 Теоретическая часть", "title_section"),
+            _row(3, "Ivanov I. I. Text. — Moscow, 2020. — 120 p.", "body_text"),
+            _row(4, "2 Практическая часть", "title_section"),
+            _row(5, "Data normalization / URL: https://example.test", "body_text"),
+        ]
+    )
+
+    result = apply_postprocess_rules(df)
+
+    assert result["postprocessed_label"].tolist() == [
+        "bibliography_title",
+        "title_section",
+        "bibliography_item",
+        "title_section",
+        "bibliography_item",
+    ]
+    assert result["bibliography_section_index"].tolist() == [None, 1, 1, 2, 2]
 
 
 def test_long_numbered_list_run_becomes_bibliography_items() -> None:

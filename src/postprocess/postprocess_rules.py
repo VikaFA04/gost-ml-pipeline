@@ -12,7 +12,7 @@ BIBLIOGRAPHY_TITLE_RE = re.compile(
     re.IGNORECASE,
 )
 BIBLIOGRAPHY_SUBHEADING_RE = re.compile(
-    r"^(теоретическая\s+часть|практическая\s+часть)$",
+    r"^(?:\d+\s*)?(теоретическая\s+часть|практическая\s+часть)$",
     re.IGNORECASE,
 )
 BIBLIOGRAPHY_STOP_RE = re.compile(r"^(заключение|приложени[ея].*)$", re.IGNORECASE)
@@ -62,6 +62,8 @@ def _is_bibliography_subheading(text: str) -> bool:
 
 
 def _stops_bibliography_context(text: str, label: str) -> bool:
+    if _is_bibliography_subheading(text):
+        return False
     if label in {"appendix_title", "title_section", "title_subsection", "toc_title"}:
         return True
     return BIBLIOGRAPHY_STOP_RE.search(text) is not None
@@ -115,7 +117,8 @@ def apply_postprocess_rules(
                 continue
             if _is_bibliography_subheading(text):
                 bibliography_section_index += 1
-                labels[position] = "bibliography_title"
+                if label not in {"title_section", "title_subsection"}:
+                    labels[position] = "bibliography_title"
                 section_indices[position] = bibliography_section_index
             elif label in {"body_text", "list_item"} and _looks_like_bibliography_entry(row, text):
                 labels[position] = "bibliography_item"
