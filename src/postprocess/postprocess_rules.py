@@ -17,6 +17,10 @@ BIBLIOGRAPHY_SUBHEADING_RE = re.compile(
     r"^(?:\d+\s*)?(теоретическая\s+часть|практическая\s+часть)$",
     re.IGNORECASE,
 )
+BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE = re.compile(
+    r"^\d+\s*(теоретическая\s+часть|практическая\s+часть)$",
+    re.IGNORECASE,
+)
 BIBLIOGRAPHY_STOP_RE = re.compile(r"^(заключение|приложени[ея].*)$", re.IGNORECASE)
 BIBLIOGRAPHY_ENTRY_RE = re.compile(
     r"(url:|https?://|//|\b(19|20)\d{2}\b|isbn|гост|—\s*\d+\s*с\.?)",
@@ -61,6 +65,10 @@ def _is_bibliography_title(text: str) -> bool:
 
 def _is_bibliography_subheading(text: str) -> bool:
     return BIBLIOGRAPHY_SUBHEADING_RE.search(text) is not None
+
+
+def _is_numbered_bibliography_subheading(text: str) -> bool:
+    return BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE.search(text) is not None
 
 
 def _stops_bibliography_context(text: str, label: str) -> bool:
@@ -161,10 +169,11 @@ def apply_postprocess_rules(
             if not in_bibliography:
                 continue
             if _is_bibliography_subheading(text):
-                bibliography_section_index += 1
+                if _is_numbered_bibliography_subheading(text):
+                    bibliography_section_index += 1
                 if label not in {"title_section", "title_subsection"}:
                     labels[position] = "bibliography_title"
-                section_indices[position] = bibliography_section_index
+                section_indices[position] = bibliography_section_index or None
             elif label in {"body_text", "list_item"} and _looks_like_bibliography_entry(row, text):
                 labels[position] = "bibliography_item"
                 section_indices[position] = bibliography_section_index or None

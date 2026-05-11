@@ -11,9 +11,14 @@ from docx.table import Table
 from src.evaluation.docx_style_diff import DocxStyleDiff, compare_docx_styles
 from src.generate.inplace_formatter import audit_or_format_docx, extract_table_text
 from src.io.block_extractor import extract_blocks_from_docx
+from src.postprocess.postprocess_rules import apply_postprocess_rules
 
 
 WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9_]+")
+BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE = re.compile(
+    r"^\d+\s*(теоретическая\s+часть|практическая\s+часть)$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -41,6 +46,8 @@ def infer_regression_label(row: pd.Series) -> str:
         return "title_section"
     if "heading 2" in style or "heading 3" in style:
         return "title_subsection"
+    if BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE.search(text):
+        return "title_section"
     if "list" in style or pd.notna(row.get("list_type")):
         return "list_item"
     if text.startswith("таблица"):
@@ -54,7 +61,7 @@ def build_regression_predictions(input_docx: Path, predictions_csv: Path) -> Non
     df = extract_blocks_from_docx(input_docx)
     labels = [infer_regression_label(row) for _, row in df.iterrows()]
     df["predicted_label"] = labels
-    df["postprocessed_label"] = labels
+    df = apply_postprocess_rules(df, pred_col="predicted_label", out_col="postprocessed_label")
     df["confidence_score"] = 0.99
     df["low_confidence"] = False
     df.to_csv(predictions_csv, index=False, encoding="utf-8-sig")
