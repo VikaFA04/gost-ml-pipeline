@@ -804,6 +804,9 @@ def apply_rules_to_paragraph(
                 manual_review_required = True
                 unsafe_auto_fix_reason = "paragraph looks like a list but was classified as body_text"
                 continue
+            if label in {"title_section", "title_subsection"} and bibliography_section_index is not None:
+                manual_review_required = True
+                continue
             if is_review_only_scalar_fix(label, parameter):
                 manual_review_required = True
                 continue

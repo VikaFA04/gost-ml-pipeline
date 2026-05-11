@@ -6,6 +6,7 @@ import uuid
 
 import pandas as pd
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm
@@ -674,6 +675,31 @@ def test_numbered_bibliography_title_section_gets_section_number_prefix() -> Non
     assert result["status"] == "changed"
     assert "bibliography_section_prefix" in result["applied_fixes"]
     assert paragraph.text == "1 ТЕОРЕТИЧЕСКАЯ ЧАСТЬ"
+
+
+def test_bibliography_title_section_keeps_existing_alignment() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("2 ПРАКТИЧЕСКАЯ ЧАСТЬ")
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data={
+            "text": paragraph.text,
+            "bibliography_section_index": 2,
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["applied_fixes"] == []
+    assert paragraph.alignment == WD_ALIGN_PARAGRAPH.CENTER
 
 
 def test_marker_only_list_item_requires_review_not_autofix() -> None:
