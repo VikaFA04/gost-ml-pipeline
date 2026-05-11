@@ -94,6 +94,8 @@ def test_cli_parser_accepts_audit_regression_arguments(tmp_path) -> None:
             str(tmp_path / "report.csv"),
             "--profile-id",
             "gost_7_32_2017",
+            "--limit",
+            "3",
         ]
     )
 
@@ -103,6 +105,7 @@ def test_cli_parser_accepts_audit_regression_arguments(tmp_path) -> None:
     assert args.workspace_dir == str(tmp_path / "workspace")
     assert args.report_csv == str(tmp_path / "report.csv")
     assert args.profile_id == "gost_7_32_2017"
+    assert args.limit == 3
 
 
 def test_cmd_audit_regression_writes_report_csv(tmp_path) -> None:
@@ -128,3 +131,28 @@ def test_cmd_audit_regression_writes_report_csv(tmp_path) -> None:
     assert df.loc[0, "negative"] == "negative.docx"
     assert df.loc[0, "before_field_mismatches"] == 0
     assert df.loc[0, "after_field_mismatches"] == 0
+
+
+def test_cmd_audit_regression_honors_limit(tmp_path) -> None:
+    positive_dir = tmp_path / "positive"
+    negative_dir = tmp_path / "negative"
+    workspace_dir = tmp_path / "workspace"
+    report_csv = tmp_path / "report.csv"
+    positive_dir.mkdir()
+    negative_dir.mkdir()
+
+    write_docx(positive_dir / "positive.docx", ["Paragraph"])
+    write_docx(negative_dir / "negative_one.docx", ["Paragraph"])
+    write_docx(negative_dir / "negative_two.docx", ["Paragraph"])
+
+    cmd_audit_regression(
+        positive_dir=str(positive_dir),
+        negative_dir=str(negative_dir),
+        workspace_dir=str(workspace_dir),
+        report_csv=str(report_csv),
+        profile_id="gost_7_32_2017",
+        limit=1,
+    )
+
+    df = pd.read_csv(report_csv)
+    assert df["negative"].tolist() == ["negative_one.docx"]

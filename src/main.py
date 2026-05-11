@@ -204,6 +204,7 @@ def cmd_audit_regression(
     workspace_dir: str,
     report_csv: Optional[str],
     profile_id: str,
+    limit: Optional[int] = None,
 ) -> None:
     positive_dir_path = Path(positive_dir)
     negative_dir_path = Path(negative_dir)
@@ -225,6 +226,7 @@ def cmd_audit_regression(
         negative_dir=negative_dir_path,
         workspace_dir=workspace_dir_path,
         profile_id=profile_id,
+        limit=limit,
     )
     frame = audits_to_frame(audits)
     frame.to_csv(report_path, index=False, encoding="utf-8-sig")
@@ -353,6 +355,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="gost_7_32_2017",
         help="profile_id для safe-formatting",
     )
+    regression_parser.add_argument(
+        "--limit",
+        required=False,
+        type=int,
+        help="Ограничить число отрицательных DOCX для быстрого прогона",
+    )
 
     methodical_parser = subparsers.add_parser(
         "extract-methodical-profile",
@@ -434,6 +442,7 @@ def main() -> None:
             workspace_dir=args.workspace_dir or str(REPORTS_DIR / "regression_audit" / now_ts()),
             report_csv=args.report_csv,
             profile_id=args.profile_id,
+            limit=args.limit,
         )
         return
 

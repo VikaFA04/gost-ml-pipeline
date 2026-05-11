@@ -140,10 +140,14 @@ def audit_negative_directory(
     negative_dir: Path,
     workspace_dir: Path,
     profile_id: str = "gost_7_32_2017",
+    limit: int | None = None,
 ) -> list[NegativePairAudit]:
     positive_paths = sorted(path for path in positive_dir.glob("*.docx") if not path.name.startswith("~$"))
     audits: list[NegativePairAudit] = []
-    for negative_path in sorted(path for path in negative_dir.glob("*.docx") if not path.name.startswith("~$")):
+    negative_paths = sorted(path for path in negative_dir.glob("*.docx") if not path.name.startswith("~$"))
+    if limit is not None:
+        negative_paths = negative_paths[: max(limit, 0)]
+    for negative_path in negative_paths:
         positive_path, _ = best_positive_match(negative_path, positive_paths)
         pair_workspace = workspace_dir / negative_path.stem
         audits.append(

@@ -116,6 +116,7 @@ macro_f1     0.9414
   --positive-dir positive_examples \
   --negative-dir negative_examples \
   --workspace-dir results/regression_audit \
+  --limit 5 \
   --report-csv results/reports/regression_audit.csv
 ```
 
