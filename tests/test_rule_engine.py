@@ -406,6 +406,7 @@ def test_accepted_non_list_style_without_numbering_gets_numbering() -> None:
     paragraph = document.add_paragraph("Accepted layout with no numbering")
     paragraph.paragraph_format.left_indent = Cm(2.25)
     paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+    paragraph.style = "Quote"
 
     result = apply_rules_to_paragraph(
         paragraph=paragraph,
@@ -423,10 +424,38 @@ def test_accepted_non_list_style_without_numbering_gets_numbering() -> None:
     )
 
     assert result is not None
-    assert result["status"] == "changed"
-    assert "numbering" in result["applied_fixes"]
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
     assert paragraph._p.pPr is not None
-    assert paragraph._p.pPr.numPr is not None
+    assert paragraph._p.pPr.numPr is None
+
+
+def test_body_text_accepted_list_layout_gets_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Body text with accepted list layout")
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+    paragraph.style = "Quote"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data={
+            "text": "Body text with accepted list layout",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is None
 
 
 def test_list_item_without_layout_gets_format_and_numbering() -> None:
@@ -642,6 +671,35 @@ def test_accepted_positive_list_layout_ignores_inferred_level() -> None:
     assert result["applied_fixes"] == []
     assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
     assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
+
+
+def test_list_paragraph_with_accepted_layout_but_missing_numbering_gets_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Accepted list layout without numbering")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Accepted list layout without numbering",
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is None
 
 
 def test_inherited_list_paragraph_layout_is_not_autofixed() -> None:

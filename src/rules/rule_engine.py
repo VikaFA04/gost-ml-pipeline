@@ -641,7 +641,6 @@ def apply_rules_to_paragraph(
     list_assessment = assess_list_auto_fix_safety(paragraph, row_data) if label == "list_item" else None
     body_label_on_list_like_paragraph = label == "body_text" and is_list_like_paragraph(paragraph, row_data)
     bibliography_section_index = _bibliography_section_index(row_data)
-
     if label in {"title_section", "title_subsection"} and bibliography_section_index is not None:
         expected_text = _bibliography_section_title(paragraph.text, bibliography_section_index)
         if paragraph.text.strip() != expected_text:
@@ -708,13 +707,15 @@ def apply_rules_to_paragraph(
             if list_layout_is_inherited(paragraph, current_list):
                 continue
             if list_layout_is_accepted(current_list):
+                raw_text = str(row_data.get("text", "") or paragraph.text or "")
+                raw_text_has_list_hint = _paragraph_has_list_marker(raw_text) or raw_text.lstrip(" ").startswith("\t")
                 current_style_name = ""
                 try:
                     current_style_name = str(paragraph.style.name) if paragraph.style is not None and paragraph.style.name is not None else ""
                 except Exception:
                     current_style_name = ""
                 if not _paragraph_has_numbering(paragraph):
-                    if current_style_name != "List Paragraph" and apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+                    if apply_safe and rule["autocorrect"] and rule["action"] == "fix" and raw_text_has_list_hint:
                         applied_fixes.extend(apply_list_numbering(paragraph, list_assessment["list_type"]))
                     continue
                 if not paragraph_numbering_reference_is_valid(paragraph):

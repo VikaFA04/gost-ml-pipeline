@@ -60,7 +60,7 @@ def build_filtered_docx_blocks(document: Document) -> list[tuple[object, str, st
     filtered_blocks: list[tuple[object, str, str]] = []
     for block in iter_block_items(document):
         if isinstance(block, Paragraph):
-            text = safe_text(block.text)
+            text = "" if block.text is None else str(block.text)
             kind = "paragraph"
         elif isinstance(block, Table):
             text = extract_table_text(block)

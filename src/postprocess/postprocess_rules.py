@@ -7,6 +7,8 @@ import pandas as pd
 NUMBERED_LIST_ITEM_RE = re.compile(r"^\s*\d+[\.\)]\s+")
 LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
 TEXT_LETTER_RE = re.compile(r"[A-Za-zА-Яа-яЁё]")
+LIST_INTRO_RE = re.compile(r":\s*$")
+LIST_MARKER_FRAGMENT_RE = re.compile(r"^\s*(?:[-—–•●■◦]|\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])")
 BIBLIOGRAPHY_TITLE_RE = re.compile(
     r"^(список\s+(использованных|используемых)\s+источников|библиографический\s+список|литература)$",
     re.IGNORECASE,
@@ -72,7 +74,25 @@ def _stops_bibliography_context(text: str, label: str) -> bool:
 def _looks_like_bibliography_entry(row: pd.Series, text: str) -> bool:
     if _is_formula_like(text):
         return False
-    return BIBLIOGRAPHY_ENTRY_RE.search(text) is not None or _has_list_metadata(row)
+    return _has_list_metadata(row) or _looks_like_list_fragment(text)
+
+
+def _looks_like_list_fragment(text: str) -> bool:
+    if _is_formula_like(text):
+        return False
+    stripped = text.strip()
+    if not stripped or len(stripped) > 180 or len(stripped.split()) > 20:
+        return False
+    if text.lstrip(" ").startswith("\t"):
+        return True
+    return LIST_MARKER_FRAGMENT_RE.search(text) is not None
+
+
+def _is_list_intro(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped or len(stripped) > 200:
+        return False
+    return LIST_INTRO_RE.search(stripped) is not None
 
 
 def _has_bibliography_context(labels: list[str], index: int) -> bool:
@@ -95,12 +115,37 @@ def apply_postprocess_rules(
     for _, group in df.groupby("doc_id", sort=False):
         group = group.copy().sort_values("block_id")
         labels = [str(value) for value in group[pred_col].tolist()]
-        texts = [_safe_text(value) for value in group["text"].tolist()]
+        texts = ["" if pd.isna(value) else str(value) for value in group["text"].tolist()]
         section_indices: list[int | None] = [None] * len(labels)
 
         for position, (_, row) in enumerate(group.iterrows()):
             if labels[position] == "body_text" and _is_structural_list_item(row, texts[position]):
                 labels[position] = "list_item"
+
+        index = 0
+        while index < len(labels):
+            if labels[index] != "body_text" or not _is_list_intro(texts[index]):
+                index += 1
+                continue
+
+            run_start = index + 1
+            run_end = run_start
+            while run_end < len(labels):
+                next_text = texts[run_end]
+                next_label = labels[run_end]
+                if next_label != "body_text":
+                    break
+                if _is_bibliography_title(next_text) or _is_bibliography_subheading(next_text):
+                    break
+                if not _looks_like_list_fragment(next_text):
+                    break
+                run_end += 1
+
+            if run_end - run_start >= 2:
+                for position in range(run_start, run_end):
+                    labels[position] = "list_item"
+
+            index = max(run_end, index + 1)
 
         in_bibliography = False
         bibliography_section_index = 0

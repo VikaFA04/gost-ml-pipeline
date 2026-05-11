@@ -90,7 +90,7 @@ def extract_list_metadata(paragraph: Paragraph) -> tuple[str | None, int | None]
     except Exception:
         list_level = None
 
-    text = safe_text(paragraph.text)
+    text = "" if paragraph.text is None else str(paragraph.text)
     style_name = get_style_name(paragraph)
     word_count = len(text.split())
     is_short_candidate = len(text) <= 300 and word_count <= 40
@@ -129,7 +129,7 @@ def extract_paragraph_block(
     block_id: int,
     file_name: str,
 ) -> dict[str, Any]:
-    text = safe_text(paragraph.text)
+    text = "" if paragraph.text is None else str(paragraph.text)
     list_type, list_level = extract_list_metadata(paragraph)
 
     return {
