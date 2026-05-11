@@ -127,6 +127,8 @@ def apply_postprocess_rules(
         section_indices: list[int | None] = [None] * len(labels)
 
         for position, (_, row) in enumerate(group.iterrows()):
+            if labels[position] == "list_item" and _is_formula_like(texts[position]):
+                labels[position] = "body_text"
             if labels[position] == "body_text" and _is_structural_list_item(row, texts[position]):
                 labels[position] = "list_item"
 

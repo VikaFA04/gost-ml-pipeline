@@ -39,6 +39,18 @@ def test_formula_like_list_paragraph_stays_body_text() -> None:
     assert result.loc[0, "postprocessed_label"] == "body_text"
 
 
+def test_formula_like_list_prediction_becomes_body_text() -> None:
+    row = _row(1, "\t,\t(1.1)", "list_item")
+    row["style"] = "List Paragraph"
+    row["list_type"] = "list"
+    row["list_level"] = 0
+    df = pd.DataFrame([row])
+
+    result = apply_postprocess_rules(df)
+
+    assert result.loc[0, "postprocessed_label"] == "body_text"
+
+
 def test_tabbed_list_run_after_cue_sentence_becomes_list_items() -> None:
     df = pd.DataFrame(
         [
