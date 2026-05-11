@@ -40,7 +40,15 @@
 Ожидаемая текущая проверка:
 
 ```text
-21 passed
+77 passed
+```
+
+Текущая проверка regression-аудита на локальных `positive_examples/` и `negative_examples/`:
+
+```text
+audits: 16
+total_errors: 0
+worse_count: 0
 ```
 
 ## Обучение модели
