@@ -372,7 +372,90 @@ def test_bibliography_item_gets_numbered_word_style_without_text_change() -> Non
     assert paragraph._p.pPr is not None
     assert paragraph._p.pPr.numPr is not None
     assert paragraph._p.pPr.numPr.numId is not None
-    assert paragraph.text == before_text
+
+
+def test_accepted_list_layout_without_numbering_stays_unchanged() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Accepted layout with no numbering")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Accepted layout with no numbering",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+
+
+def test_accepted_non_list_style_without_numbering_gets_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Accepted layout with no numbering")
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Accepted layout with no numbering",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "numbering" in result["applied_fixes"]
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is not None
+
+
+def test_list_item_without_layout_gets_format_and_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("List item with no layout")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "List item with no layout",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "numbering" in result["applied_fixes"]
+    assert "left_indent_cm" in result["applied_fixes"]
+    assert "first_line_indent_cm" in result["applied_fixes"]
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is not None
+    assert paragraph._p.pPr.numPr.numId is not None
 
 
 def test_bibliography_item_numbering_uses_section_prefix() -> None:

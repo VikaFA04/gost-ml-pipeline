@@ -708,7 +708,16 @@ def apply_rules_to_paragraph(
             if list_layout_is_inherited(paragraph, current_list):
                 continue
             if list_layout_is_accepted(current_list):
-                if _paragraph_has_numbering(paragraph) and not paragraph_numbering_reference_is_valid(paragraph):
+                current_style_name = ""
+                try:
+                    current_style_name = str(paragraph.style.name) if paragraph.style is not None and paragraph.style.name is not None else ""
+                except Exception:
+                    current_style_name = ""
+                if not _paragraph_has_numbering(paragraph):
+                    if current_style_name != "List Paragraph" and apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+                        applied_fixes.extend(apply_list_numbering(paragraph, list_assessment["list_type"]))
+                    continue
+                if not paragraph_numbering_reference_is_valid(paragraph):
                     violated_rules.append(rule["id"])
                     suggested_fixes.append("numbering")
                     explanations.append(f"{rule['id']}: broken list numbering reference")
@@ -719,12 +728,22 @@ def apply_rules_to_paragraph(
                 continue
             if current_list.get("left_indent_cm") is None or current_list.get("first_line_indent_cm") is None:
                 violated_rules.append(rule["id"])
-                suggested_fixes.extend(["left_indent_cm", "first_line_indent_cm"])
+                suggested_fixes.extend(["left_indent_cm", "first_line_indent_cm", "numbering"])
                 explanations.append(f"{rule['id']}: list layout is inherited or incomplete")
-                manual_review_required = True
-                if apply_safe and not list_assessment["safe_to_autofix"]:
-                    blocked_unsafe_autofix = True
-                    unsafe_auto_fix_reason = "; ".join(list_assessment["unsafe_reasons"])
+                raw_text = str(row_data.get("text", "") or paragraph.text or "").strip()
+                trusted_missing_layout = (
+                    not _paragraph_has_list_marker(raw_text)
+                    and not _is_long_plain_paragraph(raw_text)
+                )
+                if apply_safe and rule["autocorrect"] and rule["action"] == "fix" and (
+                    list_assessment["safe_to_autofix"] or trusted_missing_layout
+                ):
+                    applied_fixes.extend(apply_list_format(paragraph, expected_value, list_assessment["list_type"]))
+                else:
+                    manual_review_required = True
+                    if apply_safe and not list_assessment["safe_to_autofix"]:
+                        blocked_unsafe_autofix = True
+                        unsafe_auto_fix_reason = "; ".join(list_assessment["unsafe_reasons"])
                 continue
             violated = [
                 key
