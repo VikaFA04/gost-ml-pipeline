@@ -889,3 +889,114 @@ def test_fix_mode_is_idempotent() -> None:
         assert second_summary["no_change"] == 1
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_fix_mode_preserves_tabbed_list_markers_from_predictions_csv() -> None:
+    tmp_path = build_workspace_temp_dir()
+    try:
+        input_docx = tmp_path / "input.docx"
+        document = Document()
+        paragraph = document.add_paragraph("\tПервый пункт")
+        paragraph.style = "List Paragraph"
+        paragraph.paragraph_format.left_indent = Cm(2.25)
+        paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+        document.save(input_docx)
+
+        predictions_csv = tmp_path / "predictions.csv"
+        build_prediction_csv(predictions_csv, "\tПервый пункт", "list_item", list_level=0)
+
+        fixed_docx = tmp_path / "fixed.docx"
+        summary = audit_or_format_docx(
+            input_docx=input_docx,
+            predictions_csv=predictions_csv,
+            report_csv=tmp_path / "fix.csv",
+            output_docx=fixed_docx,
+            apply_safe=True,
+            profile_id="gost_7_32_2017",
+        )
+
+        assert summary["changed"] == 1
+        fixed = Document(fixed_docx)
+        assert fixed.paragraphs[0]._p.pPr is not None
+        assert fixed.paragraphs[0]._p.pPr.numPr is not None
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_fix_mode_preserves_tabbed_bibliography_entries_from_predictions_csv() -> None:
+    tmp_path = build_workspace_temp_dir()
+    try:
+        input_docx = tmp_path / "input.docx"
+        document = Document()
+        document.add_paragraph("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ")
+        document.add_paragraph("1 Теоретическая часть")
+        document.add_paragraph("\tИванов И. И. Учебник. — Москва, 2020. — 120 с.")
+        document.save(input_docx)
+
+        predictions_csv = tmp_path / "predictions.csv"
+        pd.DataFrame(
+            [
+                {
+                    "doc_id": "doc_1",
+                    "block_id": 1,
+                    "text": "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
+                    "kind": "paragraph",
+                    "alignment": "LEFT",
+                    "style": "Normal",
+                    "bold_ratio": 0.0,
+                    "file_name": "sample.docx",
+                    "predicted_label": "body_text",
+                    "postprocessed_label": "bibliography_title",
+                    "confidence_score": 0.99,
+                    "low_confidence": False,
+                },
+                {
+                    "doc_id": "doc_1",
+                    "block_id": 2,
+                    "text": "1 Теоретическая часть",
+                    "kind": "paragraph",
+                    "alignment": "LEFT",
+                    "style": "Normal",
+                    "bold_ratio": 0.0,
+                    "file_name": "sample.docx",
+                    "predicted_label": "title_section",
+                    "postprocessed_label": "title_section",
+                    "confidence_score": 0.99,
+                    "low_confidence": False,
+                    "bibliography_section_index": 1,
+                },
+                {
+                    "doc_id": "doc_1",
+                    "block_id": 3,
+                    "text": "\tИванов И. И. Учебник. — Москва, 2020. — 120 с.",
+                    "kind": "paragraph",
+                    "alignment": "LEFT",
+                    "style": "Normal",
+                    "bold_ratio": 0.0,
+                    "file_name": "sample.docx",
+                    "predicted_label": "body_text",
+                    "postprocessed_label": "bibliography_item",
+                    "confidence_score": 0.99,
+                    "low_confidence": False,
+                    "bibliography_section_index": 1,
+                },
+            ]
+        ).to_csv(predictions_csv, index=False, encoding="utf-8-sig")
+
+        fixed_docx = tmp_path / "fixed.docx"
+        summary = audit_or_format_docx(
+            input_docx=input_docx,
+            predictions_csv=predictions_csv,
+            report_csv=tmp_path / "fix.csv",
+            output_docx=fixed_docx,
+            apply_safe=True,
+            profile_id="gost_7_32_2017",
+        )
+
+        assert summary["changed"] == 2
+        fixed = Document(fixed_docx)
+        assert fixed.paragraphs[1].text == "1 ТЕОРЕТИЧЕСКАЯ ЧАСТЬ"
+        assert fixed.paragraphs[2]._p.pPr is not None
+        assert fixed.paragraphs[2]._p.pPr.numPr is not None
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
