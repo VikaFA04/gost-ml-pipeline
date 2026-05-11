@@ -577,6 +577,8 @@ def assess_list_auto_fix_safety(paragraph: Paragraph, row_data: dict[str, Any]) 
         unsafe_reasons.append("list classification confidence is too low for auto-fix")
     if not list_type:
         unsafe_reasons.append("list_type is missing")
+    if str(list_type) == "list" and not has_numbering and not has_marker:
+        unsafe_reasons.append("generic list_type without marker or Word numbering")
     if list_level is None:
         unsafe_reasons.append("list_level is missing")
 

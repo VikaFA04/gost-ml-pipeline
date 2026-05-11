@@ -515,6 +515,38 @@ def test_numbered_list_with_inherited_layout_keeps_layout_unchanged() -> None:
     assert list(paragraph.paragraph_format.tab_stops) == []
 
 
+def test_generic_style_only_list_item_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Generic style-only list candidate")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(1.0)
+    paragraph.paragraph_format.first_line_indent = Cm(0.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": paragraph.text,
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["blocked_unsafe_autofix"] is True
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 1.0
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == 0.0
+    assert paragraph._p.pPr is None or paragraph._p.pPr.numPr is None
+
+
 def test_bibliography_item_numbering_uses_section_prefix() -> None:
     document = Document()
     paragraph = document.add_paragraph("Data normalization / URL: https://example.test")
