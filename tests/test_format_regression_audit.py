@@ -63,6 +63,9 @@ def test_audit_negative_pair_reports_before_after_diff(tmp_path) -> None:
     assert audit.after.changed_paragraphs == 1
     assert audit.formatter_summary["error"] == 0
     assert frame.loc[0, "negative"] == "negative.docx"
+    assert frame.loc[0, "before_field_mismatches"] == 1
+    assert frame.loc[0, "after_field_mismatches"] == 1
+    assert frame.loc[0, "field_mismatch_delta"] == 0
 
 
 def test_build_regression_predictions_preserves_bibliography_context(tmp_path) -> None:

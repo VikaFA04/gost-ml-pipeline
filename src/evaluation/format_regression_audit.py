@@ -160,6 +160,8 @@ def audit_negative_directory(
 def audits_to_frame(audits: list[NegativePairAudit]) -> pd.DataFrame:
     rows = []
     for audit in audits:
+        before_field_mismatches = sum(audit.before.field_mismatches.values())
+        after_field_mismatches = sum(audit.after.field_mismatches.values())
         rows.append(
             {
                 "positive": audit.positive_path.name,
@@ -171,6 +173,9 @@ def audits_to_frame(audits: list[NegativePairAudit]) -> pd.DataFrame:
                 "diff_delta": round(audit.diff_delta, 6),
                 "before_changed": audit.before.changed_paragraphs,
                 "after_changed": audit.after.changed_paragraphs,
+                "before_field_mismatches": before_field_mismatches,
+                "after_field_mismatches": after_field_mismatches,
+                "field_mismatch_delta": after_field_mismatches - before_field_mismatches,
                 "formatter_changed": audit.formatter_summary.get("changed", 0),
                 "formatter_review": audit.formatter_summary.get("review", 0),
                 "formatter_blocked_unsafe": audit.formatter_summary.get("blocked_unsafe_autofix", 0),
