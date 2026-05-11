@@ -739,6 +739,15 @@ def apply_rules_to_paragraph(
                 violated_rules.append(rule["id"])
                 suggested_fixes.extend(["left_indent_cm", "first_line_indent_cm", "numbering"])
                 explanations.append(f"{rule['id']}: list layout is inherited or incomplete")
+                has_partial_existing_layout = (
+                    current_list.get("left_indent_cm") is not None
+                    or current_list.get("first_line_indent_cm") is not None
+                )
+                if has_partial_existing_layout and (
+                    _paragraph_has_list_style(paragraph) or _paragraph_has_numbering(paragraph)
+                ):
+                    manual_review_required = True
+                    continue
                 raw_text = str(row_data.get("text", "") or paragraph.text or "").strip()
                 trusted_missing_layout = (
                     not _paragraph_has_list_marker(raw_text)

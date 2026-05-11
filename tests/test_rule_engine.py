@@ -547,6 +547,35 @@ def test_generic_style_only_list_item_requires_review_not_autofix() -> None:
     assert paragraph._p.pPr is None or paragraph._p.pPr.numPr is None
 
 
+def test_list_style_partial_layout_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Bullet item with local inherited first indent")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": paragraph.text,
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 1.0
+    assert paragraph.paragraph_format.first_line_indent is None
+
+
 def test_bibliography_item_numbering_uses_section_prefix() -> None:
     document = Document()
     paragraph = document.add_paragraph("Data normalization / URL: https://example.test")
