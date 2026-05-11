@@ -6,6 +6,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from src.evaluation.format_regression_audit import (
     audit_negative_pair,
+    audit_negative_directory,
     audits_to_frame,
     build_regression_predictions,
     best_positive_match,
@@ -85,3 +86,19 @@ def test_build_regression_predictions_preserves_bibliography_context(tmp_path) -
         "title_section",
         "bibliography_item",
     ]
+
+
+def test_audit_negative_directory_skips_word_lock_files(tmp_path) -> None:
+    positive_dir = tmp_path / "positive"
+    negative_dir = tmp_path / "negative"
+    workspace_dir = tmp_path / "workspace"
+    positive_dir.mkdir()
+    negative_dir.mkdir()
+
+    write_docx(positive_dir / "positive.docx", ["Paragraph"])
+    write_docx(negative_dir / "negative.docx", ["Paragraph"])
+    (negative_dir / "~$negative.docx").write_text("not a real docx", encoding="utf-8")
+
+    audits = audit_negative_directory(positive_dir, negative_dir, workspace_dir)
+
+    assert [audit.negative_path.name for audit in audits] == ["negative.docx"]
