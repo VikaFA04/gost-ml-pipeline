@@ -15,6 +15,7 @@ from src.config import (
     REPORTS_DIR,
 )
 from src.evaluate import evaluate_predictions, save_evaluation
+from src.evaluation.format_regression_audit import audit_negative_directory, audits_to_frame
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.io.block_extractor import extract_blocks_from_docx
 from src.rules.methodical_extractor import extract_methodical_profile
@@ -67,6 +68,12 @@ def default_audit_report_path(input_docx: str | Path) -> Path:
 def default_format_report_path(input_docx: str | Path) -> Path:
     input_docx = Path(input_docx)
     return REPORTS_DIR / f"{input_docx.stem}_format_report_{now_ts()}.csv"
+
+
+def default_regression_audit_report_path(positive_dir: str | Path, negative_dir: str | Path) -> Path:
+    positive_dir = Path(positive_dir)
+    negative_dir = Path(negative_dir)
+    return REPORTS_DIR / f"regression_audit_{positive_dir.stem}_{negative_dir.stem}_{now_ts()}.csv"
 
 
 def default_output_docx_path(input_docx: str | Path) -> Path:
@@ -191,6 +198,51 @@ def cmd_format_docx(
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+def cmd_audit_regression(
+    positive_dir: str,
+    negative_dir: str,
+    workspace_dir: str,
+    report_csv: Optional[str],
+    profile_id: str,
+) -> None:
+    positive_dir_path = Path(positive_dir)
+    negative_dir_path = Path(negative_dir)
+    workspace_dir_path = Path(workspace_dir)
+
+    if not positive_dir_path.exists():
+        raise FileNotFoundError(f"Не найдена папка положительных примеров: {positive_dir_path}")
+    if not negative_dir_path.exists():
+        raise FileNotFoundError(f"Не найдена папка отрицательных примеров: {negative_dir_path}")
+
+    report_path = Path(report_csv) if report_csv else default_regression_audit_report_path(
+        positive_dir_path,
+        negative_dir_path,
+    )
+    ensure_parent_dir(report_path)
+
+    audits = audit_negative_directory(
+        positive_dir=positive_dir_path,
+        negative_dir=negative_dir_path,
+        workspace_dir=workspace_dir_path,
+        profile_id=profile_id,
+    )
+    frame = audits_to_frame(audits)
+    frame.to_csv(report_path, index=False, encoding="utf-8-sig")
+
+    summary = {
+        "audits": len(audits),
+        "report_csv": str(report_path),
+        "workspace_dir": str(workspace_dir_path),
+        "total_changed": int(frame["formatter_changed"].sum()) if not frame.empty else 0,
+        "total_errors": int(frame["formatter_error"].sum()) if not frame.empty else 0,
+        "worse_count": int((frame["diff_delta"] > 0).sum()) if not frame.empty else 0,
+        "improved_count": int((frame["diff_delta"] < 0).sum()) if not frame.empty else 0,
+        "field_mismatch_delta": int(frame["field_mismatch_delta"].sum()) if not frame.empty else 0,
+        "profile_id": profile_id,
+    }
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
 def cmd_extract_methodical_profile(
     input_path: str,
     output_dir: Optional[str],
@@ -283,6 +335,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Применить только безопасные изменения. Без этого флага будет только отчет.",
     )
 
+    regression_parser = subparsers.add_parser(
+        "audit-regression",
+        help="Запустить regression-аудит по каталогам positive/negative DOCX",
+    )
+    regression_parser.add_argument("--positive-dir", required=True, help="Каталог положительных DOCX")
+    regression_parser.add_argument("--negative-dir", required=True, help="Каталог отрицательных DOCX")
+    regression_parser.add_argument(
+        "--workspace-dir",
+        required=False,
+        help="Папка для промежуточных predictions/report/docx артефактов",
+    )
+    regression_parser.add_argument("--report-csv", required=False, help="Куда сохранить итоговый CSV отчет")
+    regression_parser.add_argument(
+        "--profile-id",
+        required=False,
+        default="gost_7_32_2017",
+        help="profile_id для safe-formatting",
+    )
+
     methodical_parser = subparsers.add_parser(
         "extract-methodical-profile",
         help="Извлечь профиль оформления из локальной методички PDF/DOCX/TXT",
@@ -353,6 +424,16 @@ def main() -> None:
             report_csv=args.report_csv,
             output_docx=args.output_docx,
             apply_safe=args.apply_safe,
+        )
+        return
+
+    if args.command == "audit-regression":
+        cmd_audit_regression(
+            positive_dir=args.positive_dir,
+            negative_dir=args.negative_dir,
+            workspace_dir=args.workspace_dir or str(REPORTS_DIR / "regression_audit" / now_ts()),
+            report_csv=args.report_csv,
+            profile_id=args.profile_id,
         )
         return
 

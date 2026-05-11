@@ -109,6 +109,16 @@ macro_f1     0.9414
   --report-csv results/reports/50_audit.csv
 ```
 
+Запустить regression-аудит по каталогам positive/negative DOCX:
+
+```bash
+.venv/Scripts/python.exe -m src.main audit-regression \
+  --positive-dir positive_examples \
+  --negative-dir negative_examples \
+  --workspace-dir results/regression_audit \
+  --report-csv results/reports/regression_audit.csv
+```
+
 Создать DOCX с безопасными исправлениями:
 
 ```bash
