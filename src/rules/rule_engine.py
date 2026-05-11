@@ -706,6 +706,12 @@ def apply_rules_to_paragraph(
             current_list = get_current_list_profile(paragraph)
             if list_layout_is_inherited(paragraph, current_list):
                 continue
+            if (
+                current_list.get("left_indent_cm") is None
+                and current_list.get("first_line_indent_cm") is None
+                and paragraph_numbering_reference_is_valid(paragraph)
+            ):
+                continue
             if list_layout_is_accepted(current_list):
                 raw_text = str(row_data.get("text", "") or paragraph.text or "")
                 raw_text_has_list_hint = _paragraph_has_list_marker(raw_text) or raw_text.lstrip(" ").startswith("\t")

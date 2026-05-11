@@ -12,7 +12,7 @@ from docx.shared import Cm
 
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.rules.profile_loader import load_profile
-from src.rules.rule_engine import apply_rules_to_paragraph
+from src.rules.rule_engine import apply_list_numbering, apply_rules_to_paragraph
 from src.rules.rule_loader import load_rules
 
 
@@ -485,6 +485,34 @@ def test_list_item_without_layout_gets_format_and_numbering() -> None:
     assert paragraph._p.pPr is not None
     assert paragraph._p.pPr.numPr is not None
     assert paragraph._p.pPr.numPr.numId is not None
+
+
+def test_numbered_list_with_inherited_layout_keeps_layout_unchanged() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("COUNT(*) returns row count")
+    apply_list_numbering(paragraph, "bullet")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": paragraph.text,
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert paragraph.paragraph_format.left_indent is None
+    assert paragraph.paragraph_format.first_line_indent is None
+    assert list(paragraph.paragraph_format.tab_stops) == []
 
 
 def test_bibliography_item_numbering_uses_section_prefix() -> None:
