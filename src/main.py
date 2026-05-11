@@ -205,6 +205,7 @@ def cmd_audit_regression(
     report_csv: Optional[str],
     profile_id: str,
     limit: Optional[int] = None,
+    progress: bool = False,
 ) -> None:
     positive_dir_path = Path(positive_dir)
     negative_dir_path = Path(negative_dir)
@@ -221,12 +222,16 @@ def cmd_audit_regression(
     )
     ensure_parent_dir(report_path)
 
+    def report_progress(index: int, total: int, negative_path: Path) -> None:
+        print(f"[{index}/{total}] {negative_path.name}")
+
     audits = audit_negative_directory(
         positive_dir=positive_dir_path,
         negative_dir=negative_dir_path,
         workspace_dir=workspace_dir_path,
         profile_id=profile_id,
         limit=limit,
+        progress_callback=report_progress if progress else None,
     )
     frame = audits_to_frame(audits)
     frame.to_csv(report_path, index=False, encoding="utf-8-sig")
@@ -361,6 +366,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="Ограничить число отрицательных DOCX для быстрого прогона",
     )
+    regression_parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Печатать текущий номер документа при регресс-аудите",
+    )
 
     methodical_parser = subparsers.add_parser(
         "extract-methodical-profile",
@@ -443,6 +453,7 @@ def main() -> None:
             report_csv=args.report_csv,
             profile_id=args.profile_id,
             limit=args.limit,
+            progress=args.progress,
         )
         return
 

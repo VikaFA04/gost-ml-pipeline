@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
+from typing import Callable
 
 import pandas as pd
 from docx import Document
@@ -141,13 +142,17 @@ def audit_negative_directory(
     workspace_dir: Path,
     profile_id: str = "gost_7_32_2017",
     limit: int | None = None,
+    progress_callback: Callable[[int, int, Path], None] | None = None,
 ) -> list[NegativePairAudit]:
     positive_paths = sorted(path for path in positive_dir.glob("*.docx") if not path.name.startswith("~$"))
     audits: list[NegativePairAudit] = []
     negative_paths = sorted(path for path in negative_dir.glob("*.docx") if not path.name.startswith("~$"))
     if limit is not None:
         negative_paths = negative_paths[: max(limit, 0)]
-    for negative_path in negative_paths:
+    total = len(negative_paths)
+    for index, negative_path in enumerate(negative_paths, start=1):
+        if progress_callback is not None:
+            progress_callback(index, total, negative_path)
         positive_path, _ = best_positive_match(negative_path, positive_paths)
         pair_workspace = workspace_dir / negative_path.stem
         audits.append(
