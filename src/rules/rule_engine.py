@@ -632,6 +632,23 @@ def apply_rules_to_paragraph(
     if not applicable_rules:
         return None
 
+    # Style guard — D-01..D-03: body_text rules must not touch
+    # Heading/TOC/Caption/List-styled paragraphs. Surface as review,
+    # never silently skip (D-004 — "no silent rewrites").
+    paragraph_style_class = classify_style(paragraph)
+    if label == "body_text" and paragraph_style_class != "body":
+        return {
+            "status": "review",
+            "violated_rules": [],
+            "applied_fixes": [],
+            "suggested_fixes": [],
+            "suggested_rule_ids": [],
+            "manual_review_required": True,
+            "blocked_unsafe_autofix": False,
+            "unsafe_auto_fix_reason": "",
+            "explanation": f"style_guard_block: rule_class=body_text paragraph_style_class={paragraph_style_class}",
+        }
+
     current_profile = get_current_paragraph_profile(paragraph)
     violated_rules: list[str] = []
     applied_fixes: list[str] = []
