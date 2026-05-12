@@ -11,6 +11,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm
 
+from src.evaluation.format_regression_audit import build_regression_predictions
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.rules.profile_loader import load_profile
 from src.rules.rule_engine import apply_list_numbering, apply_rules_to_paragraph
@@ -1291,3 +1292,66 @@ def test_style_guard_does_not_write_direct_props() -> None:
     assert paragraph.paragraph_format.left_indent is None
     assert paragraph.paragraph_format.first_line_indent is None
     assert paragraph.alignment is None
+
+
+def test_style_guard_minimal_docx_changed_zero(tmp_path) -> None:
+    """Integration: hand-crafted DOCX with one paragraph per style class.
+
+    After Plan 03's guard lands, format-docx --apply-safe must yield changed=0
+    because the guard short-circuits each styled paragraph (Heading/TOC/Caption/List)
+    to status=review even when the predicted label is body_text, and the Normal
+    paragraph already complies with body_text rules.
+
+    Deviation rationale (Wave 0): `build_regression_predictions` would route the
+    Heading/List/Caption paragraphs to non-body_text labels via `infer_regression_label`
+    (style-based heuristic), bypassing the body_text path entirely — the guard would
+    never be exercised. To pin the contract the plan is actually targeting
+    ("body_text autofix mutates Heading/TOC/Caption/List paragraphs without the
+    guard"), we simulate a worst-case model misprediction by overwriting
+    predicted_label/postprocessed_label to "body_text" for ALL rows. This is the
+    exact failure mode the Plan 03 guard exists to catch.
+    """
+    import pandas as pd
+
+    input_docx = Path("tests/fixtures/style_guard_minimal.docx")
+    assert input_docx.exists(), "fixture missing — run tests/fixtures/_build_style_guard_minimal.py"
+
+    predictions_csv = tmp_path / "predictions.csv"
+    report_csv = tmp_path / "report.csv"
+    output_docx = tmp_path / "output.docx"
+    build_regression_predictions(input_docx, predictions_csv)
+
+    # Force body_text label on every paragraph to exercise the guard contract.
+    predictions_df = pd.read_csv(predictions_csv, encoding="utf-8-sig")
+    predictions_df["predicted_label"] = "body_text"
+    predictions_df["postprocessed_label"] = "body_text"
+    predictions_df.to_csv(predictions_csv, index=False, encoding="utf-8-sig")
+
+    summary = audit_or_format_docx(
+        input_docx=input_docx,
+        predictions_csv=predictions_csv,
+        report_csv=report_csv,
+        output_docx=output_docx,
+        apply_safe=True,
+        profile_id="gost_7_32_2017",
+    )
+
+    assert summary["error"] == 0
+    assert summary["changed"] == 0
+
+    # Guard contract: every NON-Normal styled paragraph must be short-circuited
+    # by the style_guard with an explanation starting "style_guard_block:".
+    # Pre-Plan-03 this assertion is RED because no guard exists — explanations
+    # come from the generic body_text inherited-format review path.
+    report_df = pd.read_csv(report_csv, encoding="utf-8-sig")
+    fixture_doc = Document(str(input_docx))
+    styled_paragraph_indices = [
+        i for i, p in enumerate(fixture_doc.paragraphs)
+        if p.style.name != "Normal"
+    ]
+    for idx in styled_paragraph_indices:
+        explanation = str(report_df.iloc[idx]["explanation"])
+        assert explanation.startswith("style_guard_block:"), (
+            f"paragraph {idx} (style={fixture_doc.paragraphs[idx].style.name}) "
+            f"explanation should start with 'style_guard_block:' but was: {explanation}"
+        )
