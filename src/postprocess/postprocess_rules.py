@@ -4,6 +4,8 @@ import re
 
 import pandas as pd
 
+from src.rules.style_signatures import HEADING_STYLE_RE, TOC_STYLE_RE, CAPTION_STYLE_RE, LIST_STYLE_RE
+
 NUMBERED_LIST_ITEM_RE = re.compile(r"^\s*\d+[\.\)]\s+")
 LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
 TEXT_LETTER_RE = re.compile(r"[A-Za-zА-Яа-яЁё]")
@@ -57,6 +59,31 @@ def _has_list_metadata(row: pd.Series) -> bool:
 
 def _is_structural_list_item(row: pd.Series, text: str) -> bool:
     return _has_list_metadata(row) and not _is_formula_like(text)
+
+
+def _row_style_class(row) -> str:
+    """Classify a DataFrame row's `style` string into one of the 5 StyleClass values.
+
+    Priority matches src.rules.style_signatures.classify_style:
+        toc → heading → caption → list → body.
+
+    Returns 'body' on any error or empty/missing style.
+    """
+    try:
+        style_value = row.get("style", "") if hasattr(row, "get") else ""
+        if not isinstance(style_value, str) or not style_value:
+            return "body"
+        if TOC_STYLE_RE.search(style_value):
+            return "toc"
+        if HEADING_STYLE_RE.search(style_value):
+            return "heading"
+        if CAPTION_STYLE_RE.search(style_value):
+            return "caption"
+        if LIST_STYLE_RE.search(style_value):
+            return "list"
+        return "body"
+    except Exception:
+        return "body"
 
 
 def _is_bibliography_title(text: str) -> bool:
@@ -126,6 +153,13 @@ def apply_postprocess_rules(
         texts = ["" if pd.isna(value) else str(value) for value in group["text"].tolist()]
         section_indices: list[int | None] = [None] * len(labels)
 
+        # D-01 — unconditional bibliography_title override. Runs BEFORE all other
+        # label-rewriting passes. BIBLIOGRAPHY_TITLE_RE matches → label becomes
+        # bibliography_title regardless of SVM's predicted_label.
+        for position in range(len(labels)):
+            if _is_bibliography_title(texts[position]):
+                labels[position] = "bibliography_title"
+
         for position, (_, row) in enumerate(group.iterrows()):
             if labels[position] == "list_item" and _is_formula_like(texts[position]):
                 labels[position] = "body_text"
@@ -170,9 +204,18 @@ def apply_postprocess_rules(
                 in_bibliography = False
             if not in_bibliography:
                 continue
-            if _is_bibliography_subheading(text):
-                if _is_numbered_bibliography_subheading(text):
-                    bibliography_section_index += 1
+
+            # D-04 — subsection detection: primary signal is Heading 1/2/3 style;
+            # fallback is the legacy BIBLIOGRAPHY_SUBHEADING_RE so that
+            # src.evaluation.format_regression_audit.infer_regression_label (which
+            # uses synthetic predictions WITHOUT a real style string) keeps working.
+            style_class = _row_style_class(row)
+            is_subsection_heading = (
+                style_class == "heading"
+                or _is_bibliography_subheading(text)
+            )
+            if is_subsection_heading:
+                bibliography_section_index += 1
                 if label not in {"title_section", "title_subsection"}:
                     labels[position] = "bibliography_title"
                 section_indices[position] = bibliography_section_index or None
