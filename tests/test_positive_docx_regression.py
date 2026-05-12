@@ -9,7 +9,7 @@ from src.generate.inplace_formatter import audit_or_format_docx
 
 
 def test_positive_docx_examples_are_not_autofixed(tmp_path) -> None:
-    checked_files = ["1.docx", "4.docx"]
+    checked_files = ["1.docx", "4.docx", "58.docx", "59.docx"]
 
     for file_name in checked_files:
         input_docx = Path("positive_examples") / file_name
