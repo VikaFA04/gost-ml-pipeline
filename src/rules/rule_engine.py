@@ -606,6 +606,168 @@ def is_review_only_scalar_fix(label: str, parameter: str) -> bool:
     )
 
 
+def _apply_bibliography_rules(
+    paragraph: Paragraph,
+    rule: dict[str, Any],
+    row_data: dict[str, Any],
+    apply_safe: bool,
+    violated_rules: list[str],
+    applied_fixes: list[str],
+    suggested_fixes: list[str],
+    explanations: list[str],
+) -> dict[str, bool]:
+    """Handle a single bibliography rule (section title or format).
+
+    Returns {"handled": bool, "manual_review": bool}. When ``handled`` is True
+    the caller must continue to the next rule; ``manual_review`` indicates the
+    accumulator flag must be set to True.
+    """
+    parameter = str(rule["parameter"])
+
+    if parameter == "bibliography_section_title":
+        if bibliography_section_title_matches(paragraph, row_data):
+            return {"handled": True, "manual_review": False}
+        violated_rules.append(rule["id"])
+        suggested_fixes.append("bibliography_section_prefix")
+        explanations.append(f"{rule['id']}: bibliography section title needs numbering")
+        if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+            applied_fixes.extend(apply_bibliography_section_title(paragraph, row_data))
+            return {"handled": True, "manual_review": False}
+        return {"handled": True, "manual_review": True}
+
+    if parameter == "bibliography_format":
+        expected_value = rule["expected_value"]
+        if bibliography_format_matches(paragraph, expected_value, row_data):
+            return {"handled": True, "manual_review": False}
+        violated_rules.append(rule["id"])
+        suggested_fixes.extend(
+            [
+                "style_name",
+                "first_line_indent_cm",
+                "left_indent_cm",
+                "numbering",
+            ]
+        )
+        explanations.append(f"{rule['id']}: bibliography item is not numbered/formatted")
+        if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+            applied_fixes.extend(
+                apply_bibliography_format(
+                    paragraph,
+                    expected_value,
+                    _bibliography_section_index(row_data),
+                )
+            )
+            return {"handled": True, "manual_review": False}
+        return {"handled": True, "manual_review": True}
+
+    return {"handled": False, "manual_review": False}
+
+
+def _apply_scalar_rule(
+    paragraph: Paragraph,
+    rule: dict[str, Any],
+    parameter: str,
+    label: str,
+    current_profile: dict[str, Any],
+    apply_safe: bool,
+    default_font_name: str,
+    list_assessment: dict[str, Any] | None,
+    body_label_on_list_like_paragraph: bool,
+    bibliography_section_index: int | None,
+    violated_rules: list[str],
+    applied_fixes: list[str],
+    suggested_fixes: list[str],
+    explanations: list[str],
+    manual_review_required: bool,
+    blocked_unsafe_autofix: bool,
+    unsafe_auto_fix_reason: str,
+) -> dict[str, Any]:
+    """Handle one scalar parameter rule for ``paragraph``.
+
+    Returns the (possibly updated) accumulator flags plus ``current_profile``,
+    which is re-read after a successful in-place fix. Lists are mutated in
+    place. Behavior is identical to the previous inline branch.
+    """
+    current_value = current_profile.get(parameter)
+    if parameter == "alignment":
+        current_value = normalize_alignment(paragraph.alignment)
+    if current_value is None:
+        if label == "list_item":
+            return {
+                "current_profile": current_profile,
+                "manual_review_required": manual_review_required,
+                "blocked_unsafe_autofix": blocked_unsafe_autofix,
+                "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
+            }
+        violated_rules.append(rule["id"])
+        suggested_fixes.append(parameter)
+        explanations.append(_format_inherited_review(rule, parameter))
+        return {
+            "current_profile": current_profile,
+            "manual_review_required": True,
+            "blocked_unsafe_autofix": blocked_unsafe_autofix,
+            "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
+        }
+    if not compare_scalar(current_value, rule["expected_value"]):
+        violated_rules.append(rule["id"])
+        suggested_fixes.append(parameter)
+        explanations.append(f"{rule['id']}: expected {parameter}={rule['expected_value']}")
+        if body_label_on_list_like_paragraph:
+            return {
+                "current_profile": current_profile,
+                "manual_review_required": True,
+                "blocked_unsafe_autofix": True,
+                "unsafe_auto_fix_reason": "paragraph looks like a list but was classified as body_text",
+            }
+        if label in {"title_section", "title_subsection"} and bibliography_section_index is not None:
+            return {
+                "current_profile": current_profile,
+                "manual_review_required": True,
+                "blocked_unsafe_autofix": blocked_unsafe_autofix,
+                "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
+            }
+        if is_review_only_scalar_fix(label, parameter):
+            return {
+                "current_profile": current_profile,
+                "manual_review_required": True,
+                "blocked_unsafe_autofix": blocked_unsafe_autofix,
+                "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
+            }
+        if label in {"title_section", "title_subsection"} and _paragraph_has_heading_style(paragraph):
+            return {
+                "current_profile": current_profile,
+                "manual_review_required": True,
+                "blocked_unsafe_autofix": blocked_unsafe_autofix,
+                "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
+            }
+        if (
+            apply_safe
+            and rule["autocorrect"]
+            and rule["action"] == "fix"
+            and (label != "list_item" or (list_assessment and list_assessment["safe_to_autofix"]))
+        ):
+            applied_fixes.extend(
+                apply_scalar_fix(
+                    paragraph=paragraph,
+                    parameter=parameter,
+                    expected_value=rule["expected_value"],
+                    default_font_name=default_font_name,
+                )
+            )
+            current_profile = get_current_paragraph_profile(paragraph)
+        elif label == "list_item" and apply_safe:
+            blocked_unsafe_autofix = True
+            manual_review_required = True
+            if list_assessment is not None:
+                unsafe_auto_fix_reason = "; ".join(list_assessment["unsafe_reasons"])
+    return {
+        "current_profile": current_profile,
+        "manual_review_required": manual_review_required,
+        "blocked_unsafe_autofix": blocked_unsafe_autofix,
+        "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
+    }
+
+
 def apply_rules_to_paragraph(
     paragraph: Paragraph,
     label: str,
@@ -660,41 +822,18 @@ def apply_rules_to_paragraph(
         if label == "list_item" and parameter == "bold":
             continue
 
-        if parameter == "bibliography_section_title":
-            if bibliography_section_title_matches(paragraph, row_data):
-                continue
-            violated_rules.append(rule["id"])
-            suggested_fixes.append("bibliography_section_prefix")
-            explanations.append(f"{rule['id']}: bibliography section title needs numbering")
-            if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
-                applied_fixes.extend(apply_bibliography_section_title(paragraph, row_data))
-            else:
-                manual_review_required = True
-            continue
-
-        if parameter == "bibliography_format":
-            expected_value = rule["expected_value"]
-            if bibliography_format_matches(paragraph, expected_value, row_data):
-                continue
-            violated_rules.append(rule["id"])
-            suggested_fixes.extend(
-                [
-                    "style_name",
-                    "first_line_indent_cm",
-                    "left_indent_cm",
-                    "numbering",
-                ]
+        if parameter in {"bibliography_section_title", "bibliography_format"}:
+            outcome = _apply_bibliography_rules(
+                paragraph=paragraph,
+                rule=rule,
+                row_data=row_data,
+                apply_safe=apply_safe,
+                violated_rules=violated_rules,
+                applied_fixes=applied_fixes,
+                suggested_fixes=suggested_fixes,
+                explanations=explanations,
             )
-            explanations.append(f"{rule['id']}: bibliography item is not numbered/formatted")
-            if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
-                applied_fixes.extend(
-                    apply_bibliography_format(
-                        paragraph,
-                        expected_value,
-                        _bibliography_section_index(row_data),
-                    )
-                )
-            else:
+            if outcome["manual_review"]:
                 manual_review_required = True
             continue
 
@@ -787,55 +926,29 @@ def apply_rules_to_paragraph(
                 manual_review_required = True
             continue
 
-        current_value = current_profile.get(parameter)
-        if parameter == "alignment":
-            current_value = normalize_alignment(paragraph.alignment)
-        if current_value is None:
-            if label == "list_item":
-                continue
-            violated_rules.append(rule["id"])
-            suggested_fixes.append(parameter)
-            explanations.append(_format_inherited_review(rule, parameter))
-            manual_review_required = True
-            continue
-        if not compare_scalar(current_value, rule["expected_value"]):
-            violated_rules.append(rule["id"])
-            suggested_fixes.append(parameter)
-            explanations.append(f"{rule['id']}: expected {parameter}={rule['expected_value']}")
-            if body_label_on_list_like_paragraph:
-                blocked_unsafe_autofix = True
-                manual_review_required = True
-                unsafe_auto_fix_reason = "paragraph looks like a list but was classified as body_text"
-                continue
-            if label in {"title_section", "title_subsection"} and bibliography_section_index is not None:
-                manual_review_required = True
-                continue
-            if is_review_only_scalar_fix(label, parameter):
-                manual_review_required = True
-                continue
-            if label in {"title_section", "title_subsection"} and _paragraph_has_heading_style(paragraph):
-                manual_review_required = True
-                continue
-            if (
-                apply_safe
-                and rule["autocorrect"]
-                and rule["action"] == "fix"
-                and (label != "list_item" or (list_assessment and list_assessment["safe_to_autofix"]))
-            ):
-                applied_fixes.extend(
-                    apply_scalar_fix(
-                        paragraph=paragraph,
-                        parameter=parameter,
-                        expected_value=rule["expected_value"],
-                        default_font_name=default_font_name,
-                    )
-                )
-                current_profile = get_current_paragraph_profile(paragraph)
-            elif label == "list_item" and apply_safe:
-                blocked_unsafe_autofix = True
-                manual_review_required = True
-                if list_assessment is not None:
-                    unsafe_auto_fix_reason = "; ".join(list_assessment["unsafe_reasons"])
+        scalar_outcome = _apply_scalar_rule(
+            paragraph=paragraph,
+            rule=rule,
+            parameter=parameter,
+            label=label,
+            current_profile=current_profile,
+            apply_safe=apply_safe,
+            default_font_name=default_font_name,
+            list_assessment=list_assessment,
+            body_label_on_list_like_paragraph=body_label_on_list_like_paragraph,
+            bibliography_section_index=bibliography_section_index,
+            violated_rules=violated_rules,
+            applied_fixes=applied_fixes,
+            suggested_fixes=suggested_fixes,
+            explanations=explanations,
+            manual_review_required=manual_review_required,
+            blocked_unsafe_autofix=blocked_unsafe_autofix,
+            unsafe_auto_fix_reason=unsafe_auto_fix_reason,
+        )
+        current_profile = scalar_outcome["current_profile"]
+        manual_review_required = scalar_outcome["manual_review_required"]
+        blocked_unsafe_autofix = scalar_outcome["blocked_unsafe_autofix"]
+        unsafe_auto_fix_reason = scalar_outcome["unsafe_auto_fix_reason"]
 
     status = "no_change"
     if violated_rules and not applied_fixes:
