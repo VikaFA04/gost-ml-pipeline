@@ -9,6 +9,8 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 from docx.text.paragraph import Paragraph
 
+from src.rules.style_signatures import LIST_STYLE_RE, HEADING_STYLE_RE, classify_style
+
 ALIGNMENT_MAP = {
     "LEFT": WD_ALIGN_PARAGRAPH.LEFT,
     "CENTER": WD_ALIGN_PARAGRAPH.CENTER,
@@ -17,8 +19,6 @@ ALIGNMENT_MAP = {
     "DISTRIBUTE": WD_ALIGN_PARAGRAPH.DISTRIBUTE,
 }
 
-LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
-HEADING_STYLE_RE = re.compile(r"heading|заголов", re.IGNORECASE)
 BIBLIOGRAPHY_SUBHEADING_RE = re.compile(r"^(?:\d+\s*)?(теоретическая\s+часть|практическая\s+часть)$", re.IGNORECASE)
 NUMBERED_MARKER_RE = re.compile(r"^\s*(?:\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])\s+")
 BULLET_MARKER_RE = re.compile(r"^\s*[-—–•●■◦]\s+")
