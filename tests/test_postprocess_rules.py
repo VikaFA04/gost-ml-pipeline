@@ -190,3 +190,94 @@ def test_postprocess_preserves_non_list_predictions() -> None:
     result = apply_postprocess_rules(df)
 
     assert result["postprocessed_label"].tolist() == ["figure_caption", "body_text", "table_caption"]
+
+
+# ============================================================================
+# Phase 02 RED tests — D-01 unconditional title override + D-04 heading style detection.
+# Plans 02 implements; these MUST fail today.
+# ============================================================================
+
+def _row_with_style(block_id: int, text: str, predicted_label: str, style: str = "Normal") -> dict[str, object]:
+    return {
+        "doc_id": "doc_phase2",
+        "block_id": block_id,
+        "text": text,
+        "style": style,
+        "predicted_label": predicted_label,
+    }
+
+
+def test_bibliography_title_overrides_svm_body_text() -> None:
+    """D-01: BIBLIOGRAPHY_TITLE_RE match unconditionally sets label=bibliography_title
+    even when SVM returned body_text. Pitfall 3 — pin the asymmetry."""
+    df = pd.DataFrame([
+        _row_with_style(0, "Введение", "body_text"),
+        _row_with_style(1, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", "body_text"),
+        _row_with_style(2, "Иванов И. И. Основы теории. — М., 2020.", "body_text"),
+    ])
+    result = apply_postprocess_rules(df)
+    labels = result["postprocessed_label"].tolist()
+    # Title row MUST become bibliography_title, NOT body_text.
+    assert labels[1] == "bibliography_title", (
+        f"D-01 override failed: row 1 label={labels[1]!r}, expected 'bibliography_title' "
+        f"(SVM said body_text, override must fire unconditionally)"
+    )
+
+
+def test_bibliography_subsection_detected_by_heading_style() -> None:
+    """D-04: Heading 1 style INSIDE bibliography context advances
+    bibliography_section_index, even when the heading TEXT does NOT match
+    BIBLIOGRAPHY_SUBHEADING_RE."""
+    df = pd.DataFrame([
+        _row_with_style(0, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", "bibliography_title"),
+        _row_with_style(1, "ТЕОРЕТИЧЕСКАЯ ЧАСТЬ", "body_text", style="Heading 1"),
+        _row_with_style(2, "Иванов И. И. Основы теории. — М., 2020.", "body_text"),
+        _row_with_style(3, "ИССЛЕДОВАТЕЛЬСКИЙ РАЗДЕЛ", "body_text", style="Heading 1"),
+        _row_with_style(4, "Петров П. П. Введение. — СПб., 2019.", "body_text"),
+    ])
+    result = apply_postprocess_rules(df)
+    section_indices = result["bibliography_section_index"].tolist()
+    # After D-04: row 1 advances section to 1; row 3 advances to 2.
+    # bibliography_section_index for entries 2 and 4 reflects the active section.
+    assert section_indices[2] == 1, (
+        f"D-04: entry under first Heading 1 subsection should have section_index=1, got {section_indices[2]!r}"
+    )
+    assert section_indices[4] == 2, (
+        f"D-04: entry under second Heading 1 subsection should have section_index=2, got {section_indices[4]!r}"
+    )
+
+
+def test_bibliography_subsection_fallback_regex_still_works() -> None:
+    """D-04 fallback: rows with Normal style whose TEXT matches the legacy
+    BIBLIOGRAPHY_SUBHEADING_RE must still be classified as subsection headings.
+    Per researcher Open Question 2: the legacy regex stays in the codebase
+    because src/evaluation/format_regression_audit.py imports it.
+
+    This test pins ONE non-numbered text that matches BIBLIOGRAPHY_SUBHEADING_RE.
+    Implementer in Plan 02 must inspect the regex to pick a matching string;
+    a safe choice is a section title that is literally listed in the regex
+    alternation. If no clean matching text exists, this test SKIPS with a
+    clear message rather than vacuously passing.
+    """
+    import re
+    from src.postprocess.postprocess_rules import BIBLIOGRAPHY_SUBHEADING_RE
+
+    # Pick the first non-empty literal alternation member from the regex pattern.
+    # If pattern uses character classes/quantifiers, fall back to a known
+    # working literal — implementer in Plan 02 may adjust the literal.
+    candidates = ["Книги и брошюры", "Статьи", "Электронные ресурсы", "Стандарты"]
+    matching = next((c for c in candidates if BIBLIOGRAPHY_SUBHEADING_RE.search(c)), None)
+    if matching is None:
+        import pytest
+        pytest.skip("No literal candidate matches BIBLIOGRAPHY_SUBHEADING_RE — adjust candidate list in Plan 02")
+
+    df = pd.DataFrame([
+        _row_with_style(0, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", "bibliography_title"),
+        _row_with_style(1, matching, "body_text"),   # Normal style — falls back to regex
+        _row_with_style(2, "Иванов И. И. Основы. — М., 2020.", "body_text"),
+    ])
+    result = apply_postprocess_rules(df)
+    section_indices = result["bibliography_section_index"].tolist()
+    assert section_indices[2] == 1, (
+        f"D-04 fallback: entry under regex-detected subsection should have section_index=1, got {section_indices[2]!r}"
+    )
