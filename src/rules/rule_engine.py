@@ -10,8 +10,6 @@ from docx.shared import Cm, Pt
 from docx.text.paragraph import Paragraph
 
 from src.rules.style_signatures import (
-    LIST_STYLE_RE,
-    HEADING_STYLE_RE,
     classify_style,
     paragraph_has_list_style as _paragraph_has_list_style,
     paragraph_has_heading_style as _paragraph_has_heading_style,
