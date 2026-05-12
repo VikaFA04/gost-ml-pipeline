@@ -43,3 +43,23 @@ def classify_style(paragraph: Paragraph) -> StyleClass:
     if LIST_STYLE_RE.search(name):
         return "list"
     return "body"
+
+
+def paragraph_has_list_style(paragraph: Paragraph) -> bool:
+    """True if paragraph.style.name matches LIST_STYLE_RE; False on any error."""
+    try:
+        if paragraph.style is not None and paragraph.style.name is not None:
+            return bool(LIST_STYLE_RE.search(str(paragraph.style.name)))
+    except Exception:
+        return False
+    return False
+
+
+def paragraph_has_heading_style(paragraph: Paragraph) -> bool:
+    """True if paragraph.style.name matches HEADING_STYLE_RE; False on any error."""
+    try:
+        if paragraph.style is not None and paragraph.style.name is not None:
+            return bool(HEADING_STYLE_RE.search(str(paragraph.style.name)))
+    except Exception:
+        return False
+    return False
