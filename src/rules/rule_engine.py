@@ -9,7 +9,13 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 from docx.text.paragraph import Paragraph
 
-from src.rules.style_signatures import LIST_STYLE_RE, HEADING_STYLE_RE, classify_style
+from src.rules.style_signatures import (
+    LIST_STYLE_RE,
+    HEADING_STYLE_RE,
+    classify_style,
+    paragraph_has_list_style as _paragraph_has_list_style,
+    paragraph_has_heading_style as _paragraph_has_heading_style,
+)
 
 ALIGNMENT_MAP = {
     "LEFT": WD_ALIGN_PARAGRAPH.LEFT,
@@ -537,24 +543,6 @@ def _paragraph_has_numbering(paragraph: Paragraph) -> bool:
 
 def _paragraph_has_list_marker(text: str) -> bool:
     return bool(BULLET_MARKER_RE.match(text) or NUMBERED_MARKER_RE.match(text))
-
-
-def _paragraph_has_list_style(paragraph: Paragraph) -> bool:
-    try:
-        if paragraph.style is not None and paragraph.style.name is not None:
-            return bool(LIST_STYLE_RE.search(str(paragraph.style.name)))
-    except Exception:
-        return False
-    return False
-
-
-def _paragraph_has_heading_style(paragraph: Paragraph) -> bool:
-    try:
-        if paragraph.style is not None and paragraph.style.name is not None:
-            return bool(HEADING_STYLE_RE.search(str(paragraph.style.name)))
-    except Exception:
-        return False
-    return False
 
 
 def _is_long_plain_paragraph(text: str) -> bool:
