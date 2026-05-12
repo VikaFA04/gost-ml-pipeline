@@ -36,6 +36,8 @@ REQUIRED_STYLE_KEYS = {
 
 ALLOWED_ALIGNMENTS = {"LEFT", "CENTER", "RIGHT", "JUSTIFY", "DISTRIBUTE"}
 
+ALLOWED_BIBLIOGRAPHY_SCOPES: set[str] = {"per_document", "per_section", "per_subsection_pattern"}
+
 
 def validate_profile(profile: dict[str, Any]) -> list[str]:
     errors: list[str] = []
@@ -82,6 +84,34 @@ def validate_profile(profile: dict[str, Any]) -> list[str]:
 
         if not isinstance(style_profile.get("bold"), bool):
             errors.append(f"В label '{label_name}' поле 'bold' должно быть bool")
+
+    # D-11 — list_detection (optional). If present, must be dict with int fields.
+    list_detection = profile.get("list_detection")
+    if list_detection is not None:
+        if not isinstance(list_detection, dict):
+            errors.append("Поле list_detection должно быть словарем")
+        else:
+            for key in ("max_fallback_words", "max_fallback_chars"):
+                if key in list_detection and not isinstance(list_detection[key], int):
+                    errors.append(f"В list_detection поле '{key}' должно быть целым числом")
+
+    # D-03 — numbering.bibliography.scope (optional).
+    numbering = profile.get("numbering")
+    if numbering is not None:
+        if not isinstance(numbering, dict):
+            errors.append("Поле numbering должно быть словарем")
+        else:
+            bibliography_cfg = numbering.get("bibliography")
+            if bibliography_cfg is not None:
+                if not isinstance(bibliography_cfg, dict):
+                    errors.append("Поле numbering.bibliography должно быть словарем")
+                else:
+                    scope = bibliography_cfg.get("scope")
+                    if scope is not None and scope not in ALLOWED_BIBLIOGRAPHY_SCOPES:
+                        errors.append(
+                            f"Недопустимое numbering.bibliography.scope='{scope}'; "
+                            f"допустимые: {sorted(ALLOWED_BIBLIOGRAPHY_SCOPES)}"
+                        )
 
     return errors
 
