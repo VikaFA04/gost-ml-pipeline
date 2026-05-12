@@ -9,6 +9,8 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 from docx.text.paragraph import Paragraph
 
+from src.rules.style_signatures import LIST_STYLE_RE, HEADING_STYLE_RE, classify_style
+
 ALIGNMENT_MAP = {
     "LEFT": WD_ALIGN_PARAGRAPH.LEFT,
     "CENTER": WD_ALIGN_PARAGRAPH.CENTER,
@@ -17,8 +19,6 @@ ALIGNMENT_MAP = {
     "DISTRIBUTE": WD_ALIGN_PARAGRAPH.DISTRIBUTE,
 }
 
-LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
-HEADING_STYLE_RE = re.compile(r"heading|заголов", re.IGNORECASE)
 BIBLIOGRAPHY_SUBHEADING_RE = re.compile(r"^(?:\d+\s*)?(теоретическая\s+часть|практическая\s+часть)$", re.IGNORECASE)
 NUMBERED_MARKER_RE = re.compile(r"^\s*(?:\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])\s+")
 BULLET_MARKER_RE = re.compile(r"^\s*[-—–•●■◦]\s+")
@@ -631,6 +631,23 @@ def apply_rules_to_paragraph(
     applicable_rules = [rule for rule in rules if label in rule["applicable_labels"]]
     if not applicable_rules:
         return None
+
+    # Style guard — D-01..D-03: body_text rules must not touch
+    # Heading/TOC/Caption/List-styled paragraphs. Surface as review,
+    # never silently skip (D-004 — "no silent rewrites").
+    paragraph_style_class = classify_style(paragraph)
+    if label == "body_text" and paragraph_style_class != "body":
+        return {
+            "status": "review",
+            "violated_rules": [],
+            "applied_fixes": [],
+            "suggested_fixes": [],
+            "suggested_rule_ids": [],
+            "manual_review_required": True,
+            "blocked_unsafe_autofix": False,
+            "unsafe_auto_fix_reason": "",
+            "explanation": f"style_guard_block: rule_class=body_text paragraph_style_class={paragraph_style_class}",
+        }
 
     current_profile = get_current_paragraph_profile(paragraph)
     violated_rules: list[str] = []

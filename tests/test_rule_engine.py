@@ -172,7 +172,10 @@ def test_list_like_paragraph_predicted_as_body_text_is_not_autofixed() -> None:
 
     assert result is not None
     assert result["status"] == "review"
-    assert result["blocked_unsafe_autofix"] is True
+    # Plan 03 style_guard fires earlier than the old list-like
+    # blocked_unsafe_autofix path: List-styled paragraph + body_text label
+    # short-circuits with style_guard_block, not blocked_unsafe_autofix.
+    assert result["explanation"].startswith("style_guard_block:")
     assert result["manual_review_required"] is True
     assert result["applied_fixes"] == []
     assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
@@ -1152,7 +1155,9 @@ def test_style_guard_blocks_body_text_on_heading() -> None:
 def test_style_guard_blocks_body_text_on_toc() -> None:
     document = Document()
     paragraph = document.add_paragraph("Глава 1 ... 5")
-    paragraph.style = "TOC 1"
+    # python-docx default template ships no "TOC 1" — use "TOC Heading"
+    # (the same choice the fixture _build_style_guard_minimal.py makes).
+    paragraph.style = "TOC Heading"
 
     result = apply_rules_to_paragraph(
         paragraph=paragraph,
