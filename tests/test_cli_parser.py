@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -92,6 +93,8 @@ def test_cli_parser_accepts_audit_regression_arguments(tmp_path) -> None:
             str(tmp_path / "workspace"),
             "--report-csv",
             str(tmp_path / "report.csv"),
+            "--summary-json",
+            str(tmp_path / "summary.json"),
             "--profile-id",
             "gost_7_32_2017",
             "--limit",
@@ -105,6 +108,7 @@ def test_cli_parser_accepts_audit_regression_arguments(tmp_path) -> None:
     assert args.negative_dir == "negative_examples"
     assert args.workspace_dir == str(tmp_path / "workspace")
     assert args.report_csv == str(tmp_path / "report.csv")
+    assert args.summary_json == str(tmp_path / "summary.json")
     assert args.profile_id == "gost_7_32_2017"
     assert args.limit == 3
     assert args.progress is True
@@ -115,6 +119,7 @@ def test_cmd_audit_regression_writes_report_csv(tmp_path) -> None:
     negative_dir = tmp_path / "negative"
     workspace_dir = tmp_path / "workspace"
     report_csv = tmp_path / "report.csv"
+    summary_json = tmp_path / "summary.json"
     positive_dir.mkdir()
     negative_dir.mkdir()
 
@@ -126,6 +131,7 @@ def test_cmd_audit_regression_writes_report_csv(tmp_path) -> None:
         negative_dir=str(negative_dir),
         workspace_dir=str(workspace_dir),
         report_csv=str(report_csv),
+        summary_json=str(summary_json),
         profile_id="gost_7_32_2017",
     )
 
@@ -133,6 +139,9 @@ def test_cmd_audit_regression_writes_report_csv(tmp_path) -> None:
     assert df.loc[0, "negative"] == "negative.docx"
     assert df.loc[0, "before_field_mismatches"] == 0
     assert df.loc[0, "after_field_mismatches"] == 0
+    summary = json.loads(summary_json.read_text(encoding="utf-8"))
+    assert summary["audits"] == 1
+    assert summary["report_csv"] == str(report_csv)
 
 
 def test_cmd_audit_regression_honors_limit(tmp_path) -> None:
@@ -140,6 +149,7 @@ def test_cmd_audit_regression_honors_limit(tmp_path) -> None:
     negative_dir = tmp_path / "negative"
     workspace_dir = tmp_path / "workspace"
     report_csv = tmp_path / "report.csv"
+    summary_json = tmp_path / "summary.json"
     positive_dir.mkdir()
     negative_dir.mkdir()
 
@@ -152,12 +162,15 @@ def test_cmd_audit_regression_honors_limit(tmp_path) -> None:
         negative_dir=str(negative_dir),
         workspace_dir=str(workspace_dir),
         report_csv=str(report_csv),
+        summary_json=str(summary_json),
         profile_id="gost_7_32_2017",
         limit=1,
     )
 
     df = pd.read_csv(report_csv)
     assert df["negative"].tolist() == ["negative_one.docx"]
+    summary = json.loads(summary_json.read_text(encoding="utf-8"))
+    assert summary["audits"] == 1
 
 
 def test_cmd_audit_regression_reports_progress(tmp_path, capsys) -> None:
@@ -165,6 +178,7 @@ def test_cmd_audit_regression_reports_progress(tmp_path, capsys) -> None:
     negative_dir = tmp_path / "negative"
     workspace_dir = tmp_path / "workspace"
     report_csv = tmp_path / "report.csv"
+    summary_json = tmp_path / "summary.json"
     positive_dir.mkdir()
     negative_dir.mkdir()
 
@@ -176,9 +190,46 @@ def test_cmd_audit_regression_reports_progress(tmp_path, capsys) -> None:
         negative_dir=str(negative_dir),
         workspace_dir=str(workspace_dir),
         report_csv=str(report_csv),
+        summary_json=str(summary_json),
         profile_id="gost_7_32_2017",
         progress=True,
     )
 
     captured = capsys.readouterr().out
     assert "[1/1] negative.docx" in captured
+    summary = json.loads(summary_json.read_text(encoding="utf-8"))
+    assert summary["audits"] == 1
+
+
+def test_cmd_audit_regression_defaults_summary_json_to_report_stem(tmp_path, monkeypatch) -> None:
+    from src import main as main_module
+
+    positive_dir = tmp_path / "positive"
+    negative_dir = tmp_path / "negative"
+    workspace_dir = tmp_path / "workspace"
+    reports_dir = tmp_path / "reports"
+    positive_dir.mkdir()
+    negative_dir.mkdir()
+    reports_dir.mkdir()
+
+    write_docx(positive_dir / "positive.docx", ["Paragraph"])
+    write_docx(negative_dir / "negative.docx", ["Paragraph"])
+
+    monkeypatch.setattr(main_module, "REPORTS_DIR", reports_dir)
+    timestamps = iter(["20260101_010101", "20260101_010102"])
+    monkeypatch.setattr(main_module, "now_ts", lambda: next(timestamps))
+
+    main_module.cmd_audit_regression(
+        positive_dir=str(positive_dir),
+        negative_dir=str(negative_dir),
+        workspace_dir=str(workspace_dir),
+        report_csv=None,
+        summary_json=None,
+        profile_id="gost_7_32_2017",
+    )
+
+    report_path = reports_dir / "regression_audit_positive_negative_20260101_010101.csv"
+    summary_path = reports_dir / "regression_audit_positive_negative_20260101_010101.json"
+    assert report_path.exists()
+    assert summary_path.exists()
+    assert summary_path.stem == report_path.stem

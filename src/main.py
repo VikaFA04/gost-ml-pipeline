@@ -203,6 +203,7 @@ def cmd_audit_regression(
     negative_dir: str,
     workspace_dir: str,
     report_csv: Optional[str],
+    summary_json: Optional[str],
     profile_id: str,
     limit: Optional[int] = None,
     progress: bool = False,
@@ -221,6 +222,8 @@ def cmd_audit_regression(
         negative_dir_path,
     )
     ensure_parent_dir(report_path)
+    summary_path = Path(summary_json) if summary_json else report_path.with_suffix(".json")
+    ensure_parent_dir(summary_path)
 
     def report_progress(index: int, total: int, negative_path: Path) -> None:
         print(f"[{index}/{total}] {negative_path.name}")
@@ -239,6 +242,7 @@ def cmd_audit_regression(
     summary = {
         "audits": len(audits),
         "report_csv": str(report_path),
+        "summary_json": str(summary_path),
         "workspace_dir": str(workspace_dir_path),
         "total_changed": int(frame["formatter_changed"].sum()) if not frame.empty else 0,
         "total_errors": int(frame["formatter_error"].sum()) if not frame.empty else 0,
@@ -247,6 +251,7 @@ def cmd_audit_regression(
         "field_mismatch_delta": int(frame["field_mismatch_delta"].sum()) if not frame.empty else 0,
         "profile_id": profile_id,
     }
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
@@ -354,6 +359,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Папка для промежуточных predictions/report/docx артефактов",
     )
     regression_parser.add_argument("--report-csv", required=False, help="Куда сохранить итоговый CSV отчет")
+    regression_parser.add_argument("--summary-json", required=False, help="Куда сохранить итоговый JSON summary")
     regression_parser.add_argument(
         "--profile-id",
         required=False,
@@ -451,6 +457,7 @@ def main() -> None:
             negative_dir=args.negative_dir,
             workspace_dir=args.workspace_dir or str(REPORTS_DIR / "regression_audit" / now_ts()),
             report_csv=args.report_csv,
+            summary_json=args.summary_json,
             profile_id=args.profile_id,
             limit=args.limit,
             progress=args.progress,

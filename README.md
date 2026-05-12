@@ -118,7 +118,8 @@ macro_f1     0.9414
   --workspace-dir results/regression_audit \
   --limit 5 \
   --progress \
-  --report-csv results/reports/regression_audit.csv
+  --report-csv results/reports/regression_audit.csv \
+  --summary-json results/reports/regression_audit_summary.json
 ```
 
 Создать DOCX с безопасными исправлениями:
