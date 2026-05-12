@@ -300,4 +300,49 @@ Each `### edge:` block has three lines: header, **Verdict:**, **Evidence:**. The
 
 ## Follow-ups (deferred per D-10)
 
-<!-- Task 3 (this plan) fills in which D-10 candidates were tried, which landed, and which were deferred. Task 4 (manual /graphify --update) appends the Cohesion stability subsection. -->
+### Refactors tried in this phase
+
+- **Candidate 1** (move list/heading helpers to `style_signatures.py`): **LANDED.**
+  Commit `558f381`. `paragraph_has_list_style(paragraph)` and
+  `paragraph_has_heading_style(paragraph)` now live in `src/rules/style_signatures.py`;
+  `rule_engine.py` imports them with aliases `_paragraph_has_list_style` /
+  `_paragraph_has_heading_style` so the five existing internal call sites
+  (lines 129, 560, 599, 752, 818) keep working unchanged. Local `def` blocks
+  (previously rule_engine.py:548-563) removed. Tests stay green
+  (52/53 in the targeted suite; 73/74 in the broader suite — 1 skip is
+  pre-existing).
+- **Candidate 2** (extract bibliography branch into `_apply_bibliography_rules`):
+  not attempted in Phase 1 — defer to a later phase if cohesion target is missed.
+- **Candidate 3** (extract scalar-fix branch into `_apply_scalar_rule`):
+  not attempted in Phase 1 — defer to a later phase if cohesion target is missed.
+
+Rationale for stopping at Candidate 1: D-10 mandates "low-risk only" and the
+plan instructs "Stop at the first one that lands cleanly; record the others in
+the Follow-ups section." Candidate 1 is the safest move (pure-function helpers,
+no state, no signature change at call sites), and it gives the cleanest
+graph-level signal for the cohesion verification in Task 4 (one helper per
+module ends the split-responsibility between `rule_engine` and
+`style_signatures`). Candidates 2 and 3 touch the body of
+`apply_rules_to_paragraph`, where RESEARCH §"Pitfall 3" warns aggressive
+extraction can SINK cohesion by spawning a thin new community.
+
+### High-risk follow-ups (deferred — out of D-10 scope)
+
+- Split `apply_rules_to_paragraph` into per-rule-class subdispatchers (split by
+  `parameter`). Risky because the for-loop accumulates state across branches.
+- Migrate to per-rule `allowed_styles` schema (REQ-dataset-schema, v2).
+- Property-chain walking through `paragraph.style.base_style` for custom
+  university styles (deferred to Phase 5 per CONTEXT line 113).
+
+### Cohesion stability (Task 4)
+
+<!-- The user runs `/graphify --update` twice (stability protocol) and fills
+this subsection in before replacing `after=PENDING` on the Cohesion line above. -->
+
+- X1 = PENDING (first `/graphify --update` read)
+- X2 = PENDING (second `/graphify --update` read)
+- noise = |X2 - X1| = PENDING
+- reported `after` = min(X1, X2) = PENDING
+- gain over baseline = PENDING
+- noise floor required = 0.005 (or measured noise if higher)
+- improvement is real: PENDING (yes iff `after` > 0.065)
