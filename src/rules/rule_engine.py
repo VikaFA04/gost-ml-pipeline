@@ -606,6 +606,63 @@ def is_review_only_scalar_fix(label: str, parameter: str) -> bool:
     )
 
 
+def _apply_bibliography_rules(
+    paragraph: Paragraph,
+    rule: dict[str, Any],
+    row_data: dict[str, Any],
+    apply_safe: bool,
+    violated_rules: list[str],
+    applied_fixes: list[str],
+    suggested_fixes: list[str],
+    explanations: list[str],
+) -> dict[str, bool]:
+    """Handle a single bibliography rule (section title or format).
+
+    Returns {"handled": bool, "manual_review": bool}. When ``handled`` is True
+    the caller must continue to the next rule; ``manual_review`` indicates the
+    accumulator flag must be set to True.
+    """
+    parameter = str(rule["parameter"])
+
+    if parameter == "bibliography_section_title":
+        if bibliography_section_title_matches(paragraph, row_data):
+            return {"handled": True, "manual_review": False}
+        violated_rules.append(rule["id"])
+        suggested_fixes.append("bibliography_section_prefix")
+        explanations.append(f"{rule['id']}: bibliography section title needs numbering")
+        if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+            applied_fixes.extend(apply_bibliography_section_title(paragraph, row_data))
+            return {"handled": True, "manual_review": False}
+        return {"handled": True, "manual_review": True}
+
+    if parameter == "bibliography_format":
+        expected_value = rule["expected_value"]
+        if bibliography_format_matches(paragraph, expected_value, row_data):
+            return {"handled": True, "manual_review": False}
+        violated_rules.append(rule["id"])
+        suggested_fixes.extend(
+            [
+                "style_name",
+                "first_line_indent_cm",
+                "left_indent_cm",
+                "numbering",
+            ]
+        )
+        explanations.append(f"{rule['id']}: bibliography item is not numbered/formatted")
+        if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
+            applied_fixes.extend(
+                apply_bibliography_format(
+                    paragraph,
+                    expected_value,
+                    _bibliography_section_index(row_data),
+                )
+            )
+            return {"handled": True, "manual_review": False}
+        return {"handled": True, "manual_review": True}
+
+    return {"handled": False, "manual_review": False}
+
+
 def apply_rules_to_paragraph(
     paragraph: Paragraph,
     label: str,
@@ -660,41 +717,18 @@ def apply_rules_to_paragraph(
         if label == "list_item" and parameter == "bold":
             continue
 
-        if parameter == "bibliography_section_title":
-            if bibliography_section_title_matches(paragraph, row_data):
-                continue
-            violated_rules.append(rule["id"])
-            suggested_fixes.append("bibliography_section_prefix")
-            explanations.append(f"{rule['id']}: bibliography section title needs numbering")
-            if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
-                applied_fixes.extend(apply_bibliography_section_title(paragraph, row_data))
-            else:
-                manual_review_required = True
-            continue
-
-        if parameter == "bibliography_format":
-            expected_value = rule["expected_value"]
-            if bibliography_format_matches(paragraph, expected_value, row_data):
-                continue
-            violated_rules.append(rule["id"])
-            suggested_fixes.extend(
-                [
-                    "style_name",
-                    "first_line_indent_cm",
-                    "left_indent_cm",
-                    "numbering",
-                ]
+        if parameter in {"bibliography_section_title", "bibliography_format"}:
+            outcome = _apply_bibliography_rules(
+                paragraph=paragraph,
+                rule=rule,
+                row_data=row_data,
+                apply_safe=apply_safe,
+                violated_rules=violated_rules,
+                applied_fixes=applied_fixes,
+                suggested_fixes=suggested_fixes,
+                explanations=explanations,
             )
-            explanations.append(f"{rule['id']}: bibliography item is not numbered/formatted")
-            if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
-                applied_fixes.extend(
-                    apply_bibliography_format(
-                        paragraph,
-                        expected_value,
-                        _bibliography_section_index(row_data),
-                    )
-                )
-            else:
+            if outcome["manual_review"]:
                 manual_review_required = True
             continue
 
