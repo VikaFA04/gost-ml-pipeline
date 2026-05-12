@@ -13,11 +13,12 @@ from docx.text.paragraph import Paragraph
 
 StyleClass = Literal["heading", "toc", "caption", "list", "body"]
 
-# Placeholder regex constants — Plan 02 replaces with real patterns.
-LIST_STYLE_RE = re.compile(r"$^")
-HEADING_STYLE_RE = re.compile(r"$^")
-TOC_STYLE_RE = re.compile(r"$^")
-CAPTION_STYLE_RE = re.compile(r"$^")
+# Regex constants — mirror rule_engine.LIST_STYLE_RE / HEADING_STYLE_RE so the guard
+# uses the same vocabulary as the existing autofix paths.
+LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
+HEADING_STYLE_RE = re.compile(r"heading|заголов", re.IGNORECASE)
+TOC_STYLE_RE = re.compile(r"toc|содержание", re.IGNORECASE)
+CAPTION_STYLE_RE = re.compile(r"caption|подпись", re.IGNORECASE)
 
 
 def classify_style(paragraph: Paragraph) -> StyleClass:
