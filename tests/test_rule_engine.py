@@ -11,6 +11,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm
 
+from src.evaluation.format_regression_audit import build_regression_predictions
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.rules.profile_loader import load_profile
 from src.rules.rule_engine import apply_list_numbering, apply_rules_to_paragraph
@@ -1115,3 +1116,242 @@ def test_fix_mode_preserves_tabbed_bibliography_entries_from_predictions_csv() -
         assert fixed.paragraphs[2]._p.pPr.numPr is not None
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+# ---- Phase 01: style-guard tests (RED state — guard implemented in Plan 03) ----
+
+def _row_data_body_text(text: str) -> dict:
+    return {
+        "text": text,
+        "confidence_score": 0.99,
+        "low_confidence": False,
+    }
+
+
+def test_style_guard_blocks_body_text_on_heading() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Глава 1. Введение")
+    paragraph.style = "Heading 1"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_blocks_body_text_on_toc() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Глава 1 ... 5")
+    paragraph.style = "TOC 1"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_blocks_body_text_on_caption() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Рисунок 1 — Схема")
+    paragraph.style = "Caption"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_blocks_body_text_on_list() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Первый пункт перечисления")
+    paragraph.style = "List Paragraph"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    # NEW guard fires earlier than the existing late blocked_unsafe_autofix path —
+    # the explanation marker distinguishes the two.
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_passes_heading_rule_on_heading() -> None:
+    # Heading rule on heading paragraph: guard MUST NOT fire (D-03).
+    # rationale: D-03 says non-body_text labels are unaffected. Strengthened
+    # vs. vacuous variant by asserting `result is not None` AND the
+    # explanation does NOT begin with "style_guard_block:". If the existing
+    # title_section path returns None for this paragraph, copy the
+    # row_data/paragraph shape from a pre-Phase-1 test in this file that
+    # already produces a non-None title_section result (grep for
+    # `label="title_section"` and pick one with non-None observed outcome).
+    document = Document()
+    paragraph = document.add_paragraph("Введение")
+    paragraph.style = "Heading 1"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data={"text": paragraph.text, "confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    # Strengthened — refuse to vacuously pass on result is None.
+    assert result is not None, (
+        "title_section path returned None for a Heading-styled paragraph — "
+        "this test cannot prove the guard did not fire. Replace the row_data/"
+        "paragraph shape with one that an existing pre-Phase-1 test already "
+        "produces a non-None title_section result for, then re-run."
+    )
+    assert not result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_passes_body_text_on_normal() -> None:
+    # body_text on Normal-styled paragraph: guard MUST NOT fire — existing
+    # body_text path runs. Strengthened to refuse vacuous-None passes.
+    # rationale: if `apply_rules_to_paragraph(label="body_text", Normal-styled,
+    # long text)` returns None for this row_data, copy the row_data shape
+    # from an existing body_text test that produces a non-None result
+    # (e.g., the pre-Phase-1 `test_rule_application_*` family in this file).
+    document = Document()
+    paragraph = document.add_paragraph(
+        "Обычный абзац основного текста с достаточной длиной для applicable_rules."
+    )
+    # leave style as default Normal
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None, (
+        "body_text path returned None for a Normal-styled paragraph — "
+        "this test cannot prove the guard did not fire. Replace row_data "
+        "with a shape that produces a non-None result in an existing pre-"
+        "Phase-1 test, then re-run."
+    )
+    assert not result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_does_not_write_direct_props() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Глава 2. Методика")
+    paragraph.style = "Heading 1"
+    # baseline: paragraph_format props are None by default for a freshly-added paragraph
+    assert paragraph.paragraph_format.left_indent is None
+    assert paragraph.paragraph_format.first_line_indent is None
+
+    apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    # After guard fires, NO direct paragraph-format props get written.
+    assert paragraph.paragraph_format.left_indent is None
+    assert paragraph.paragraph_format.first_line_indent is None
+    assert paragraph.alignment is None
+
+
+def test_style_guard_minimal_docx_changed_zero(tmp_path) -> None:
+    """Integration: hand-crafted DOCX with one paragraph per style class.
+
+    After Plan 03's guard lands, format-docx --apply-safe must yield changed=0
+    because the guard short-circuits each styled paragraph (Heading/TOC/Caption/List)
+    to status=review even when the predicted label is body_text, and the Normal
+    paragraph already complies with body_text rules.
+
+    Deviation rationale (Wave 0): `build_regression_predictions` would route the
+    Heading/List/Caption paragraphs to non-body_text labels via `infer_regression_label`
+    (style-based heuristic), bypassing the body_text path entirely — the guard would
+    never be exercised. To pin the contract the plan is actually targeting
+    ("body_text autofix mutates Heading/TOC/Caption/List paragraphs without the
+    guard"), we simulate a worst-case model misprediction by overwriting
+    predicted_label/postprocessed_label to "body_text" for ALL rows. This is the
+    exact failure mode the Plan 03 guard exists to catch.
+    """
+    import pandas as pd
+
+    input_docx = Path("tests/fixtures/style_guard_minimal.docx")
+    assert input_docx.exists(), "fixture missing — run tests/fixtures/_build_style_guard_minimal.py"
+
+    predictions_csv = tmp_path / "predictions.csv"
+    report_csv = tmp_path / "report.csv"
+    output_docx = tmp_path / "output.docx"
+    build_regression_predictions(input_docx, predictions_csv)
+
+    # Force body_text label on every paragraph to exercise the guard contract.
+    predictions_df = pd.read_csv(predictions_csv, encoding="utf-8-sig")
+    predictions_df["predicted_label"] = "body_text"
+    predictions_df["postprocessed_label"] = "body_text"
+    predictions_df.to_csv(predictions_csv, index=False, encoding="utf-8-sig")
+
+    summary = audit_or_format_docx(
+        input_docx=input_docx,
+        predictions_csv=predictions_csv,
+        report_csv=report_csv,
+        output_docx=output_docx,
+        apply_safe=True,
+        profile_id="gost_7_32_2017",
+    )
+
+    assert summary["error"] == 0
+    assert summary["changed"] == 0
+
+    # Guard contract: every NON-Normal styled paragraph must be short-circuited
+    # by the style_guard with an explanation starting "style_guard_block:".
+    # Pre-Plan-03 this assertion is RED because no guard exists — explanations
+    # come from the generic body_text inherited-format review path.
+    report_df = pd.read_csv(report_csv, encoding="utf-8-sig")
+    fixture_doc = Document(str(input_docx))
+    styled_paragraph_indices = [
+        i for i, p in enumerate(fixture_doc.paragraphs)
+        if p.style.name != "Normal"
+    ]
+    for idx in styled_paragraph_indices:
+        explanation = str(report_df.iloc[idx]["explanation"])
+        assert explanation.startswith("style_guard_block:"), (
+            f"paragraph {idx} (style={fixture_doc.paragraphs[idx].style.name}) "
+            f"explanation should start with 'style_guard_block:' but was: {explanation}"
+        )
