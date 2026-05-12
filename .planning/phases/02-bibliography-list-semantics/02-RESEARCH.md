@@ -563,32 +563,31 @@ Phase 2 introduces no new security surface beyond Phase 1.
 | A5 | python-docx `Paragraph.part.numbering_part.element` returns the `<w:numbering>` root unchanged across reads | All numbering examples | If python-docx mutates it lazily, our scan-on-first-call could see different children than the allocator writes. Mitigation: existing code (line 151, 168, 191) treats this as stable across reads. [ASSUMED based on existing rule_engine.py patterns; not re-verified against python-docx source this session] |
 | A6 | `bibliography_section_index` in row_data from CSV survives pandas `Series.itertuples` round-trip as int (not float NaN) | Profile passthrough, Example C | If pandas converts to NaN-bearing float column, `_safe_int` at line 391 returns None — section_index is lost. Mitigation: VERIFIED — existing `test_bibliography_item_numbering_uses_section_prefix` (line 584) passes section_index=2 via dict-style row_data and works. CSV round-trip uses pandas which preserves int-or-None. [VERIFIED: existing test confirms] |
 
-## Open Questions for Planner
+## Open Questions for Planner (RESOLVED)
 
 1. **Should D-15 negative-corpus mean diff-rate gate become an automated pytest in Phase 2 or stay manual until Phase 4?**
    - What we know: Phase 1 left it manual (Plan 03 SUMMARY: "Numbers were obtained via direct `audit_negative_directory(...)` call"). No `tests/test_negative_corpus_diff_rate.py` exists.
    - What's unclear: Phase 4 explicitly owns `audit-regression` CLI gate (REQ-audit-regression-cli). Inserting it earlier (Phase 2) duplicates work, but skipping it leaves Phase 2 with no automated regression detection for negative corpus.
-   - Recommendation: ADD a Phase 2 pytest test that calls `audit_negative_directory` directly with `limit=4` (1, 4, 58, 59 negative variants — same files as positive baseline) and asserts mean `after_diff_rate ≤ 0.4781`. Full 17-file gate stays manual until Phase 4. This is faster (4 docs vs 17) and prevents Phase 2 from silently breaking the gate.
+   - Recommendation → RESOLVED: ADD a Phase 2 pytest test that calls `audit_negative_directory` directly with `limit=4` (1, 4, 58, 59 negative variants — same files as positive baseline) and asserts mean `after_diff_rate ≤ 0.4781`. Full 17-file gate stays manual until Phase 4. This is faster (4 docs vs 17) and prevents Phase 2 from silently breaking the gate. *Adopted by Plan 01 (Wave 0 builds `tests/test_negative_corpus_diff_rate.py`) and Plan 04 Task 3 (verifies gate stays GREEN).*
 
 2. **For D-04, should `BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE` and `BIBLIOGRAPHY_SUBHEADING_RE` be kept as a fallback or removed?**
    - What we know: `src/evaluation/format_regression_audit.py:50` imports `BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE` to seed synthetic `title_section` labels. Removing the regex would break the regression baseline.
    - What's unclear: CONTEXT.md Claude's Discretion line punts to researcher.
-   - Recommendation (RESOLVED): **KEEP both regexes.** Primary subsection detection is `classify_style == "heading"`. Fallback is the regex, used when the row's style string doesn't match HEADING_STYLE_RE (e.g., synthetic predictions in `format_regression_audit.infer_regression_label`). This preserves Phase 1 dependencies without compromising D-04's intent (position+style primary).
+   - Recommendation (RESOLVED): **KEEP both regexes.** Primary subsection detection is `classify_style == "heading"`. Fallback is the regex, used when the row's style string doesn't match HEADING_STYLE_RE (e.g., synthetic predictions in `format_regression_audit.infer_regression_label`). This preserves Phase 1 dependencies without compromising D-04's intent (position+style primary). *Adopted by Plan 02 (postprocess D-04 implementation keeps both regexes as fallback).*
 
 3. **D-06 "valid numId" definition — does it have to map to an abstractNum with the new 2-level structure, or any abstractNum?**
    - What we know: Phase 1 already has `_num_id_exists` (line 148) and `paragraph_numbering_reference_is_valid` (line 156) checking that numId resolves to an existing `w:num` in numbering.xml. Today's `bibliography_numbering_matches` (line 338) checks the EXPECTED lvlText `f"{section_index}.%1"`.
    - What's unclear: After D-05, "valid" for coercion purposes — does it mean "any numId pointing at a real abstractNum" OR "a numId pointing at the new 2-level abstract with the right lvlOverride"?
-   - Recommendation: **"Valid"** = exists in numbering.xml AND its abstractNum has multiLevelType=multilevel AND level-1 lvlText=="%1.%2.". Lower bar fails idempotency (would coerce to a legacy singleLevel numId which then renders wrong). Plan-phase decision.
+   - Recommendation → RESOLVED: **"Valid"** = exists in numbering.xml AND its abstractNum has multiLevelType=multilevel AND level-1 lvlText=="%1.%2.". Lower bar fails idempotency (would coerce to a legacy singleLevel numId which then renders wrong). *Adopted by Plan 03 — `_bibliography_valid_numId` enforces all three conditions; legacy singleLevel numIds in `bibliography_minimal.docx` entry 2 deliberately fail criterion (2) so D-06 coerces away from them.*
 
 4. **D-13 — do existing rule expected_values in `formatting_rules_v1.json:118-130` (carrying `first_line_indent_cm: -1.0, left_indent_cm: 2.25`) stay, or get stripped?**
    - What we know: D-13 says "if profile has field → apply, else skip". Current rule definition carries `first_line_indent_cm` and `left_indent_cm` in its expected_value — these effectively force application regardless of profile.
    - What's unclear: Should rule expected_value get pruned to `{"style_name": "List Number"}` so the profile becomes the sole source of scalar truth?
-   - Recommendation: **Strip the scalars from `formatting_rules_v1.json:118-130` expected_value**, leaving only `style_name`. Profile JSON `labels.bibliography_item.style_profile.*` becomes the authoritative source. This realizes D-13's "Phase 1 style_guard_block: philosophy of no silent rewrites of inherited values" at the rule schema level.
+   - Recommendation → RESOLVED: **Strip the scalars from `formatting_rules_v1.json:118-130` expected_value**, leaving only `style_name`. Profile JSON `labels.bibliography_item.style_profile.*` becomes the authoritative source. This realizes D-13's "Phase 1 style_guard_block: philosophy of no silent rewrites of inherited values" at the rule schema level. *Adopted by Plan 04 Task 2 — JSON stripped; profile-level scalar addition is sub-step 2e remediation path 1 if regression appears.*
 
 5. **Does the new 2-level abstract need a `<w:nsid>` element to be Word-compatible?**
    - What we know: ECMA-376 sample at c-rex.net shows `<w:nsid w:val="FFFFFF7F"/>` as the first child. Existing `_create_section_abstract_num_id` (line 303-335) DOES NOT emit nsid; Word still opens documents created by Phase 1 rule engine without complaint.
-   - Recommendation: **Skip nsid for parity with existing code.** Plan-phase smoke-test on a real DOCX confirms.
-
+   - Recommendation → RESOLVED: **Skip nsid for parity with existing code.** Plan-phase smoke-test on a real DOCX confirms. *Adopted by Plan 03 — `_create_bibliography_multilevel_abstract` emits no `<w:nsid>`; matches the legacy emitter idiom.*
 ## Project Constraints (from CLAUDE.md)
 
 The following CLAUDE.md directives are load-bearing for Phase 2 planning. Treat with same authority as locked CONTEXT.md decisions.

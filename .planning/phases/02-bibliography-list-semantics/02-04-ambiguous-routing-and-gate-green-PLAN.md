@@ -7,6 +7,8 @@ depends_on: [01, 02, 03]
 files_modified:
   - src/rules/rule_engine.py
   - src/rules/formatting_rules_v1.json
+  - src/rules/profiles/gost_7_32_2017.json
+  - tests/test_negative_corpus_diff_rate.py
 autonomous: true
 requirements:
   - REQ-list-conservative-handling
@@ -291,6 +293,20 @@ Rationale (Open Question 4): D-13 says "if profile has field → apply, else ski
     - If the negative-corpus mean diff-rate REGRESSES because of this strip, document in the SUMMARY and propose either (a) restoring the scalars in this rule (per-rule), or (b) moving the scalars to `gost_7_32_2017.json` profile `labels.bibliography_item.style_profile.*` and threading the profile through to apply_bibliography_format. Per researcher Open Question 4 recommendation, option (b) is the cleaner path; if needed, the executor adds the profile fields in this task as a follow-up sub-step.
   </behavior>
   <action>
+    **Sub-step 2.0 (PRE-CHECK) — Run the D-13 unit test against CURRENT code BEFORE the JSON strip.** This pins the "right reason for RED" before mutating any source. Per CLAUDE.md "тест наблюдался падающим по ожидаемой причине":
+
+    ```bash
+    python -m pytest tests/test_bibliography_phase2.py::test_bibliography_format_skips_alignment_when_profile_omits -x -q 2>&1 | tee /tmp/d13_pre_check.txt; echo "PRE-CHECK exit code: ${PIPESTATUS[0]}"
+    ```
+
+    Acceptance for sub-step 2.0 (grep-checkable):
+    - The exit code captured in `/tmp/d13_pre_check.txt` is NON-ZERO (test is RED before the JSON strip — Wave 0 RED state preserved).
+    - `grep -c "FAILED\|ERROR" /tmp/d13_pre_check.txt` returns at least `1`.
+    - `grep -F "test_bibliography_format_skips_alignment_when_profile_omits" /tmp/d13_pre_check.txt` returns at least one matching line (the test was actually collected and run, not skipped or filtered).
+    - If the test PASSES at this point, STOP: it would mean either (a) the test scaffolding from Plan 01 is incorrect, (b) the test's config dict already excludes alignment (test does not actually exercise D-13), or (c) `apply_bibliography_format` already short-circuits the iteration somewhere unexpected. In any of those cases, escalate to the planner / discuss-phase rather than making the JSON change.
+
+    Only after the pre-check confirms RED-for-the-right-reason do you proceed to Sub-step 2a below.
+
     **Sub-step 2a — Verify current state.** Read `src/rules/formatting_rules_v1.json` lines 115-132. Confirm the rule shape matches the "Current state" in <interfaces>.
 
     **Sub-step 2b — Edit the JSON.** Replace:

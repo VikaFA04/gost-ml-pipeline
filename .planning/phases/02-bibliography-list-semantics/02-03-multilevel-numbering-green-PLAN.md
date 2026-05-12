@@ -6,6 +6,7 @@ wave: 2
 depends_on: [01, 02]
 files_modified:
   - src/rules/rule_engine.py
+  - tests/test_rule_engine.py
 autonomous: true
 requirements:
   - REQ-list-conservative-handling

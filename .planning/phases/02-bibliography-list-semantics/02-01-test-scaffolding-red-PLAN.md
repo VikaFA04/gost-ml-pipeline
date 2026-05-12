@@ -78,6 +78,8 @@ The RED state is achieved by:
 
 Purpose: pin behavior BEFORE writing implementation (CLAUDE.md TDD).
 Output: 11 + 3 + 4 + 1 = 19 new test functions, 1 fixture builder + binary DOCX, 1 D-15 regression gate test — all running, all RED for the right reason.
+
+**Task-count rationale (5 tasks > standard 2-3 target):** Wave 0 RED is one logical unit — splitting would entangle Wave 1-3 dependencies. Per CLAUDE.md TDD law ("Железный закон: никакого продакшен-кода без падающего теста"), every D-NN decision must have its failing test pinned BEFORE any Wave 1-3 production change lands, and the fixture (Task 1) + each test file (Tasks 2-5) form a cohesive scaffolding artifact that downstream plans assume. Splitting RED across two plans would force one to depend on the other's tests existing before its own, creating an artificial Wave 0 inner dependency chain.
 </objective>
 
 <execution_context>
@@ -227,10 +229,39 @@ if (
     from docx.oxml.ns import qn
 
 
-    def _inject_legacy_singlelevel_abstract(document, abstract_num_id: str = "0", num_id: str = "1") -> None:
+    def _next_abstract_num_id(numbering_root) -> str:
+        """Allocate the next unused w:abstractNumId in this numbering_root.
+        Mirrors src/rules/rule_engine._next_abstract_num_id but stays self-contained
+        (the builder MUST NOT import rule_engine internals — Phase 2 is modifying
+        them and the builder is the contract anchor for Plan 03's RED tests)."""
+        existing = [
+            int(a.get(qn("w:abstractNumId")))
+            for a in numbering_root.findall(qn("w:abstractNum"))
+            if a.get(qn("w:abstractNumId")) is not None
+        ]
+        return str((max(existing) if existing else -1) + 1)
+
+
+    def _next_num_id(numbering_root) -> str:
+        """Allocate the next unused w:numId in this numbering_root.
+        Mirrors src/rules/rule_engine._next_num_id; self-contained (same reason)."""
+        existing = [
+            int(n.get(qn("w:numId")))
+            for n in numbering_root.findall(qn("w:num"))
+            if n.get(qn("w:numId")) is not None
+        ]
+        return str((max(existing) if existing else 0) + 1)
+
+
+    def _inject_legacy_singlelevel_abstract(document) -> tuple[str, str]:
         """Append a singleLevel abstractNum (mimicking the pre-Phase-2 pattern) and
-        a w:num pointing at it. Used to give entry 2 a stale numId so D-06 coercion
-        has something to coerce away from.
+        a w:num pointing at it. Returns (abstract_num_id, num_id) so the caller
+        knows which numId to attach to entry 2.
+
+        Allocates IDs via _next_abstract_num_id / _next_num_id rather than
+        hard-coding "0"/"1" — this is safe whether or not python-docx already
+        created a numbering_part. Precondition: caller has not yet referenced
+        the returned num_id from any paragraph.
         """
         numbering_part = document.part.numbering_part
         if numbering_part is None:
@@ -239,7 +270,11 @@ if (
             tmp.style = "List Number"
             numbering_part = document.part.numbering_part
             tmp._element.getparent().remove(tmp._element)
+            assert numbering_part is not None, "python-docx failed to materialize numbering_part"
         numbering_root = numbering_part.element
+
+        abstract_num_id = _next_abstract_num_id(numbering_root)
+        num_id = _next_num_id(numbering_root)
 
         abstract_num = OxmlElement("w:abstractNum")
         abstract_num.set(qn("w:abstractNumId"), abstract_num_id)
@@ -255,6 +290,8 @@ if (
         ref = OxmlElement("w:abstractNumId"); ref.set(qn("w:val"), abstract_num_id); num.append(ref)
         numbering_root.append(num)
 
+        return abstract_num_id, num_id
+
 
     def _set_numPr(paragraph, num_id: str, ilvl: str = "0") -> None:
         """Set <w:numPr> on a paragraph with the given numId/ilvl."""
@@ -268,8 +305,11 @@ if (
     def build(output_path: Path) -> None:
         document = Document()
 
-        # Inject the legacy singleLevel abstract + w:num=1 BEFORE adding paragraphs that reference it.
-        _inject_legacy_singlelevel_abstract(document, abstract_num_id="0", num_id="1")
+        # Inject the legacy singleLevel abstract + a w:num BEFORE adding paragraphs
+        # that reference it. _inject_legacy_singlelevel_abstract returns the allocated
+        # (abstract_num_id, num_id) so we don't hard-code values that may collide with
+        # IDs python-docx auto-created in numbering_part.
+        legacy_abstract_id, legacy_num_id = _inject_legacy_singlelevel_abstract(document)
 
         # 1. Bibliography title — Normal style (D-01 must override SVM=body_text → bibliography_title).
         document.add_paragraph("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ")
@@ -280,9 +320,9 @@ if (
         # 3. Entry 1 — no numPr.
         document.add_paragraph("Иванов И. И. Основы теории / И. И. Иванов. — Москва : Наука, 2020. — 240 с.")
 
-        # 4. Entry 2 — stale numPr (numId=1, legacy singleLevel). D-06 must coerce.
+        # 4. Entry 2 — stale numPr (numId=legacy_num_id, legacy singleLevel). D-06 must coerce.
         e2 = document.add_paragraph("Петров П. П. Введение в дискретную математику. — СПб. : Лань, 2019. — 320 с.")
-        _set_numPr(e2, num_id="1", ilvl="0")
+        _set_numPr(e2, num_id=legacy_num_id, ilvl="0")
 
         # 5. Entry 3 — no numPr.
         document.add_paragraph("Сидоров С. С. Алгоритмы и структуры данных. — Москва : МЦНМО, 2018. — 188 с.")
@@ -307,7 +347,7 @@ if (
     Run: `python tests/fixtures/_build_bibliography_minimal.py`. Commit both the script and the produced `.docx`.
   </action>
   <verify>
-    <automated>python tests/fixtures/_build_bibliography_minimal.py && python -c "from docx import Document; d=Document('tests/fixtures/bibliography_minimal.docx'); paras=d.paragraphs; assert len(paras)==9, f'expected 9 got {len(paras)}'; assert paras[0].text=='СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ'; assert paras[1].style.name=='Heading 1' and paras[1].text=='ТЕОРЕТИЧЕСКАЯ ЧАСТЬ'; assert paras[5].style.name=='Heading 1' and paras[5].text=='ИССЛЕДОВАТЕЛЬСКИЙ РАЗДЕЛ'; from docx.oxml.ns import qn; e2_numPr=paras[3]._p.find(qn('w:pPr')).find(qn('w:numPr')); assert e2_numPr is not None, 'entry 2 missing numPr'; assert e2_numPr.find(qn('w:numId')).get(qn('w:val'))=='1', 'entry 2 numId != 1'; assert paras[2]._p.find(qn('w:pPr')) is None or paras[2]._p.find(qn('w:pPr')).find(qn('w:numPr')) is None, 'entry 1 should have no numPr'; print('fixture OK')"</automated>
+    <automated>python tests/fixtures/_build_bibliography_minimal.py && python -c "from docx import Document; d=Document('tests/fixtures/bibliography_minimal.docx'); paras=d.paragraphs; assert len(paras)==9, f'expected 9 got {len(paras)}'; assert paras[0].text=='СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ'; assert paras[1].style.name=='Heading 1' and paras[1].text=='ТЕОРЕТИЧЕСКАЯ ЧАСТЬ'; assert paras[5].style.name=='Heading 1' and paras[5].text=='ИССЛЕДОВАТЕЛЬСКИЙ РАЗДЕЛ'; from docx.oxml.ns import qn; e2_numPr=paras[3]._p.find(qn('w:pPr')).find(qn('w:numPr')); assert e2_numPr is not None, 'entry 2 missing numPr'; e2_num_id=e2_numPr.find(qn('w:numId')).get(qn('w:val')); assert e2_num_id is not None and e2_num_id.isdigit(), f'entry 2 numId must be a positive integer string, got {e2_num_id!r}'; assert paras[2]._p.find(qn('w:pPr')) is None or paras[2]._p.find(qn('w:pPr')).find(qn('w:numPr')) is None, 'entry 1 should have no numPr'; print('fixture OK')"</automated>
   </verify>
   <acceptance_criteria>
     - File `tests/fixtures/_build_bibliography_minimal.py` exists.
@@ -315,8 +355,8 @@ if (
     - `grep -c 'def build' tests/fixtures/_build_bibliography_minimal.py` returns `1`.
     - `python tests/fixtures/_build_bibliography_minimal.py` exits 0 and prints `wrote tests/fixtures/bibliography_minimal.docx`.
     - `python -c "from docx import Document; d=Document('tests/fixtures/bibliography_minimal.docx'); assert len(d.paragraphs)==9"` exits 0.
-    - The `<automated>` command above exits 0 — proves: 9 paragraphs, correct title text, two Heading 1 subsections with correct text, entry 2 has numPr.numId=1, entry 1 has no numPr.
-    - Re-running `python tests/fixtures/_build_bibliography_minimal.py` produces a DOCX whose paragraph count, styles, and entry-2 numId remain identical (content idempotent; byte equality not required).
+    - The `<automated>` command above exits 0 — proves: 9 paragraphs, correct title text, two Heading 1 subsections with correct text, entry 2 has numPr.numId set to a positive-integer string allocated by `_next_num_id` (whatever value python-docx didn't already reserve), entry 1 has no numPr.
+    - Re-running `python tests/fixtures/_build_bibliography_minimal.py` produces a DOCX whose paragraph count and styles remain identical and whose entry-2 numPr still references a positive-integer numId pointing at the legacy singleLevel abstract (the specific allocated numId value depends on python-docx state and may differ across runs; content idempotent in shape, byte equality not required).
   </acceptance_criteria>
   <done>Fixture builder script committed; binary DOCX committed; assertions on shape pass.</done>
 </task>
