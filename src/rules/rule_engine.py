@@ -335,6 +335,95 @@ def _create_section_abstract_num_id(numbering_root, section_index: int) -> str:
     return str(abstract_num_id)
 
 
+def _create_bibliography_multilevel_abstract(numbering_root) -> str:
+    """D-05: Emit a 2-level Word numbering abstract for bibliography entries.
+
+    Structure:
+      <w:abstractNum w:abstractNumId="N">
+        <w:multiLevelType w:val="multilevel"/>
+        <w:lvl w:ilvl="0">  <- section counter (rendered as "1.", "2.", ...)
+          <w:start w:val="1"/>
+          <w:numFmt w:val="decimal"/>
+          <w:lvlText w:val="%1."/>
+          <w:lvlJc w:val="left"/>
+        </w:lvl>
+        <w:lvl w:ilvl="1">  <- entry counter (rendered as "1.1.", "1.2.", ...)
+          <w:start w:val="1"/>
+          <w:numFmt w:val="decimal"/>
+          <w:lvlText w:val="%1.%2."/>
+          <w:lvlJc w:val="left"/>
+        </w:lvl>
+      </w:abstractNum>
+
+    Returns the abstractNumId as a string (matches _create_section_abstract_num_id idiom).
+    Word renders the entry prefix from level-1 lvlText '%1.%2.' against per-w:num
+    lvlOverride values - see _create_bibliography_num_with_section_override.
+    """
+    abstract_num_id = _next_abstract_num_id(numbering_root)
+    abstract_num = OxmlElement("w:abstractNum")
+    abstract_num.set(qn("w:abstractNumId"), str(abstract_num_id))
+
+    multi_level_type = OxmlElement("w:multiLevelType")
+    multi_level_type.set(qn("w:val"), "multilevel")
+    abstract_num.append(multi_level_type)
+
+    # Level 0 - section counter (decimal, lvlText="%1.").
+    lvl0 = OxmlElement("w:lvl"); lvl0.set(qn("w:ilvl"), "0")
+    s0 = OxmlElement("w:start"); s0.set(qn("w:val"), "1"); lvl0.append(s0)
+    f0 = OxmlElement("w:numFmt"); f0.set(qn("w:val"), "decimal"); lvl0.append(f0)
+    t0 = OxmlElement("w:lvlText"); t0.set(qn("w:val"), "%1."); lvl0.append(t0)
+    j0 = OxmlElement("w:lvlJc"); j0.set(qn("w:val"), "left"); lvl0.append(j0)
+    abstract_num.append(lvl0)
+
+    # Level 1 - entry counter (decimal, lvlText="%1.%2.").
+    lvl1 = OxmlElement("w:lvl"); lvl1.set(qn("w:ilvl"), "1")
+    s1 = OxmlElement("w:start"); s1.set(qn("w:val"), "1"); lvl1.append(s1)
+    f1 = OxmlElement("w:numFmt"); f1.set(qn("w:val"), "decimal"); lvl1.append(f1)
+    t1 = OxmlElement("w:lvlText"); t1.set(qn("w:val"), "%1.%2."); lvl1.append(t1)
+    j1 = OxmlElement("w:lvlJc"); j1.set(qn("w:val"), "left"); lvl1.append(j1)
+    abstract_num.append(lvl1)
+
+    numbering_root.append(abstract_num)
+    return str(abstract_num_id)
+
+
+def _create_bibliography_num_with_section_override(
+    numbering_root,
+    abstract_num_id: str,
+    section_index: int,
+) -> int:
+    """D-05 + Pitfall 2: Emit a w:num pointing at the shared multilevel abstract,
+    carrying two w:lvlOverride children:
+      - ilvl=0 startOverride=<section_index>  -> section counter starts at this subsection
+      - ilvl=1 startOverride=1                -> entry counter resets to 1
+
+    WITHOUT both lvlOverride elements, Word does NOT reset the level-1 counter
+    across subsections (bibliography subsection headings are Heading 1 paragraphs,
+    not part of the numbering scheme). All entries would render 1.1, 1.2, ...,
+    1.N continuously across subsections - wrong.
+    """
+    num_id = _next_num_id(numbering_root)
+    num = OxmlElement("w:num")
+    num.set(qn("w:numId"), str(num_id))
+
+    abstract_ref = OxmlElement("w:abstractNumId")
+    abstract_ref.set(qn("w:val"), abstract_num_id)
+    num.append(abstract_ref)
+
+    # Force level-0 counter to start at section_index.
+    ov0 = OxmlElement("w:lvlOverride"); ov0.set(qn("w:ilvl"), "0")
+    so0 = OxmlElement("w:startOverride"); so0.set(qn("w:val"), str(section_index))
+    ov0.append(so0); num.append(ov0)
+
+    # Reset level-1 counter at subsection boundary.
+    ov1 = OxmlElement("w:lvlOverride"); ov1.set(qn("w:ilvl"), "1")
+    so1 = OxmlElement("w:startOverride"); so1.set(qn("w:val"), "1")
+    ov1.append(so1); num.append(ov1)
+
+    numbering_root.append(num)
+    return num_id
+
+
 def bibliography_numbering_matches(paragraph: Paragraph, section_index: int | None) -> bool:
     try:
         num_pr = paragraph._p.pPr.numPr if paragraph._p.pPr is not None else None
