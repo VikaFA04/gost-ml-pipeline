@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 2 context gathered
-last_updated: "2026-05-13T04:51:25.604Z"
+status: executing
+stopped_at: "Completed 03-01-PLAN.md — Wave 0 RED: 12 failing tests, D-10 fixture, D-07 invariant"
+last_updated: "2026-05-13T06:55:08.753Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_plans: 12
+  completed_plans: 9
+  percent: 75
 ---
 
 # Project State
@@ -22,16 +22,16 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase --phase — 02
+**Current focus:** Phase 03 — heading-signature-and-docx-generator
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
-Status: Ready to plan
+Phase: 03 (heading-signature-and-docx-generator) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
 Last activity: 2026-05-13
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion.*
+| Phase 03-heading-signature-and-docx-generator P01 | 216s | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ current work:
 
 - **D-002**: Rule layer is mandatory — drives Phase 1 cohesion audit (must
   not collapse rule engine into the ML model).
+
+- Open Question 2 resolved: heading rules with no GOST target get expected_value=null + autocorrect=false (load+skip); Phase 5 fills targets from methodical-profile ingest
+- Level-split for space_before_pt: heading_section_space_before_pt + heading_subsection_space_before_pt rules (matches font_size level-split precedent)
 
 ### Pending Todos
 
@@ -106,8 +110,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 2 context gathered
-Resume file: --resume-file
+Last session: 2026-05-13T06:55:08.727Z
+Stopped at: Completed 03-01-PLAN.md — Wave 0 RED: 12 failing tests, D-10 fixture, D-07 invariant
+Resume file: None
 
 **Planned Phase:** 02 (bibliography-list-semantics) — 4 plans — 2026-05-12T18:57:55.228Z

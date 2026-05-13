@@ -103,7 +103,8 @@ baseline diff-rate.
 
 ### Headings & normcontrol presentation (HEADING_AND_NORMCONTROL Block B + C)
 
-- [ ] **REQ-heading-style-signature** *(new — HEADING_AND_NORMCONTROL Block B)*
+- [x] **REQ-heading-style-signature
+** *(new — HEADING_AND_NORMCONTROL Block B)*
       — Heading style signature extended (font name/size/bold/italic/underline/
       color/CAPS + alignment/indents/spacing/keep_with_next/keep_lines/
       page_break/widow) with direct-vs-inherited separation. Positive corpus
