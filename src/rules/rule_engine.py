@@ -14,7 +14,6 @@ from docx.text.paragraph import Paragraph
 from src.rules.style_signatures import (
     classify_style,
     paragraph_has_list_style as _paragraph_has_list_style,
-    paragraph_has_heading_style as _paragraph_has_heading_style,
 )
 
 ALIGNMENT_MAP = {
