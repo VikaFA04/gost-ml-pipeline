@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json as _json_for_heading_tests
 import shutil
 import uuid
 
@@ -127,27 +128,6 @@ def test_inherited_heading_bold_requires_review_not_autofix() -> None:
     assert result["applied_fixes"] == []
     assert paragraph.runs[0].bold is None
 
-
-def test_heading_style_direct_alignment_requires_review_not_autofix() -> None:
-    document = Document()
-    paragraph = document.add_paragraph("Список источников")
-    paragraph.style = "Heading 2"
-    paragraph.alignment = 1
-
-    result = apply_rules_to_paragraph(
-        paragraph=paragraph,
-        label="title_subsection",
-        row_data={"text": paragraph.text, "confidence_score": 0.99, "low_confidence": False},
-        rules=load_rules(),
-        apply_safe=True,
-        default_font_name="Times New Roman",
-    )
-
-    assert result is not None
-    assert result["status"] == "review"
-    assert result["manual_review_required"] is True
-    assert result["applied_fixes"] == []
-    assert paragraph.alignment == 1
 
 
 def test_list_like_paragraph_predicted_as_body_text_is_not_autofixed() -> None:
@@ -1360,3 +1340,205 @@ def test_style_guard_minimal_docx_changed_zero(tmp_path) -> None:
             f"paragraph {idx} (style={fixture_doc.paragraphs[idx].style.name}) "
             f"explanation should start with 'style_guard_block:' but was: {explanation}"
         )
+
+
+# ---- Phase 03 Wave 0 RED: D-05/D-06 heading routing tests ----
+
+
+def _heading_row_data(paragraph, *, label_text: str = "1 Заголовок", extra: dict | None = None) -> dict:
+    """Build a row_data dict including a serialized heading_format_signature."""
+    from src.rules.style_signatures import _extract_heading_format_signature
+    sig = _extract_heading_format_signature(paragraph)
+    row = {
+        "text": paragraph.text,
+        "confidence_score": 0.99,
+        "low_confidence": False,
+        "heading_format_signature": _json_for_heading_tests.dumps(sig),
+    }
+    if extra:
+        row.update(extra)
+    return row
+
+
+def test_heading_inherited_mismatch_routes_to_review() -> None:
+    """D-05: source='inherited' AND value!=expected → status='review', explanation has heading_inherited_mismatch:."""
+    document = Document()
+    paragraph = document.add_paragraph("1 Заголовок")
+    paragraph.style = "Heading 1"
+    # No direct override → all source='inherited' or 'unset'
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "review", result
+    assert result["applied_fixes"] == [], result["applied_fixes"]
+    assert "heading_inherited_mismatch" in result["explanation"], result["explanation"]
+
+
+def test_heading_direct_mismatch_routes_to_autofix() -> None:
+    """D-06: source='direct' AND value!=expected → status='changed', parameter in applied_fixes."""
+    from docx.shared import Pt
+    document = Document()
+    paragraph = document.add_paragraph("1 Заголовок")
+    paragraph.style = "Heading 1"
+    paragraph.paragraph_format.space_before = Pt(99.0)  # direct override; expected differs
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "space_before_pt" in result["applied_fixes"], result["applied_fixes"]
+
+
+def test_heading_direct_match_no_change() -> None:
+    """D-06: source='direct' AND value==expected → status='no_change'."""
+    from docx.shared import Pt
+    document = Document()
+    paragraph = document.add_paragraph("1 Заголовок")
+    paragraph.style = "Heading 1"
+    paragraph.paragraph_format.space_before = Pt(0.0)  # direct override matching gost expected 0.0
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    # No mismatch on space_before_pt, so this rule contributes neither violations nor fixes
+    assert "space_before_pt" not in result["applied_fixes"], result["applied_fixes"]
+
+
+def test_heading_rules_present_in_schema() -> None:
+    """D-09 + CONTEXT.md D-09 + RESEARCH.md Open Question 2 (RESOLVED): 18+ heading_* rules.
+    Level-sensitive space_before_pt is split into heading_section_space_before_pt and
+    heading_subsection_space_before_pt (matching the level-split pattern already used for
+    font_size); there is intentionally NO single 'heading_space_before_pt' rule."""
+    rules = load_rules()
+    heading_rule_ids = {r["id"] for r in rules if r["id"].startswith("heading_")}
+    expected_min = {
+        "heading_alignment", "heading_indent", "heading_bold",
+        "heading_section_font_size", "heading_subsection_font_size",
+        "heading_section_space_before_pt", "heading_subsection_space_before_pt",
+        "heading_font_name", "heading_italic", "heading_underline",
+        "heading_color", "heading_caps",
+        "heading_left_indent_cm", "heading_right_indent_cm",
+        "heading_line_spacing", "heading_space_after_pt",
+        "heading_keep_with_next", "heading_keep_lines_together",
+        "heading_page_break_before", "heading_widow_control",
+    }
+    missing = expected_min - heading_rule_ids
+    assert not missing, f"missing heading rules: {sorted(missing)}; got: {sorted(heading_rule_ids)}"
+    # heading_color must have autocorrect=false (Pitfall 6)
+    color_rule = next(r for r in rules if r["id"] == "heading_color")
+    assert color_rule["autocorrect"] is False, color_rule
+
+
+def test_heading_minimal_positive_zero_fixes() -> None:
+    """D-10 fixture paragraph 1: positive Heading 1 — zero applied_fixes from heading rules."""
+    from pathlib import Path
+    if not Path("tests/fixtures/heading_minimal.docx").exists():
+        import pytest as _pytest; _pytest.skip("heading_minimal.docx fixture missing")
+    document = Document("tests/fixtures/heading_minimal.docx")
+    paragraph = list(document.paragraphs)[0]
+    assert paragraph.text == "1 Основная часть"
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    # All values are inherited from Heading 1 style → either no_change or review (D-05),
+    # never autofix (D-05 forbids it).
+    assert all(not f.startswith("heading_") and f not in {
+        "font_name", "font_size", "bold", "italic", "underline", "color", "caps",
+        "alignment", "first_line_indent_cm", "left_indent_cm", "right_indent_cm",
+        "line_spacing", "space_before_pt", "space_after_pt",
+        "keep_with_next", "keep_lines_together", "page_break_before", "widow_control",
+    } for f in result["applied_fixes"]), result["applied_fixes"]
+
+
+def test_heading_minimal_direct_fix() -> None:
+    """D-10 fixture paragraph 2: direct space_before/space_after override → autofix (D-06)."""
+    from pathlib import Path
+    if not Path("tests/fixtures/heading_minimal.docx").exists():
+        import pytest as _pytest; _pytest.skip("heading_minimal.docx fixture missing")
+    document = Document("tests/fixtures/heading_minimal.docx")
+    paragraph = list(document.paragraphs)[1]
+    assert paragraph.text == "2 Нарушение интервалов"
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    fixed = set(result["applied_fixes"])
+    assert "space_before_pt" in fixed or "space_after_pt" in fixed, fixed
+
+
+def test_heading_minimal_inherited_review() -> None:
+    """D-10 fixture paragraph 4: pure-inherited heading with style-cascade mismatch → review (D-05)."""
+    from pathlib import Path
+    if not Path("tests/fixtures/heading_minimal.docx").exists():
+        import pytest as _pytest; _pytest.skip("heading_minimal.docx fixture missing")
+    document = Document("tests/fixtures/heading_minimal.docx")
+    paragraph = list(document.paragraphs)[3]
+    assert paragraph.text == "4 Унаследованное нарушение"
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    # No direct overrides → no autofix possible per D-05
+    assert all(f not in {
+        "font_name", "font_size", "bold", "italic", "underline", "color", "caps",
+        "alignment", "first_line_indent_cm", "left_indent_cm", "right_indent_cm",
+        "line_spacing", "space_before_pt", "space_after_pt",
+        "keep_with_next", "keep_lines_together", "page_break_before", "widow_control",
+    } for f in result["applied_fixes"]), result["applied_fixes"]
+    # Inherited mismatch SHOULD surface as review with the D-05 explanation
+    if result["status"] == "review":
+        assert "heading_inherited_mismatch" in result["explanation"], result["explanation"]
+
+
+def test_heading_style_direct_alignment_autofixed_after_guard_removal() -> None:
+    """D-06: paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER (=1) is a DIRECT override on Heading 2.
+    After Plan 03-03 removes the blanket heading guard at lines 998-1004 of rule_engine.py,
+    this routes to autofix (D-06), NOT review."""
+    document = Document()
+    paragraph = document.add_paragraph("Список источников")
+    paragraph.style = "Heading 2"
+    paragraph.alignment = 1  # WD_ALIGN_PARAGRAPH.CENTER — direct override
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_subsection",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "alignment" in result["applied_fixes"], result["applied_fixes"]
