@@ -340,5 +340,16 @@
     "source_file_name": null,
     "extraction_confidence": null,
     "needs_manual_review": false
+  },
+
+  "list_detection": {
+    "max_fallback_words": 40,
+    "max_fallback_chars": 300
+  },
+
+  "numbering": {
+    "bibliography": {
+      "scope": "per_section"
+    }
   }
 }
