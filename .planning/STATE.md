@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 03-02-PLAN.md — Wave 1 GREEN: _extract_heading_format_signature + block_extractor wiring; 4 RED tests in tests/test_style_signatures.py GREEN"
-last_updated: "2026-05-13T07:50:00.000Z"
+stopped_at: "Completed 03-03-PLAN.md — Wave 2 GREEN: per-field heading routing D-05/D-06; 8 RED tests GREEN; D-07 gate deviation deferred to 03-04"
+last_updated: "2026-05-13T15:07:53.659Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 12
-  completed_plans: 10
-  percent: 83
+  completed_plans: 11
+  percent: 92
 ---
 
 # Project State
@@ -27,11 +27,11 @@ explainable, no silent rewrites, safe-only autocorrection.
 ## Current Position
 
 Phase: 03 (heading-signature-and-docx-generator) — EXECUTING
-Plan: 3 of 4
-Status: Wave 1 complete; Wave 2 ready
+Plan: 4 of 4
+Status: Ready to execute
 Last activity: 2026-05-13
 
-Progress: [████████▓░] 83%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [████████▓░] 83%
 
 *Updated after each plan completion.*
 | Phase 03-heading-signature-and-docx-generator P01 | 216s | 4 tasks | 5 files |
+| Phase 03-heading-signature-and-docx-generator P03 | 3551 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,9 @@ current work:
 
 - Open Question 2 resolved: heading rules with no GOST target get expected_value=null + autocorrect=false (load+skip); Phase 5 fills targets from methodical-profile ingest
 - Level-split for space_before_pt: heading_section_space_before_pt + heading_subsection_space_before_pt rules (matches font_size level-split precedent)
+- Blanket heading guard removed from _apply_scalar_rule; per-field D-05/D-06 dispatcher replaces it in apply_rules_to_paragraph
+- Open Question 2 resolved: 10 heading rules carry expected_value=null + autocorrect=false (load+skip pattern); Phase 5 fills from methodical-profile ingest
+- apply_heading_scalar_fix delegates 8 existing params to apply_scalar_fix; handles 10 new params directly
 
 ### Pending Todos
 
@@ -96,6 +100,8 @@ None yet.
 - **`58.docx` / `59.docx` template custom styles** (FORMAT_FIX_PLAN Этап 9
   in progress) — scoped into Phase 3 as REQ-fix-docx-generator-custom-styles.
 
+- D-07 positive regression gate fails for 4.docx appendix headings (ПРИЛОЖЕНИЯ, Приложение А) that have direct overrides; requires test update or appendix-heading exclusion in Plan 03-04
+
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
@@ -110,8 +116,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-13T06:55:08.727Z
-Stopped at: Completed 03-01-PLAN.md — Wave 0 RED: 12 failing tests, D-10 fixture, D-07 invariant
+Last session: 2026-05-13T15:07:53.642Z
+Stopped at: Completed 03-03-PLAN.md — Wave 2 GREEN: per-field heading routing D-05/D-06; 8 RED tests GREEN; D-07 gate deviation deferred to 03-04
 Resume file: None
 
 **Planned Phase:** 02 (bibliography-list-semantics) — 4 plans — 2026-05-12T18:57:55.228Z
