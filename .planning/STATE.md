@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
+status: ready_to_plan
 stopped_at: "Completed 03-04-PLAN.md — Wave 3 close-out: D-07 narrowed (appendix-excluded), signature-presence assertion added, Phase 3 all 98 tests GREEN"
 last_updated: "2026-05-13T16:06:11.961Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
   completed_plans: 12
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -26,9 +26,9 @@ explainable, no silent rewrites, safe-only autocorrection.
 
 ## Current Position
 
-Phase: 03 (heading-signature-and-docx-generator) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
+Phase: 4
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-05-13
 
 Progress: [██████████] 100%
@@ -37,7 +37,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 12 (current milestone)
+- Total plans completed: 16 (current milestone)
 - Average duration: —
 - Total execution time: —
 
@@ -48,6 +48,7 @@ Progress: [██████████] 100%
 | — | — | — | — |
 | 01 | 4 | - | - |
 | 02 | 4 | - | - |
+| 03 | 4 | - | - |
 
 **Recent Trend:**
 

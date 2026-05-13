@@ -20,7 +20,7 @@ operational state and the original Этапы 1–9 are preserved in
 
 - [x] **Phase 1: Engine guardrails & cohesion audit** *(completed 2026-05-12)* - Stop destructive autofix from styled paragraphs and verify the rule-engine dependency graph.
 - [ ] **Phase 2: Bibliography & list semantics** - Recognise bibliography lists; single shared `numId`; conservative list autofix.
-- [ ] **Phase 3: Heading signature & DOCX generator** - Extend heading signature and harden the DOCX writer for template-specific styles.
+- [x] **Phase 3: Heading signature & DOCX generator** *(completed 2026-05-13)* - Extend heading signature and harden the DOCX writer for template-specific styles.
 - [ ] **Phase 4: Regression gate** - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
 - [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PPTX/PDF profile ingestion with diff.
 - [ ] **Phase 6: Streamlit UI redesign** - Rebuild the UI around the audit flow and pass design review.
