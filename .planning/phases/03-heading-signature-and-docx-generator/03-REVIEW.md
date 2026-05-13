@@ -2,6 +2,7 @@
 phase: 03-heading-signature-and-docx-generator
 reviewed: 2026-05-13T00:00:00Z
 depth: standard
+iteration: 2
 files_reviewed: 6
 files_reviewed_list:
   - src/rules/style_signatures.py
@@ -12,163 +13,61 @@ files_reviewed_list:
   - tests/test_positive_docx_regression.py
 findings:
   critical: 0
-  warning: 2
+  warning: 0
   info: 4
-  total: 6
-status: issues_found
+  total: 4
+status: clean
 ---
 
-# Phase 3: Code Review Report
+# Phase 3: Code Review Report (iteration 2)
 
 **Reviewed:** 2026-05-13
 **Depth:** standard
+**Iteration:** 2 (of `/gsd-code-review-fix --auto` loop)
 **Files Reviewed:** 6
-**Status:** issues_found
+**Status:** clean
 
 ## Summary
 
-Phase 3 implements the heading-signature extractor (D-01..D-04), replaces the blanket
-heading guard in the rule engine with a per-field D-05/D-06 source dispatcher, adds 17
-new `heading_*` rules (10 with load+skip `expected_value=null` + `autocorrect=false`),
-and narrows the positive-corpus regression gate to exclude appendix headings while
-adding a Plan 03-02 signature-presence assertion.
+Iteration 1 closed both Warning findings:
 
-The architecturally load-bearing invariants are preserved:
+- **WR-01** (D-06 `bold` / `font_size` side-writing `run.font.name`) — fixed by commits
+  `c0de4be` (RED test) + `d7b15d7` (fix). `apply_heading_scalar_fix` now uses inline
+  writes for the `bold` and `font_size` branches and no longer delegates to
+  `apply_scalar_fix`, so the `run.font.name = default_font_name` side-effect can no
+  longer reach heading paragraphs (`rule_engine.py:831-840`). Two regression tests
+  pin the invariant: `test_heading_direct_bold_fix_preserves_inherited_font_name`
+  and `test_heading_direct_font_size_fix_preserves_inherited_font_name`
+  (`tests/test_rule_engine.py:1547`, `:1579`) — both assert
+  `paragraph.runs[0].font.name is None` after the fix.
+- **WR-02** (empty-DataFrame schema omitted `heading_format_signature`) — fixed by
+  commit `469be87`. The empty-fallback column list now includes
+  `heading_format_signature` (`block_extractor.py:261`), matching the populated-path
+  schema (`block_extractor.py:151`).
 
-- D-05 inherited-mismatch path NEVER autofixes — `_apply_scalar_rule` is not entered,
-  and the dispatcher's `source == "inherited"` branch only appends to
+Re-scan of the 6 files at standard depth surfaces **no new Critical or Warning
+findings**. The architecturally load-bearing invariants from iteration 1 remain
+intact:
+
+- D-05 inherited-mismatch path NEVER autofixes — only appends to
   `violated_rules` / `suggested_fixes` / `explanations` and sets
-  `manual_review_required = True` (`rule_engine.py:1326-1331`). No write helper is
-  reachable from that branch.
-- The bibliography section-heading guard from Phase 2 is carried forward into the
-  new D-06 direct-mismatch branch via the
-  `if bibliography_section_index is not None: manual_review_required = True` check
-  (`rule_engine.py:1336-1337`) — CLAUDE.md rule "Не применяй обычные heading scalar
-  autofix к библиографическим section headings" is preserved.
-- `heading_color` rule carries `autocorrect: false` per Pitfall 6
-  (`formatting_rules_v1.json:140`), and `apply_heading_scalar_fix` defensively
-  returns `[]` on the `color` parameter even if the dispatcher were bypassed
-  (`rule_engine.py:856-859`).
-- The NaN-safe JSON parse handles all three production shapes: empty/None, NaN-float,
-  JSON string, and the test-only dict shape (`rule_engine.py:1295-1305`).
-- `test_positive_docx_regression.py` is correctly scoped to `["1.docx", "4.docx"]`
+  `manual_review_required = True` (`rule_engine.py:1339-1344`). No writer reachable.
+- Bibliography section-heading guard for D-06 direct-mismatch is preserved
+  (`rule_engine.py:1349-1350`), honoring CLAUDE.md "Не применяй обычные heading
+  scalar autofix к библиографическим section headings".
+- `heading_color` rule carries `autocorrect: false` (`formatting_rules_v1.json:140`)
+  AND `apply_heading_scalar_fix` defensively returns `[]` on `color`
+  (`rule_engine.py:870-872`) — defence in depth per Pitfall 6.
+- NaN-safe JSON parse handles empty/None, NaN-float, JSON string, and the test-only
+  dict shape (`rule_engine.py:1310-1318`).
+- `test_positive_docx_regression.py` correctly scoped to `["1.docx", "4.docx"]`
   per Phase 3 D-08 (line 26).
-- Length values are converted to `.pt` / `.cm` at extraction time, line_spacing is
-  normalized to float (Pitfalls 4/5/8 honored), and lazy extraction is enforced via
-  `classify_style(paragraph) == "heading"` guard before computing the signature
-  (Pitfall 3 honored).
+- Length values are converted to `.pt` / `.cm` at extraction time; line_spacing is
+  normalized to float; lazy extraction is guarded by `classify_style == "heading"`
+  (Pitfalls 3/4/5/8 honored).
 
-Two Warning-level findings affect future correctness; four Info-level items document
-maintainability / discoverability improvements.
-
-## Warnings
-
-### WR-01: `apply_scalar_fix` writes `run.font.name = default_font_name` as a side effect of `bold` / `font_size_pt` fixes — risks overwriting inherited heading font
-
-**File:** `src/rules/rule_engine.py:777-786`
-
-**Issue:** When the per-field D-06 dispatcher routes a heading rule
-(`heading_section_font_size`, `heading_subsection_font_size`, `heading_bold`) to
-`apply_heading_scalar_fix`, the helper delegates to the pre-existing
-`apply_scalar_fix` for `font_size` / `bold` parameters
-(`rule_engine.py:818-827`). `apply_scalar_fix` unconditionally writes
-`run.font.name = default_font_name` (i.e. "Times New Roman") on every run alongside
-the bold / font-size mutation:
-
-```python
-elif parameter == "font_size_pt":
-    for run in paragraph.runs:
-        if run.text:
-            run.font.name = default_font_name
-            run.font.size = Pt(float(expected_value))
-elif parameter == "bold":
-    for run in paragraph.runs:
-        if run.text:
-            run.font.name = default_font_name
-            run.bold = bool(expected_value)
-```
-
-When a heading has `font_name` `source="inherited"` (the typical positive-corpus
-case) but `bold` `source="direct"` with the wrong value, D-06 fires and silently
-overwrites the inherited font with a direct "Times New Roman" override. This
-directly violates CLAUDE.md: *"Не перезаписывай наследуемое DOCX-форматирование
-прямыми значениями без regression-теста на сохранение Word-стилей."*
-
-Before Phase 3 the blanket guard prevented this path on heading-labeled rows; Phase
-3 now reaches the writer via `apply_heading_scalar_fix → apply_scalar_fix`.
-`test_heading_minimal_direct_fix` (paragraph 3 of `heading_minimal.docx`) exercises
-exactly this path — per `03-04-SUMMARY.md` line 144, `applied_fixes=['bold',
-'font_size_pt']` fires, which means `run.font.name` is now being written even
-though no `font_name` rule is involved. No test asserts that `run.font.name`
-remained inherited after the fix.
-
-**Fix:** In `apply_heading_scalar_fix`, do not delegate `bold` / `font_size`
-through `apply_scalar_fix` unless the heading's `font_name` is `source="direct"`.
-Safest option — duplicate the body of the `font_size_pt` / `bold` branches inline
-(or factor into a private helper `_apply_font_attr_only`) that mutates only the
-targeted attribute:
-
-```python
-if parameter == "font_size":
-    for run in paragraph.runs:
-        if run.text:
-            run.font.size = Pt(float(expected_value))
-    return ["font_size_pt"]
-
-if parameter == "bold":
-    for run in paragraph.runs:
-        if run.text:
-            run.bold = bool(expected_value) if expected_value is not None else None
-    return ["bold"]
-```
-
-Add a regression test asserting `run.font.name is None` after applying
-`heading_bold` autofix on a fixture whose Heading style has no direct font_name
-override.
-
----
-
-### WR-02: Empty-document fallback DataFrame schema omits `heading_format_signature` column
-
-**File:** `src/io/block_extractor.py:247-262`
-
-**Issue:** When `extract_blocks_from_docx` is called on a document yielding zero
-records, the fallback builds an empty DataFrame with a fixed column list that
-omits `heading_format_signature`:
-
-```python
-if df.empty:
-    df = pd.DataFrame(
-        columns=[
-            "doc_id", "block_id", "text", "kind", "alignment",
-            "style", "bold_ratio", "list_type", "list_level", "file_name",
-        ]
-    )
-```
-
-Downstream code (`apply_rules_to_paragraph`, the dispatcher at
-`rule_engine.py:1294`) reads `row_data.get("heading_format_signature")` which
-returns `None` for the missing column — the fall-through to `_apply_scalar_rule`
-keeps the behavior safe. The signature-presence assertion in
-`test_positive_docx_regression.py:124` (`assert "heading_format_signature" in
-predictions_df.columns`) would FAIL silently if the empty-fallback path were ever
-hit during the positive gate (e.g., empty DOCX, or every paragraph filtered out).
-The mismatch between the populated-path schema (which includes
-`heading_format_signature`) and the empty-fallback schema (which does not) is a
-latent inconsistency.
-
-**Fix:** Add `heading_format_signature` to the empty-fallback column list:
-
-```python
-if df.empty:
-    df = pd.DataFrame(
-        columns=[
-            "doc_id", "block_id", "text", "kind", "alignment",
-            "style", "bold_ratio", "list_type", "list_level",
-            "file_name", "heading_format_signature",
-        ]
-    )
-```
+Four Info-level items carry forward from iteration 1 — out of fix scope but listed
+below for completeness.
 
 ## Info
 
@@ -178,18 +77,18 @@ if df.empty:
 
 **Issue:** `_extract_heading_format_signature` lazy-imports `ALIGNMENT_MAP` from
 `src.io.block_extractor` inside the function body to avoid the
-`src/io ↔ src/rules` cycle. This works but hides the dependency from
-import-graph linters and IDE tooling; future contributors may not realize the
-rules module depends on the IO module.
+`src/io <-> src/rules` cycle. This works but hides the dependency from import-graph
+linters and IDE tooling; future contributors may not realize the rules module
+depends on the IO module.
 
 **Fix:** Either (a) define a duplicate `_HEADING_ALIGNMENT_MAP` constant locally in
-`style_signatures.py` (the map is 9 entries; duplication cost is low) or (b)
-move `ALIGNMENT_MAP` to a third module (e.g. `src/common/alignment.py`) that both
+`style_signatures.py` (the map is 9 entries; duplication cost is low) or (b) move
+`ALIGNMENT_MAP` to a third module (e.g. `src/common/alignment.py`) that both
 modules import. Option (a) is the lighter Phase 3 follow-up.
 
 ### IN-02: Accepting a raw dict for `heading_format_signature` blurs the test/prod boundary
 
-**File:** `src/rules/rule_engine.py:1304-1305`
+**File:** `src/rules/rule_engine.py:1317-1318`
 
 **Issue:** The dispatcher accepts a dict literal in addition to a JSON string:
 
@@ -206,7 +105,7 @@ serializer), the dict branch would mask a regression.
 
 **Fix:** Either (a) require tests to call `json.dumps(sig)` before constructing
 `row_data` (mirrors prod path exactly), or (b) keep the dict branch but add a
-comment that calls out the test-only nature and an explicit
+comment that calls out the test-only nature with an explicit
 `# pragma: production-never-reaches-here` marker for future readers.
 
 ### IN-03: `direct_underline` comment "keep as is" obscures the JSON-serialization assumption
@@ -257,3 +156,4 @@ maintainability follow-up.
 _Reviewed: 2026-05-13_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+_Iteration: 2_
