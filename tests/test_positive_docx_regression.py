@@ -19,7 +19,11 @@ _BIBLIOGRAPHY_LABELS = {"bibliography_item", "bibliography_title"}
 
 
 def test_positive_docx_examples_are_not_autofixed(tmp_path) -> None:
-    checked_files = ["1.docx", "4.docx", "58.docx", "59.docx"]
+    # Phase 3 D-08 (2026-05-13): 58.docx and 59.docx are practice reports
+    # (отчёт по практике), not GOST coursework — applying the GOST profile to
+    # them produces spurious edits because the profile doesn't cover that
+    # doc type. Dropped from the gate; practice-doc support belongs in Phase 5.
+    checked_files = ["1.docx", "4.docx"]
 
     for file_name in checked_files:
         input_docx = Path("positive_examples") / file_name

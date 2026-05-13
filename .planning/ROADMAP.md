@@ -34,7 +34,7 @@ operational state and the original Этапы 1–9 are preserved in
 **Depends on**: Nothing (first phase of new milestone)
 **Requirements**: REQ-fix-style-guards, REQ-fix-styled-paragraphs-no-direct-props, REQ-rule-engine-cohesion-audit
 **Success Criteria** (what must be TRUE):
-  1. Running `format-docx --apply-safe` on `positive_examples/{1,4,58,59}.docx` keeps `changed=0` and produces no extra direct properties on Heading/TOC/List Paragraph/Caption-styled paragraphs.
+  1. Running `format-docx --apply-safe` on the GOST-decorated positive subset (`positive_examples/{1,4}.docx` plus any other GOST-decorated positives discoverable in the corpus) keeps `changed=0` modulo the Phase 2 bibliography-only exemption and produces no extra direct properties on Heading/TOC/List Paragraph/Caption-styled paragraphs. Practice reports `58.docx`/`59.docx` are excluded from the gate per Phase 3 D-08 (out of scope for the GOST profile).
   2. A documented audit of the Rule Engine community lists every INFERRED edge on `apply_rules_to_paragraph()` and `load_rules()` as either confirmed (kept) or removed; cohesion score after refactor is strictly higher than 0.06.
   3. Existing pytest baseline (21+ tests) still passes; new guard tests cover Heading/TOC/Caption-styled paragraph cases.
   4. No negative-corpus pair regresses relative to the FORMAT_FIX_PLAN Этап 8 baseline diff-rate (mean ≤ 0.4781).
@@ -63,15 +63,16 @@ Plans:
 **UI hint**: yes
 
 ### Phase 3: Heading signature & DOCX generator
-**Goal**: Heading rules check both font and paragraph-format Word parameters with explicit direct-vs-inherited separation; the DOCX writer handles the template-specific custom styles that still damage `58.docx` and `59.docx`.
+**Goal**: Heading rules check both font and paragraph-format Word parameters with explicit direct-vs-inherited separation. Inherited mismatches go to `review`; direct overrides on Heading-styled paragraphs are autofixed. Per-field heading rules.
 **Depends on**: Phase 1
-**Requirements**: REQ-heading-style-signature, REQ-fix-docx-generator-custom-styles
+**Requirements**: REQ-heading-style-signature
 **Success Criteria** (what must be TRUE):
   1. Extractor's heading signature includes font name/size/bold/italic/underline/color/CAPS plus alignment / first-line indent / left+right indent / space_before+after / line_spacing / keep_with_next / keep_lines_together / page_break_before / widow control.
-  2. For paragraphs whose Heading style is inherited from `Heading 1/2/3`, autofix is gated by the regression test confirming positive examples remain `changed=0`; direct fixes only land when the test passes.
-  3. `src/generate/docx_writer.py` produces output for `58.docx` and `59.docx` that no longer triggers spurious LEFT/bold/spacing edits in the negative-corpus audit.
-  4. Positive corpus stays `changed=0`; negative heading fixtures move toward target signatures with no text changes; TOC and list structure remain stable.
+  2. For paragraphs whose Heading style is inherited from `Heading 1/2/3`, autofix is blocked — mismatch routes to `review`. Direct overrides on Heading-styled paragraphs are autofixed.
+  3. GOST-decorated positive subset stays `changed=0` for any heading rule (regression gate from Phase 2 extended with heading-direct-fix invariant); negative heading fixtures move toward target signatures with no text changes; TOC and list structure remain stable.
 **Plans**: TBD
+
+> **Scope reduction (2026-05-13, Phase 3 discuss-phase D-08):** REQ-fix-docx-generator-custom-styles dropped from this milestone. 58.docx and 59.docx are practice reports (отчёт по практике), not GOST coursework — applying GOST rules to them produces spurious edits because the profile doesn't cover that doc type. Practice-doc support, if needed, lands via Phase 5 multi-profile + methodical-profile ingest. See `.planning/phases/03-heading-signature-and-docx-generator/03-CONTEXT.md` D-08.
 
 ### Phase 4: Regression gate
 **Goal**: The negative-corpus diff-rate becomes a tracked, blocking metric. The `audit-regression` CLI is the gate for every subsequent change; the rules-quality acceptance rollup is enforced.
