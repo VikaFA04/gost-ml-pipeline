@@ -11,6 +11,9 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from src.io.docx_reader import iter_block_items
+import json
+
+from src.rules.style_signatures import classify_style, _extract_heading_format_signature
 
 
 ALIGNMENT_MAP = {
@@ -132,7 +135,7 @@ def extract_paragraph_block(
     text = "" if paragraph.text is None else str(paragraph.text)
     list_type, list_level = extract_list_metadata(paragraph)
 
-    return {
+    row: dict[str, Any] = {
         "doc_id": doc_id,
         "block_id": block_id,
         "text": text,
@@ -143,7 +146,23 @@ def extract_paragraph_block(
         "list_type": list_type,
         "list_level": list_level,
         "file_name": file_name,
+        # D-01: hybrid schema. Heading rows get a JSON-serialized 18-key dict;
+        # non-heading rows stay None (CSV -> NaN). Pitfall 3: eager at extraction.
+        "heading_format_signature": None,
     }
+
+    # D-01 lazy guard: only compute signature for heading-classified paragraphs
+    # (3-8% of rows in real docs per RESEARCH.md). NEVER raise from extractor.
+    try:
+        if classify_style(paragraph) == "heading":
+            sig = _extract_heading_format_signature(paragraph)
+            row["heading_format_signature"] = json.dumps(sig)
+    except Exception:
+        # Conservative: leave heading_format_signature as None on any failure.
+        # Rule engine treats None/NaN as "no signature available" -> no heading-rule branch fires.
+        row["heading_format_signature"] = None
+
+    return row
 
 
 def extract_table_text(table: Table) -> str:
