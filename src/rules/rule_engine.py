@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import math
 import re
 from typing import Any
 
@@ -22,6 +24,15 @@ ALIGNMENT_MAP = {
     "JUSTIFY": WD_ALIGN_PARAGRAPH.JUSTIFY,
     "DISTRIBUTE": WD_ALIGN_PARAGRAPH.DISTRIBUTE,
 }
+
+# Fields present in heading_format_signature (Plan 03-02); used by the D-05/D-06
+# per-field source routing dispatcher in apply_rules_to_paragraph.
+HEADING_SIG_FIELDS: frozenset[str] = frozenset({
+    "font_name", "font_size", "bold", "italic", "underline", "color", "caps",
+    "alignment", "first_line_indent_cm", "left_indent_cm", "right_indent_cm",
+    "line_spacing", "space_before_pt", "space_after_pt",
+    "keep_with_next", "keep_lines_together", "page_break_before", "widow_control",
+})
 
 BIBLIOGRAPHY_SUBHEADING_RE = re.compile(r"^(?:\d+\s*)?(теоретическая\s+часть|практическая\s+часть)$", re.IGNORECASE)
 NUMBERED_MARKER_RE = re.compile(r"^\s*(?:\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])\s+")
@@ -780,6 +791,81 @@ def apply_scalar_fix(paragraph: Paragraph, parameter: str, expected_value: Any, 
     return [parameter]
 
 
+def apply_heading_scalar_fix(
+    paragraph: Paragraph,
+    parameter: str,
+    expected_value: Any,
+    default_font_name: str,
+) -> list[str]:
+    """D-06: fix or clear a direct override on a heading paragraph.
+
+    For the 8 parameters apply_scalar_fix already supports (alignment,
+    first_line_indent_cm, left_indent_cm, line_spacing, space_before_pt,
+    space_after_pt, font_size, bold) we delegate. Note `font_size` here maps
+    to the same writer path as `font_size_pt` in apply_scalar_fix (the rule
+    JSON uses parameter='font_size' to match the signature key name; the
+    writer uses Pt(value)).
+
+    For the 10 new parameters (right_indent_cm, keep_with_next, keep_together,
+    page_break_before, widow_control, font_name, italic, underline, caps, color)
+    we set the direct property to expected_value, OR clear it to None when
+    expected_value is None (restoring style cascade). Setting to None on
+    python-docx tri-state properties is the documented "remove direct override"
+    operation — verified at runtime per RESEARCH.md.
+    """
+    fmt = paragraph.paragraph_format
+
+    # Map signature-key 'font_size' to writer-key 'font_size_pt' for the existing helper
+    if parameter == "font_size":
+        return apply_scalar_fix(paragraph, "font_size_pt", expected_value, default_font_name)
+
+    # Existing 7 parameters delegated as-is (alignment, first_line_indent_cm,
+    # left_indent_cm, line_spacing, space_before_pt, space_after_pt, bold)
+    if parameter in {
+        "alignment", "first_line_indent_cm", "left_indent_cm",
+        "line_spacing", "space_before_pt", "space_after_pt", "bold",
+    }:
+        return apply_scalar_fix(paragraph, parameter, expected_value, default_font_name)
+
+    # New 10 parameters
+    if parameter == "right_indent_cm":
+        fmt.right_indent = Cm(float(expected_value)) if expected_value is not None else None
+    elif parameter == "keep_with_next":
+        fmt.keep_with_next = bool(expected_value) if expected_value is not None else None
+    elif parameter == "keep_lines_together":
+        fmt.keep_together = bool(expected_value) if expected_value is not None else None
+    elif parameter == "page_break_before":
+        fmt.page_break_before = bool(expected_value) if expected_value is not None else None
+    elif parameter == "widow_control":
+        fmt.widow_control = bool(expected_value) if expected_value is not None else None
+    elif parameter == "font_name":
+        for run in paragraph.runs:
+            if run.text:
+                run.font.name = str(expected_value) if expected_value else None
+    elif parameter == "italic":
+        for run in paragraph.runs:
+            if run.text:
+                run.font.italic = bool(expected_value) if expected_value is not None else None
+    elif parameter == "underline":
+        for run in paragraph.runs:
+            if run.text:
+                run.font.underline = bool(expected_value) if expected_value is not None else None
+    elif parameter == "caps":
+        for run in paragraph.runs:
+            if run.text:
+                run.font.all_caps = bool(expected_value) if expected_value is not None else None
+    elif parameter == "color":
+        # D-09 / Pitfall 6: heading_color rule has autocorrect:false — this branch
+        # should never execute. Defensive no-op preserves invariant.
+        return []
+    else:
+        # Unknown parameter — defensive no-op (do not raise; the dispatcher
+        # already filtered to HEADING_SIG_FIELDS, so this is unreachable).
+        return []
+
+    return [parameter]
+
+
 def _safe_float(value: Any) -> float | None:
     if value in (None, ""):
         return None
@@ -995,13 +1081,6 @@ def _apply_scalar_rule(
                 "blocked_unsafe_autofix": blocked_unsafe_autofix,
                 "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
             }
-        if label in {"title_section", "title_subsection"} and _paragraph_has_heading_style(paragraph):
-            return {
-                "current_profile": current_profile,
-                "manual_review_required": True,
-                "blocked_unsafe_autofix": blocked_unsafe_autofix,
-                "unsafe_auto_fix_reason": unsafe_auto_fix_reason,
-            }
         if (
             apply_safe
             and rule["autocorrect"]
@@ -1207,6 +1286,64 @@ def apply_rules_to_paragraph(
             elif violated:
                 manual_review_required = True
             continue
+
+        # D-05/D-06: per-field heading source routing.
+        # Replaces the blanket guard previously at _apply_scalar_rule lines 998-1004.
+        # Reads the JSON-serialized signature emitted by Plan 03-02's extractor.
+        # When no heading_format_signature is available (legacy path), falls through
+        # to _apply_scalar_rule for backward compatibility.
+        if label in {"title_section", "title_subsection"} and parameter in HEADING_SIG_FIELDS:
+            raw = row_data.get("heading_format_signature")
+            sig = None
+            if isinstance(raw, str) and raw:
+                try:
+                    sig = json.loads(raw)
+                except Exception:
+                    sig = None
+            elif isinstance(raw, float) and math.isnan(raw):
+                sig = None
+            elif isinstance(raw, dict):
+                sig = raw  # tests may pass a dict directly without serializing
+
+            if sig is not None:
+                entry = sig.get(parameter, {"value": None, "source": "unset"})
+                if not isinstance(entry, dict):
+                    continue
+                source = entry.get("source", "unset")
+                actual = entry.get("value")
+                expected = rule.get("expected_value")
+
+                # Open Question 2 load+skip: rules with expected_value=null carry no
+                # GOST target — the rule loads (schema-presence test passes) but fires nothing.
+                if expected is None:
+                    continue
+
+                if source == "unset" or actual is None:
+                    continue  # nothing to compare
+
+                if not compare_scalar(actual, expected):
+                    violated_rules.append(rule["id"])
+                    suggested_fixes.append(parameter)
+                    if source == "inherited":
+                        # D-05: inherited mismatch → review only, NEVER autofix
+                        explanations.append(
+                            f"heading_inherited_mismatch:field={parameter},actual={actual},expected={expected}"
+                        )
+                        manual_review_required = True
+                    elif source == "direct":
+                        # D-06: direct mismatch → autofix the direct override.
+                        # CLAUDE.md: bibliography section headings must NOT receive
+                        # heading scalar autofix (Phase 2 D-04 carry-forward).
+                        if bibliography_section_index is not None:
+                            manual_review_required = True
+                        else:
+                            explanations.append(f"{rule['id']}: expected {parameter}={expected}")
+                            if apply_safe and rule.get("autocorrect") and rule.get("action") == "fix":
+                                applied_fixes.extend(
+                                    apply_heading_scalar_fix(paragraph, parameter, expected, default_font_name)
+                                )
+                continue  # do NOT fall through to _apply_scalar_rule
+            # sig is None: fall through to _apply_scalar_rule (legacy/no-signature path)
 
         scalar_outcome = _apply_scalar_rule(
             paragraph=paragraph,
