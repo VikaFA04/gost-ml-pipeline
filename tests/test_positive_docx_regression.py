@@ -72,3 +72,32 @@ def test_positive_docx_examples_are_not_autofixed(tmp_path) -> None:
             f"{file_name}: non-bibliography paragraphs were autofixed:\n"
             f"{non_bib_changed[['block_id', 'label', 'applied_fixes', 'text']].to_string()}"
         )
+
+        # D-07: heading-direct-fix invariant — zero heading_* autofixes on the
+        # GOST-decorated subset. The corpus sampling in 03-RESEARCH.md confirms
+        # all positive heading paragraphs have ALL direct values None →
+        # source='inherited' → D-05 review only → applied_fixes excludes heading
+        # signature fields. If Phase 3 routing accidentally classifies a field
+        # as source='direct' on a positive heading, D-06 fires and this gate
+        # FAILS.
+        _heading_sig_fields = {
+            "font_name", "font_size", "bold", "italic", "underline", "color", "caps",
+            "alignment", "first_line_indent_cm", "left_indent_cm", "right_indent_cm",
+            "line_spacing", "space_before_pt", "space_after_pt",
+            "keep_with_next", "keep_lines_together", "page_break_before", "widow_control",
+        }
+
+        def _has_heading_fix(fixes: object) -> bool:
+            if not isinstance(fixes, str) or not fixes:
+                return False
+            tokens = {t.strip() for t in fixes.split(",") if t.strip()}
+            return any(t.startswith("heading_") or t in _heading_sig_fields for t in tokens)
+
+        heading_changed = changed[
+            changed["label"].isin({"title_section", "title_subsection"})
+            & changed["applied_fixes"].apply(_has_heading_fix)
+        ]
+        assert heading_changed.empty, (
+            f"{file_name}: heading paragraphs were autofixed (D-07 invariant):\n"
+            f"{heading_changed[['block_id', 'label', 'applied_fixes', 'text']].to_string()}"
+        )
