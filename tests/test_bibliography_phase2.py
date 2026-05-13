@@ -32,11 +32,14 @@ def _row_data_body_text(text: str) -> dict:
 def _bibliography_item_rows(report_df: pd.DataFrame) -> pd.DataFrame:
     """Filter the audit CSV to rows that the postprocess classified as bibliography_item.
 
-    The audit CSV column carrying the active label varies by implementation —
-    prefer 'postprocessed_label' if present, fall back to 'predicted_label'.
+    The audit CSV emits the active (postprocessed) label in the 'label' column.
+    Phase 1 historical column names ('postprocessed_label', 'predicted_label')
+    are kept as fallbacks for cross-version test runs.
     """
-    col = "postprocessed_label" if "postprocessed_label" in report_df.columns else "predicted_label"
-    return report_df[report_df[col] == "bibliography_item"].copy()
+    for col in ("label", "postprocessed_label", "predicted_label"):
+        if col in report_df.columns:
+            return report_df[report_df[col] == "bibliography_item"].copy()
+    raise KeyError(f"no label column found in report; columns={list(report_df.columns)!r}")
 
 
 def _all_numIds_in_docx(docx_path: Path) -> list[str | None]:

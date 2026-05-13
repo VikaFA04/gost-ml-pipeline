@@ -40,7 +40,19 @@ ACCEPTED_LIST_LAYOUTS = {
     (2.25, -1.0),
     (2.5, -1.0),
 }
+# Cache for bibliography numIds. Key: (id(paragraph.part.document.part), section_index).
+# Switched from id(numbering_root) in Phase 2 — see Pitfall 1 in 02-RESEARCH.md.
 _BIBLIOGRAPHY_NUM_IDS: dict[tuple[int, int | None], int] = {}
+
+# Tracks which documents have already had their numbering.xml scanned for
+# existing bibliography numIds. Key: id(paragraph.part.document.part).
+# D-07: first-call seed prevents re-discovery on every paragraph.
+_SEEDED_DOCS: set[int] = set()
+
+# Cache for the shared multilevel abstractNumId per document. One abstract
+# per doc — every per-subsection w:num references it.
+# Key: id(paragraph.part.document.part); Value: str(abstractNumId).
+_BIBLIOGRAPHY_ABSTRACTS: dict[int, str] = {}
 
 
 def normalize_alignment(value) -> str | None:
@@ -425,56 +437,195 @@ def _create_bibliography_num_with_section_override(
 
 
 def bibliography_numbering_matches(paragraph: Paragraph, section_index: int | None) -> bool:
+    """D-07 idempotency oracle. A paragraph is "already correctly numbered" iff:
+      1. Its numId is valid per D-06 criterion (multilevel abstract, lvl-1 lvlText '%1.%2.'), AND
+      2. Its w:num carries a lvlOverride[ilvl=0] whose startOverride == section_index, AND
+      3. Its <w:ilvl> is "1".
+
+    When all true → no change needed → audit reports no fix → re-run shows changed=0.
+    """
     try:
-        num_pr = paragraph._p.pPr.numPr if paragraph._p.pPr is not None else None
-        if num_pr is None or num_pr.numId is None or not _num_id_exists(paragraph, num_pr.numId.val):
+        p_pr = paragraph._p.find(qn("w:pPr"))
+        if p_pr is None:
             return False
-        if section_index is None:
-            return True
+        num_pr = p_pr.find(qn("w:numPr"))
+        if num_pr is None:
+            return False
+        ilvl_el = num_pr.find(qn("w:ilvl"))
+        if ilvl_el is None or ilvl_el.get(qn("w:val")) != "1":
+            return False
+        num_id_el = num_pr.find(qn("w:numId"))
+        if num_id_el is None:
+            return False
+        num_id_val = num_id_el.get(qn("w:val"))
+        if not _bibliography_valid_numId(paragraph, num_id_val):
+            return False
         numbering_root = paragraph.part.numbering_part.element
-        num_id = str(num_pr.numId.val)
-        abstract_num_id = None
-        for num in numbering_root.findall(qn("w:num")):
-            if num.get(qn("w:numId")) == num_id:
-                abstract_ref = num.find(qn("w:abstractNumId"))
-                abstract_num_id = abstract_ref.get(qn("w:val")) if abstract_ref is not None else None
-                break
-        if abstract_num_id is None:
-            return False
-        expected_level_text = f"{section_index}.%1"
-        for abstract_num in numbering_root.findall(qn("w:abstractNum")):
-            if abstract_num.get(qn("w:abstractNumId")) != abstract_num_id:
+        for n in numbering_root.findall(qn("w:num")):
+            if n.get(qn("w:numId")) != num_id_val:
                 continue
-            level = abstract_num.find(qn("w:lvl"))
-            level_text = level.find(qn("w:lvlText")) if level is not None else None
-            return bool(level_text is not None and level_text.get(qn("w:val")) == expected_level_text)
+            for ov in n.findall(qn("w:lvlOverride")):
+                if ov.get(qn("w:ilvl")) == "0":
+                    so = ov.find(qn("w:startOverride"))
+                    if so is not None and section_index is not None and so.get(qn("w:val")) == str(section_index):
+                        return True
+            return False
+        return False
     except Exception:
         return False
-    return False
+
+
+def _document_cache_key(paragraph: Paragraph) -> int:
+    """D-07: Stable cache key for the document containing this paragraph.
+
+    Returns id(paragraph.part.document.part) which lives as long as the
+    Document object (held via paragraph._parent._part). Prevents the
+    cross-document id() collision that legacy id(numbering_root) suffered
+    (Pitfall 1).
+    """
+    return id(paragraph.part.document.part)
+
+
+def _bibliography_valid_numId(paragraph: Paragraph, num_id: str | int | None) -> bool:
+    """D-06 + Open Question 3: A numId is 'valid' for bibliography coercion when:
+      1. It exists in numbering.xml (_num_id_exists), AND
+      2. Its abstractNum has multiLevelType=multilevel, AND
+      3. Its level-1 lvlText is exactly '%1.%2.'.
+
+    Legacy singleLevel numIds (Phase-1-era) FAIL conditions 2-3 → treated as
+    invalid → D-06 coerces away from them. Phase-2-emitted multilevel numIds
+    PASS all three → idempotent re-runs find them and reuse.
+    """
+    if num_id is None or not _num_id_exists(paragraph, num_id):
+        return False
+    try:
+        numbering_root = paragraph.part.numbering_part.element
+        target_num = None
+        for n in numbering_root.findall(qn("w:num")):
+            if n.get(qn("w:numId")) == str(num_id):
+                target_num = n
+                break
+        if target_num is None:
+            return False
+        abs_ref = target_num.find(qn("w:abstractNumId"))
+        if abs_ref is None:
+            return False
+        abs_num_id_val = abs_ref.get(qn("w:val"))
+        target_abstract = None
+        for a in numbering_root.findall(qn("w:abstractNum")):
+            if a.get(qn("w:abstractNumId")) == abs_num_id_val:
+                target_abstract = a
+                break
+        if target_abstract is None:
+            return False
+        mlt = target_abstract.find(qn("w:multiLevelType"))
+        if mlt is None or mlt.get(qn("w:val")) != "multilevel":
+            return False
+        for lvl in target_abstract.findall(qn("w:lvl")):
+            if lvl.get(qn("w:ilvl")) == "1":
+                lvl_text = lvl.find(qn("w:lvlText"))
+                return lvl_text is not None and lvl_text.get(qn("w:val")) == "%1.%2."
+        return False
+    except Exception:
+        return False
+
+
+def _seed_bibliography_num_ids_from_doc(paragraph: Paragraph) -> None:
+    """D-07: One-time-per-document scan. Walks the document body in order,
+    identifies bibliography sections by Heading 1 inside bibliography context
+    (mirrors postprocess D-04 logic), collects the FIRST valid numId per
+    section_index, and seeds _BIBLIOGRAPHY_NUM_IDS[(doc_key, section_index)].
+
+    Re-runs on already-corrected documents find a single valid multilevel
+    numId per section → cache hits → no allocation → idempotent.
+    """
+    from src.postprocess.postprocess_rules import (
+        _is_bibliography_title as _is_bib_title,
+        _stops_bibliography_context as _stops_bib,
+        BIBLIOGRAPHY_SUBHEADING_RE as _bib_subhead_re,
+    )
+
+    doc_key = _document_cache_key(paragraph)
+    body = paragraph.part.document.element.body
+
+    in_bib = False
+    section_index = 0
+    for p_elem in body.iter(qn("w:p")):
+        text = "".join(t.text or "" for t in p_elem.iter(qn("w:t"))).strip()
+        if not text:
+            continue
+        if _is_bib_title(text):
+            in_bib = True
+            continue
+        if in_bib and _stops_bib(text, ""):
+            in_bib = False
+            continue
+        if not in_bib:
+            continue
+
+        p_pr_local = p_elem.find(qn("w:pPr"))
+        style_name = None
+        if p_pr_local is not None:
+            p_style = p_pr_local.find(qn("w:pStyle"))
+            if p_style is not None:
+                style_name = p_style.get(qn("w:val")) or ""
+        is_subsection = (
+            (style_name is not None and (style_name.startswith("Heading") or style_name.startswith("Заголовок")))
+            or _bib_subhead_re.search(text) is not None
+        )
+        if is_subsection:
+            section_index += 1
+            continue
+
+        num_id_val: str | None = None
+        if p_pr_local is not None:
+            num_pr = p_pr_local.find(qn("w:numPr"))
+            if num_pr is not None:
+                n_id = num_pr.find(qn("w:numId"))
+                if n_id is not None:
+                    num_id_val = n_id.get(qn("w:val"))
+
+        if num_id_val is None or section_index < 1:
+            continue
+        if not _bibliography_valid_numId(paragraph, num_id_val):
+            continue
+        key = (doc_key, section_index)
+        if key not in _BIBLIOGRAPHY_NUM_IDS:
+            _BIBLIOGRAPHY_NUM_IDS[key] = int(num_id_val)
 
 
 def _get_bibliography_num_id(paragraph: Paragraph, section_index: int | None = None) -> int:
+    """D-05/D-06/D-07 allocator.
+
+    First call per document: scan numbering.xml for existing valid (multilevel
+    + %1.%2.) bibliography numIds and seed _BIBLIOGRAPHY_NUM_IDS.
+    Cache hit (root_key seeded OR previously allocated): return cached numId
+    (idempotency).
+    Cache miss: allocate a shared multilevel abstract once per doc, allocate
+    a fresh per-subsection w:num with lvlOverride, cache and return.
+    """
+    doc_key = _document_cache_key(paragraph)
+    if doc_key not in _SEEDED_DOCS:
+        _seed_bibliography_num_ids_from_doc(paragraph)
+        _SEEDED_DOCS.add(doc_key)
+
+    root_key = (doc_key, section_index)
+    cached = _BIBLIOGRAPHY_NUM_IDS.get(root_key)
+    if cached is not None:
+        return int(cached)
+
     numbering_root = paragraph.part.numbering_part.element
-    root_key = (id(numbering_root), section_index)
-    if root_key in _BIBLIOGRAPHY_NUM_IDS:
-        return _BIBLIOGRAPHY_NUM_IDS[root_key]
+    abstract_num_id = _BIBLIOGRAPHY_ABSTRACTS.get(doc_key)
+    if abstract_num_id is None:
+        abstract_num_id = _create_bibliography_multilevel_abstract(numbering_root)
+        _BIBLIOGRAPHY_ABSTRACTS[doc_key] = abstract_num_id
 
-    abstract_num_id = (
-        _create_section_abstract_num_id(numbering_root, section_index)
-        if section_index is not None
-        else _find_decimal_abstract_num_id(numbering_root)
+    effective_section = section_index if section_index is not None else 1
+    new_num_id = _create_bibliography_num_with_section_override(
+        numbering_root, abstract_num_id, int(effective_section)
     )
-    num_id = _next_num_id(numbering_root)
-
-    num = OxmlElement("w:num")
-    num.set(qn("w:numId"), str(num_id))
-    abstract_ref = OxmlElement("w:abstractNumId")
-    abstract_ref.set(qn("w:val"), abstract_num_id)
-    num.append(abstract_ref)
-    numbering_root.append(num)
-
-    _BIBLIOGRAPHY_NUM_IDS[root_key] = num_id
-    return num_id
+    _BIBLIOGRAPHY_NUM_IDS[root_key] = new_num_id
+    return new_num_id
 
 
 def _safe_int(value: Any) -> int | None:
@@ -496,26 +647,46 @@ def pd_is_na(value: Any) -> bool:
 
 
 def apply_bibliography_numbering(paragraph: Paragraph, section_index: int | None = None) -> list[str]:
+    """D-05 + D-06: Set numPr.numId to the allocator's choice for this subsection,
+    and set numPr.ilvl=1 (entries live at level 1 in the multilevel abstract).
+
+    Returns:
+      ['numbering']                                  — fresh allocation or seeded match.
+      ['numbering', 'numbering:coerced_to_numId=N']  — paragraph had a different numId,
+                                                       D-06 coerced it to N.
+    """
     p_pr = paragraph._p.get_or_add_pPr()
     num_pr = p_pr.find(qn("w:numPr"))
-    if num_pr is None:
+    is_fresh_numPr = num_pr is None
+    previous_num_id_val: str | None = None
+    if is_fresh_numPr:
         num_pr = OxmlElement("w:numPr")
         p_pr.append(num_pr)
+    else:
+        prev = num_pr.find(qn("w:numId"))
+        if prev is not None:
+            previous_num_id_val = prev.get(qn("w:val"))
 
     ilvl = num_pr.find(qn("w:ilvl"))
     if ilvl is None:
         ilvl = OxmlElement("w:ilvl")
         num_pr.append(ilvl)
-    ilvl.set(qn("w:val"), "0")
+    ilvl.set(qn("w:val"), "1")
 
-    num_id_value = str(_get_bibliography_num_id(paragraph, section_index))
-    num_id = num_pr.find(qn("w:numId"))
-    if num_id is None:
-        num_id = OxmlElement("w:numId")
-        num_pr.append(num_id)
-    num_id.set(qn("w:val"), num_id_value)
+    target_num_id = _get_bibliography_num_id(paragraph, section_index)
+    num_id_el = num_pr.find(qn("w:numId"))
+    if num_id_el is None:
+        num_id_el = OxmlElement("w:numId")
+        num_pr.append(num_id_el)
+    num_id_el.set(qn("w:val"), str(target_num_id))
 
-    return ["numbering"]
+    applied = ["numbering"]
+    if (
+        previous_num_id_val is not None
+        and previous_num_id_val != str(target_num_id)
+    ):
+        applied.append(f"numbering:coerced_to_numId={target_num_id}")
+    return applied
 
 
 def _bibliography_section_index(row_data: dict[str, Any]) -> int | None:

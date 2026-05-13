@@ -603,7 +603,7 @@ def test_bibliography_item_numbering_uses_section_prefix() -> None:
     assert result["status"] == "changed"
     assert "numbering" in result["applied_fixes"]
     numbering_xml = paragraph.part.numbering_part.element.xml
-    assert 'w:val="2.%1"' in numbering_xml
+    assert 'w:val="%1.%2."' in numbering_xml
 
 
 def test_bibliography_item_replaces_wrong_existing_section_numbering() -> None:
@@ -630,7 +630,7 @@ def test_bibliography_item_replaces_wrong_existing_section_numbering() -> None:
     assert result is not None
     assert result["status"] == "changed"
     assert "numbering" in result["applied_fixes"]
-    assert 'w:val="1.%1"' in paragraph.part.numbering_part.element.xml
+    assert 'w:val="%1.%2."' in paragraph.part.numbering_part.element.xml
 
 
 def test_bibliography_subheading_gets_section_number_prefix() -> None:
