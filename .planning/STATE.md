@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: "Completed 03-03-PLAN.md — Wave 2 GREEN: per-field heading routing D-05/D-06; 8 RED tests GREEN; D-07 gate deviation deferred to 03-04"
-last_updated: "2026-05-13T15:07:53.659Z"
+status: verifying
+stopped_at: "Completed 03-04-PLAN.md — Wave 3 close-out: D-07 narrowed (appendix-excluded), signature-presence assertion added, Phase 3 all 98 tests GREEN"
+last_updated: "2026-05-13T16:06:11.961Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 12
-  completed_plans: 11
-  percent: 92
+  completed_plans: 12
+  percent: 100
 ---
 
 # Project State
@@ -28,10 +28,10 @@ explainable, no silent rewrites, safe-only autocorrection.
 
 Phase: 03 (heading-signature-and-docx-generator) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-05-13
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [█████████░] 92%
 *Updated after each plan completion.*
 | Phase 03-heading-signature-and-docx-generator P01 | 216s | 4 tasks | 5 files |
 | Phase 03-heading-signature-and-docx-generator P03 | 3551 | 2 tasks | 2 files |
+| Phase 03-heading-signature-and-docx-generator P04 | 812 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,7 @@ current work:
 - Blanket heading guard removed from _apply_scalar_rule; per-field D-05/D-06 dispatcher replaces it in apply_rules_to_paragraph
 - Open Question 2 resolved: 10 heading rules carry expected_value=null + autocorrect=false (load+skip pattern); Phase 5 fills from methodical-profile ingest
 - apply_heading_scalar_fix delegates 8 existing params to apply_scalar_fix; handles 10 new params directly
+- Appendix headings (ПРИЛОЖЕНИЯ, Приложение А/Б) excluded from D-07 invariant and non_bib_changed filter per Phase 3 user decision 2026-05-13; D-06 autofix of their direct overrides is correct GOST behavior
 
 ### Pending Todos
 
@@ -100,8 +102,6 @@ None yet.
 - **`58.docx` / `59.docx` template custom styles** (FORMAT_FIX_PLAN Этап 9
   in progress) — scoped into Phase 3 as REQ-fix-docx-generator-custom-styles.
 
-- D-07 positive regression gate fails for 4.docx appendix headings (ПРИЛОЖЕНИЯ, Приложение А) that have direct overrides; requires test update or appendix-heading exclusion in Plan 03-04
-
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
@@ -116,8 +116,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-13T15:07:53.642Z
-Stopped at: Completed 03-03-PLAN.md — Wave 2 GREEN: per-field heading routing D-05/D-06; 8 RED tests GREEN; D-07 gate deviation deferred to 03-04
+Last session: 2026-05-13T16:06:11.945Z
+Stopped at: Completed 03-04-PLAN.md — Wave 3 close-out: D-07 narrowed (appendix-excluded), signature-presence assertion added, Phase 3 all 98 tests GREEN
 Resume file: None
 
 **Planned Phase:** 02 (bibliography-list-semantics) — 4 plans — 2026-05-12T18:57:55.228Z
