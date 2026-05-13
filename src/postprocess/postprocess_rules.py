@@ -200,11 +200,6 @@ def apply_postprocess_rules(
                 labels[position] = "bibliography_title"
                 in_bibliography = True
                 continue
-            if in_bibliography and _stops_bibliography_context(text, label):
-                in_bibliography = False
-            if not in_bibliography:
-                continue
-
             # D-04 — subsection detection: primary signal is Heading 1/2/3 style;
             # fallback is the legacy BIBLIOGRAPHY_SUBHEADING_RE so that
             # src.evaluation.format_regression_audit.infer_regression_label (which
@@ -214,6 +209,18 @@ def apply_postprocess_rules(
                 style_class == "heading"
                 or _is_bibliography_subheading(text)
             )
+            # Stop signals (BIBLIOGRAPHY_STOP_RE: заключение, приложения, …)
+            # ALWAYS end bibliography context — even when the row carries a
+            # Heading style. D-04 subsection heading promotion only applies to
+            # rows whose text isn't a known bibliography terminator.
+            stops_bib = in_bibliography and _stops_bibliography_context(text, label)
+            if stops_bib and (
+                BIBLIOGRAPHY_STOP_RE.search(text) is not None
+                or not is_subsection_heading
+            ):
+                in_bibliography = False
+            if not in_bibliography:
+                continue
             if is_subsection_heading:
                 bibliography_section_index += 1
                 if label not in {"title_section", "title_subsection"}:
@@ -222,6 +229,14 @@ def apply_postprocess_rules(
             elif label in {"body_text", "list_item"} and _looks_like_bibliography_entry(row, text):
                 labels[position] = "bibliography_item"
                 section_indices[position] = bibliography_section_index or None
+            elif label in {"body_text", "list_item"} and bibliography_section_index >= 1:
+                # D-04 + D-14: a body paragraph that follows a Heading 1
+                # subsection inside the bibliography belongs to that subsection.
+                # Relabel as bibliography_item and attach the active
+                # section_index — the rule layer can then apply per-subsection
+                # numbering even when the source DOCX entry lacks numPr.
+                labels[position] = "bibliography_item"
+                section_indices[position] = bibliography_section_index
 
         index = 0
         while index < len(labels):
