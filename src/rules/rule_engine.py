@@ -814,17 +814,30 @@ def apply_heading_scalar_fix(
     """
     fmt = paragraph.paragraph_format
 
-    # Map signature-key 'font_size' to writer-key 'font_size_pt' for the existing helper
-    if parameter == "font_size":
-        return apply_scalar_fix(paragraph, "font_size_pt", expected_value, default_font_name)
-
-    # Existing 7 parameters delegated as-is (alignment, first_line_indent_cm,
-    # left_indent_cm, line_spacing, space_before_pt, space_after_pt, bold)
+    # 6 paragraph_format params are safe to delegate — apply_scalar_fix only touches
+    # paragraph.alignment / paragraph_format.* for these, never run.font.name.
     if parameter in {
         "alignment", "first_line_indent_cm", "left_indent_cm",
-        "line_spacing", "space_before_pt", "space_after_pt", "bold",
+        "line_spacing", "space_before_pt", "space_after_pt",
     }:
         return apply_scalar_fix(paragraph, parameter, expected_value, default_font_name)
+
+    # bold + font_size: inline writes so we DO NOT clobber the inherited
+    # run.font.name from the Heading style. CLAUDE.md: "Не перезаписывай
+    # наследуемое DOCX-форматирование прямыми значениями". apply_scalar_fix's
+    # bold/font_size_pt branches set run.font.name = default_font_name as a
+    # body_text convenience; that side-write would create a direct font_name
+    # override on heading runs whose font is intentionally style-inherited.
+    if parameter == "bold":
+        for run in paragraph.runs:
+            if run.text:
+                run.bold = bool(expected_value) if expected_value is not None else None
+        return [parameter]
+    if parameter == "font_size":
+        for run in paragraph.runs:
+            if run.text:
+                run.font.size = Pt(float(expected_value)) if expected_value is not None else None
+        return [parameter]
 
     # New 10 parameters
     if parameter == "right_indent_cm":
