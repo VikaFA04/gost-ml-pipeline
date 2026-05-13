@@ -580,22 +580,25 @@ The `heading_font_size` rule must use `parameter="font_size"` (not `font_size_pt
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Expected values for heading rules: embedded in rule JSON vs read from profile**
    - What we know: Current pattern (all existing rules) embeds expected_value in rule JSON. CONTEXT.md D-09 says "profile-driven expected_value." The GOST profile has `title_section.style_profile` but it lacks heading signature fields (keep_with_next, right_indent_cm, caps, etc.).
    - What's unclear: Should heading signature targets be added to `gost_7_32_2017.json` under a new key (e.g., `labels.title_section.heading_signature`), or embedded in each heading rule's `expected_value`?
    - Recommendation: **Embed in rule JSON** for Phase 3 (consistent with existing pattern; simpler; Phase 5 owns profile-selectability). Add a `heading_signature` key to the profile ONLY if the planner wants Phase 5 to override values without modifying rule JSON.
+   - **RESOLVED:** Embed `expected_value` in rule JSON for Phase 3 (consistent with existing pattern). Phase 5 owns profile-selectability — that work will introduce a `labels.<label>.heading_signature` block in the profile and a runtime lookup path. Pinned in Plan 03-03 Task 1 (rule JSON) and SUMMARY hand-off.
 
 2. **Level-specific expected_value for title_section vs title_subsection**
    - What we know: `gost_7_32_2017.json` has `font_size_pt=18` for title_section and `font_size_pt=16` for title_subsection.
    - What's unclear: A single `heading_font_size` rule with `applicable_labels: ["title_section", "title_subsection"]` cannot carry two different expected_values.
    - Recommendation: **Two separate rules** for level-sensitive fields: `heading_section_font_size` (expected=18.0, labels=[title_section]) and `heading_subsection_font_size` (expected=16.0, labels=[title_subsection]). OR a single rule that reads expected_value from `profile.labels[label].style_profile.font_size_pt` at runtime. **Simpler: two rules per level-sensitive field.** This avoids a new lookup path in the rule engine and keeps the JSON readable.
+   - **RESOLVED:** Two rules per level-sensitive field. `font_size` → `heading_section_font_size` (expected=18.0, labels=[title_section]) + `heading_subsection_font_size` (expected=16.0, labels=[title_subsection]). `space_before_pt` → `heading_section_space_before_pt` (expected=0.0, labels=[title_section]) + `heading_subsection_space_before_pt` (expected=15.0, labels=[title_subsection]). Fields without GOST-defined targets (right_indent_cm, keep_with_next, keep_lines_together, page_break_before, widow_control, caps, font_name, italic, underline) load with `expected_value=null` and `autocorrect=false` (load+skip pattern — dispatcher continues when expected is None). Pinned in Plan 03-03 Task 1 and Plan 03-01 Task 3 schema-presence test.
 
 3. **What to do with `heading_alignment` and `heading_indent` existing rules**
    - What we know: They exist in `formatting_rules_v1.json` and already work with the new label. Their routing behavior (currently blanket → review) changes after the guard is removed.
    - What's unclear: Do they need renaming? No. Their `parameter` field matches the signature key names (`alignment`, `first_line_indent_cm`) so they naturally integrate with the new routing.
    - Recommendation: Keep `id: "heading_alignment"` and `id: "heading_indent"` — just update routing behavior by removing the blanket guard. No rule JSON change needed for these 3.
+   - **RESOLVED:** Keep existing rule IDs `heading_alignment`, `heading_indent`, `heading_bold` byte-identical (no rename, no reorder, no field changes). Behavior changes solely via removal of the blanket heading guard at lines 998-1004 of `src/rules/rule_engine.py` (Plan 03-03 Task 2). Pinned in Plan 03-03 Task 1 acceptance criteria ("existing 3 heading rules byte-identical").
 
 ---
 
