@@ -56,10 +56,10 @@ Plans:
   4. Targeted pytest fixtures cover bibliography detection + single-`numId` enforcement + ambiguous-list `review` routing.
 **Plans:** 4 plans
 Plans:
-- [ ] 02-01-test-scaffolding-red-PLAN.md — Wave 0 RED: hand-crafted DOCX fixture + 19 failing tests across postprocess/profile_loader/bibliography_phase2/negative-corpus diff-rate.
-- [ ] 02-02-postprocess-and-profile-green-PLAN.md — Wave 1 GREEN: D-01 unconditional title override + D-04 heading-style subsection detection + D-03/D-11 profile schema (helpers + validator + gost_7_32_2017.json fields).
-- [ ] 02-03-multilevel-numbering-green-PLAN.md — Wave 2 GREEN: D-05 2-level multilevel abstract + per-subsection w:num with lvlOverride + D-06 first-valid-numId coercion + D-07 idempotent seed + stable cache key (id(paragraph.part.document.part)).
-- [ ] 02-04-ambiguous-routing-and-gate-green-PLAN.md — Wave 3 GREEN: D-09 ambiguous-list review routing + D-10 sanity + D-13 formatting_rules_v1.json strip + D-11 MAX_FALLBACK_LIST_* constant deletion + D-15 negative-corpus regression gate verification.
+- [x] 02-01-test-scaffolding-red-PLAN.md — Wave 0 RED: hand-crafted DOCX fixture + 19 failing tests across postprocess/profile_loader/bibliography_phase2/negative-corpus diff-rate.
+- [x] 02-02-postprocess-and-profile-green-PLAN.md — Wave 1 GREEN: D-01 unconditional title override + D-04 heading-style subsection detection + D-03/D-11 profile schema (helpers + validator + gost_7_32_2017.json fields).
+- [x] 02-03-multilevel-numbering-green-PLAN.md — Wave 2 GREEN: D-05 2-level multilevel abstract + per-subsection w:num with lvlOverride + D-06 first-valid-numId coercion + D-07 idempotent seed + stable cache key (id(paragraph.part.document.part)).
+- [x] 02-04-ambiguous-routing-and-gate-green-PLAN.md — Wave 3 GREEN: D-09 ambiguous-list review routing + D-10 sanity + D-13 formatting_rules_v1.json strip + D-11 MAX_FALLBACK_LIST_* constant deletion + D-15 negative-corpus regression gate verification.
 **UI hint**: yes
 
 ### Phase 3: Heading signature & DOCX generator
