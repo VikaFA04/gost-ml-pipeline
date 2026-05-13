@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: "Completed 03-04-PLAN.md — Wave 3 close-out: D-07 narrowed (appendix-excluded), signature-presence assertion added, Phase 3 all 98 tests GREEN"
-last_updated: "2026-05-13T16:06:11.961Z"
+status: executing
+stopped_at: "Completed 04-01-PLAN.md — Wave A: 3.docx root-cause = Phase 3 7207cbe; D-05 Branch B locked; ceilings 0.359712 / 630"
+last_updated: "2026-05-13T20:07:06.658Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
-  percent: 50
+  completed_phases: 3
+  total_plans: 17
+  completed_plans: 13
+  percent: 76
 ---
 
 # Project State
@@ -22,16 +22,16 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase 03 — heading-signature-and-docx-generator
+**Current focus:** Phase 04 — regression-gate
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
-Status: Ready to plan
+Phase: 04 (regression-gate) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-05-13
 
-Progress: [██████████] 100%
+Progress: [████████░░] 76%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100%
 | Phase 03-heading-signature-and-docx-generator P01 | 216s | 4 tasks | 5 files |
 | Phase 03-heading-signature-and-docx-generator P03 | 3551 | 2 tasks | 2 files |
 | Phase 03-heading-signature-and-docx-generator P04 | 812 | 2 tasks | 1 files |
+| Phase 04 P01 | 4800s | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ current work:
 - Open Question 2 resolved: 10 heading rules carry expected_value=null + autocorrect=false (load+skip pattern); Phase 5 fills from methodical-profile ingest
 - apply_heading_scalar_fix delegates 8 existing params to apply_scalar_fix; handles 10 new params directly
 - Appendix headings (ПРИЛОЖЕНИЯ, Приложение А/Б) excluded from D-07 invariant and non_bib_changed filter per Phase 3 user decision 2026-05-13; D-06 autofix of their direct overrides is correct GOST behavior
+- Phase 4 Wave A: 3.docx pair drift root-caused to Phase 3 7207cbe per-field heading source dispatcher (D-05/D-06). Legit behaviour change, NOT bug — Branch B chosen per CLAUDE.md root-cause-priority rule.
+- Phase 4 Wave A: locked Wave B baseline ceilings for 3.docx pair: after_diff_rate_ceiling=0.359712, field_mismatch_ceiling=630. Subset uses negative-column filenames (not positive); aggregate-mean 0.5857 collision with D-15 0.4781 flagged for Wave B planner.
 
 ### Pending Todos
 
@@ -117,8 +120,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-13T16:06:11.945Z
-Stopped at: Completed 03-04-PLAN.md — Wave 3 close-out: D-07 narrowed (appendix-excluded), signature-presence assertion added, Phase 3 all 98 tests GREEN
+Last session: 2026-05-13T20:06:59.664Z
+Stopped at: Completed 04-01-PLAN.md — Wave A: 3.docx root-cause = Phase 3 7207cbe; D-05 Branch B locked; ceilings 0.359712 / 630
 Resume file: None
 
-**Planned Phase:** 02 (bibliography-list-semantics) — 4 plans — 2026-05-12T18:57:55.228Z
+**Planned Phase:** 04 (regression-gate) — 5 plans — 2026-05-13T19:33:26.010Z
