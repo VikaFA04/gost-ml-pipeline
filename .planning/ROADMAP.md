@@ -72,8 +72,8 @@ Plans:
   3. GOST-decorated positive subset stays `changed=0` for any heading rule (regression gate from Phase 2 extended with heading-direct-fix invariant); negative heading fixtures move toward target signatures with no text changes; TOC and list structure remain stable.
 **Plans:** 4 plans
 Plans:
-- [ ] 03-01-PLAN.md — Wave 0 RED (TDD): 4+8 failing tests, heading_minimal.docx fixture+builder, D-07 invariant in positive-corpus regression
-- [ ] 03-02-PLAN.md — Wave 1 GREEN: D-01..D-04 — _resolve_inherited_value + _extract_heading_format_signature + extract_paragraph_block wiring (lazy heading-only, JSON-serialized 18-key signature)
+- [x] 03-01-PLAN.md — Wave 0 RED (TDD): 4+8 failing tests, heading_minimal.docx fixture+builder, D-07 invariant in positive-corpus regression
+- [x] 03-02-PLAN.md — Wave 1 GREEN: D-01..D-04 — _resolve_inherited_value + _extract_heading_format_signature + extract_paragraph_block wiring (lazy heading-only, JSON-serialized 18-key signature)
 - [ ] 03-03-PLAN.md — Wave 2 GREEN: D-05/D-06/D-09 — remove blanket heading guard, add per-field source dispatcher (HEADING_SIG_FIELDS), apply_heading_scalar_fix, +17 heading_* rules in formatting_rules_v1.json (level-split + null-target load+skip per Open Question 2)
 - [ ] 03-04-PLAN.md — Wave 3 verification: positive-corpus signature-presence assertion + full Phase 3 success-criteria empirical verification (negative-corpus diff-rate ≤ 0.4781 preserved)
 
