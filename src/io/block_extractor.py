@@ -258,6 +258,7 @@ def extract_blocks_from_docx(
                 "list_type",
                 "list_level",
                 "file_name",
+                "heading_format_signature",
             ]
         )
 
