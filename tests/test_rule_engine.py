@@ -1542,3 +1542,64 @@ def test_heading_style_direct_alignment_autofixed_after_guard_removal() -> None:
     assert result is not None
     assert result["status"] == "changed", result
     assert "alignment" in result["applied_fixes"], result["applied_fixes"]
+
+
+def test_heading_direct_bold_fix_preserves_inherited_font_name() -> None:
+    """WR-01 invariant (CLAUDE.md "Не перезаписывай наследуемое DOCX-форматирование
+    прямыми значениями"): D-06 bold autofix on a Heading paragraph MUST NOT set a
+    direct run.font.name override; the inherited font from the Heading style cascade
+    must survive the fix."""
+    document = Document()
+    paragraph = document.add_paragraph("Раздел")
+    paragraph.style = "Heading 1"
+    # Direct bold=False override; font.name stays None (inherited from Heading 1).
+    run = paragraph.runs[0]
+    run.bold = False
+    assert run.font.name is None, "Precondition: font.name must be inherited (None) at start"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "bold" in result["applied_fixes"], result["applied_fixes"]
+    assert paragraph.runs[0].bold is True, "bold should be flipped to True per GOST rule"
+    # The actual invariant: font.name MUST stay inherited (None).
+    assert paragraph.runs[0].font.name is None, (
+        "D-06 bold fix overwrote inherited font.name with a direct value — "
+        "CLAUDE.md violation."
+    )
+
+
+def test_heading_direct_font_size_fix_preserves_inherited_font_name() -> None:
+    """WR-01 invariant for font_size: D-06 font_size autofix must not clobber inherited font.name."""
+    from docx.shared import Pt
+    document = Document()
+    paragraph = document.add_paragraph("Раздел")
+    paragraph.style = "Heading 1"
+    run = paragraph.runs[0]
+    # Direct font_size override that mismatches heading_section_font_size (18pt).
+    run.font.size = Pt(12)
+    assert run.font.name is None, "Precondition: font.name must be inherited (None) at start"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "font_size" in result["applied_fixes"], result["applied_fixes"]
+    assert round(paragraph.runs[0].font.size.pt, 2) == 18.0, "font_size should match GOST target"
+    assert paragraph.runs[0].font.name is None, (
+        "D-06 font_size fix overwrote inherited font.name with a direct value — "
+        "CLAUDE.md violation."
+    )
