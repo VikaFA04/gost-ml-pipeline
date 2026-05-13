@@ -27,8 +27,6 @@ BIBLIOGRAPHY_SUBHEADING_RE = re.compile(r"^(?:\d+\s*)?(теоретическа�
 NUMBERED_MARKER_RE = re.compile(r"^\s*(?:\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])\s+")
 BULLET_MARKER_RE = re.compile(r"^\s*[-—–•●■◦]\s+")
 HIGH_CONFIDENCE_THRESHOLD = 0.9
-MAX_FALLBACK_LIST_WORDS = 40
-MAX_FALLBACK_LIST_CHARS = 300
 BODY_TEXT_REVIEW_ONLY_PARAMETERS = {
     "alignment",
     "first_line_indent_cm",
@@ -803,8 +801,12 @@ def _paragraph_has_list_marker(text: str) -> bool:
     return bool(BULLET_MARKER_RE.match(text) or NUMBERED_MARKER_RE.match(text))
 
 
-def _is_long_plain_paragraph(text: str) -> bool:
-    return len(text) >= MAX_FALLBACK_LIST_CHARS or len(text.split()) >= MAX_FALLBACK_LIST_WORDS
+def _is_long_plain_paragraph(text: str, *, max_words: int = 40, max_chars: int = 300) -> bool:
+    """Default thresholds 40/300 match the historical MAX_FALLBACK_LIST_* constants
+    (deleted in Phase 2). Profile-driven callers may pass `max_words` and
+    `max_chars` from `src.rules.profile_loader.get_list_detection_thresholds`.
+    """
+    return len(text) >= max_chars or len(text.split()) >= max_words
 
 
 def assess_list_auto_fix_safety(paragraph: Paragraph, row_data: dict[str, Any]) -> dict[str, Any]:
@@ -1056,6 +1058,26 @@ def apply_rules_to_paragraph(
             "unsafe_auto_fix_reason": "",
             "explanation": f"style_guard_block: rule_class=body_text paragraph_style_class={paragraph_style_class}",
         }
+
+    # D-09 — ambiguous-list review routing.
+    # body_text label + Normal style + visible list marker (1) /  – etc.) + NO Word
+    # numPr → review with explanation 'ambiguous_list_marker_no_numId'. Mirrors the
+    # Phase 1 style_guard_block: pattern (review-result dict shape; routing decision
+    # before rule loop).
+    if label == "body_text" and paragraph_style_class == "body":
+        text_for_marker = str(row_data.get("text", "") or paragraph.text or "").strip()
+        if _paragraph_has_list_marker(text_for_marker) and not _paragraph_has_numbering(paragraph):
+            return {
+                "status": "review",
+                "violated_rules": [],
+                "applied_fixes": [],
+                "suggested_fixes": [],
+                "suggested_rule_ids": [],
+                "manual_review_required": True,
+                "blocked_unsafe_autofix": False,
+                "unsafe_auto_fix_reason": "",
+                "explanation": "ambiguous_list_marker_no_numId",
+            }
 
     current_profile = get_current_paragraph_profile(paragraph)
     violated_rules: list[str] = []
