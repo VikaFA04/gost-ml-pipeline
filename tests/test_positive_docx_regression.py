@@ -49,6 +49,16 @@ def test_positive_docx_examples_are_not_autofixed(tmp_path) -> None:
 
         report_df = pd.read_csv(report_csv, encoding="utf-8-sig")
         changed = report_df[report_df["status"] == "changed"].copy()
+
+        # Appendix headings (ПРИЛОЖЕНИЕ/ПРИЛОЖЕНИЯ + level-2 'Приложение А/Б/...')
+        # legitimately receive D-06 autofix toward GOST 7.32-2017 alignment
+        # defaults; excluded from D-07 invariant per Phase 3 user decision
+        # 2026-05-13.
+        def _is_appendix_heading(text: object) -> bool:
+            if not isinstance(text, str):
+                return False
+            return text.lstrip().upper().startswith("ПРИЛОЖЕНИ")
+
         # Phase 2 D-04 broadens bibliography subsection detection to all
         # Heading-styled rows inside a bibliography context, which surfaces
         # `bibliography_section_prefix` writes on subsection titles. That fix
@@ -57,7 +67,8 @@ def test_positive_docx_examples_are_not_autofixed(tmp_path) -> None:
         # carries the right prefix in practice. The contract this test pins
         # is: NO direct scalar/format autofix on body or non-bibliography
         # rows. Drop bibliography labels and any row whose ONLY applied fix
-        # is `bibliography_section_prefix`.
+        # is `bibliography_section_prefix`. Also drop appendix headings:
+        # D-06 legitimately autofixes their direct overrides (see D-07 note).
         def _is_bib_only_prefix(fixes: object) -> bool:
             if not isinstance(fixes, str) or not fixes:
                 return False
@@ -67,6 +78,7 @@ def test_positive_docx_examples_are_not_autofixed(tmp_path) -> None:
         non_bib_changed = changed[
             (~changed["label"].isin(_BIBLIOGRAPHY_LABELS))
             & (~changed["applied_fixes"].apply(_is_bib_only_prefix))
+            & (~changed["text"].apply(_is_appendix_heading))
         ]
         assert non_bib_changed.empty, (
             f"{file_name}: non-bibliography paragraphs were autofixed:\n"
@@ -96,8 +108,32 @@ def test_positive_docx_examples_are_not_autofixed(tmp_path) -> None:
         heading_changed = changed[
             changed["label"].isin({"title_section", "title_subsection"})
             & changed["applied_fixes"].apply(_has_heading_fix)
+            & (~changed["text"].apply(_is_appendix_heading))
         ]
         assert heading_changed.empty, (
             f"{file_name}: heading paragraphs were autofixed (D-07 invariant):\n"
             f"{heading_changed[['block_id', 'label', 'applied_fixes', 'text']].to_string()}"
+        )
+
+        # Plan 03-04: end-to-end signature wiring proof.
+        # The predictions CSV used by audit_or_format_docx must carry the
+        # heading_format_signature column produced by Plan 03-02; if a future
+        # refactor drops it, the D-07 invariant above would silently become
+        # vacuous (changed[label.isin(headings)] would be empty for the wrong reason).
+        predictions_df = pd.read_csv(predictions_csv, encoding="utf-8-sig")
+        assert "heading_format_signature" in predictions_df.columns, (
+            f"{file_name}: predictions CSV missing heading_format_signature column "
+            f"(Plan 03-02 wiring regressed)"
+        )
+        # At least one heading row in this positive doc must have a non-empty signature.
+        # 1.docx and 4.docx both contain Heading 1-styled paragraphs (verified in
+        # 03-RESEARCH.md "Existing Behavior of Positive Corpus"). If this assertion
+        # fails, classify_style is no longer detecting headings on these docs.
+        heading_rows = predictions_df[
+            predictions_df["heading_format_signature"].notna()
+            & predictions_df["heading_format_signature"].astype(str).str.startswith("{")
+        ]
+        assert not heading_rows.empty, (
+            f"{file_name}: no rows have heading_format_signature populated — "
+            f"Plan 03-02 lazy-extraction guard may be too restrictive"
         )
