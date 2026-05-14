@@ -83,8 +83,12 @@ baseline diff-rate.
       Этап 2 open item)* — Heading / toc / List Paragraph / Caption-styled
       paragraphs stop receiving extra direct formatting from autofix.
 - [ ] **REQ-fix-negative-corpus-no-regression** *(new — FORMAT_FIX_PLAN
-      Этап 8 open)* — No negative-corpus pair regresses; `3.docx` pair returns
-      to ≤ 0.318; mean diff-rate ≤ 0.4781.
+      Этап 8 open)* — No negative-corpus pair regresses below its Wave-A-locked
+      per-pair ceiling (`3.docx` pair ≤ 0.359712, others tracked in
+      `tests/baselines/negative_corpus.json`); mean diff-rate ≤ 0.4781. Per
+      Phase 4 D-05 Branch B — root cause traced to Phase 3 D-05/D-06 per-field
+      heading source dispatcher (commit 7207cbe), see
+      `.planning/phases/04-regression-gate/04-WAVE-A-3docx-rootcause.md`.
 - [ ] **REQ-fix-docx-generator-custom-styles** *(deferred to v2 — Phase 3
       discuss-phase D-08, 2026-05-13)* — Originally scoped as
       `src/generate/docx_writer.py` handling template-specific custom styles

@@ -85,7 +85,7 @@ Plans:
 **Requirements**: REQ-fix-negative-corpus-no-regression, REQ-audit-regression-cli, REQ-rules-quality-acceptance
 **Success Criteria** (what must be TRUE):
   1. `audit-regression` CLI compares a corpus run against a saved baseline and emits per-pair CSV plus a summary JSON (already partly implemented per recent commits — bring under the gate).
-  2. No negative-corpus pair regresses; `3.docx` pair returns to ≤ 0.318; mean negative diff-rate ≤ 0.4781.
+  2. No negative-corpus pair regresses below its Wave-A-locked per-pair ceiling (`3.docx` pair ≤ 0.359712, others tracked in `tests/baselines/negative_corpus.json`); mean negative diff-rate ≤ 0.4781. Per Phase 4 D-05 Branch B — root cause traced to Phase 3 D-05/D-06 per-field heading source dispatcher (commit 7207cbe), see `.planning/phases/04-regression-gate/04-WAVE-A-3docx-rootcause.md`.
   3. Audit report covers every rule in `RuleRecord` format; every violation surfaces; every applied fix surfaces; unsafe fixes blocked; low-confidence blocks become `manual_review_required` with reason.
   4. `audit-regression` is wired into CI / a documented local check so every fix-track PR is gated against the baseline.
 **Plans:** 5 plans

@@ -154,6 +154,10 @@ heuristic; 0.163743 is the empirical floor. Wave B locks at the empirical floor.
 - [x] Wave B per-pair entry for `3_formatted_20260413_194927.docx`: `after_diff_rate_ceiling = 0.359712`, `field_mismatch_ceiling = 630`, `notes = "Wave A Branch B (legit Phase 3 D-05/D-06 behaviour change, commit 7207cbe)"`.
 - [x] Wave B aggregate-mean ceiling: stays at `0.4781` for now (the subset mean at HEAD is `(0.359712 + 0.963899 + 0.855596 + 0.163743) / 4 = 0.585738`, which already exceeds 0.4781; Wave B planner must decide whether to (a) raise the aggregate mean ceiling commensurate with the legit Phase 3 behaviour change in the same ROADMAP amendment, or (b) shrink the subset until the mean fits — flagged as a Wave B decision, NOT Wave A scope).
 
+## Wave B amendment (2026-05-14)
+
+Per Wave B Option D review, the tmp* generator-test artefacts (`tmp5x0alx_2_baseline_*`, `tmp9dp7t40y_transformer_*`) were dropped from the gate subset — they are 1.docx duplicates from generator runs, not corpus regression candidates. Final subset is 3 pairs covering the 3 unique non-58/59 positives in the corpus (3.docx, 45.docx, 4.docx). Mean 0.311872 ≤ 0.4781 aggregate ceiling, no aggregate-ceiling amendment needed.
+
 ## Cross-references
 
 - Empirical data: `results/reports/regression_audit_phase4_worst_offenders.csv`,
