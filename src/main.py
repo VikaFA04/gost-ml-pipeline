@@ -15,7 +15,11 @@ from src.config import (
     REPORTS_DIR,
 )
 from src.evaluate import evaluate_predictions, save_evaluation
-from src.evaluation.format_regression_audit import audit_negative_directory, audits_to_frame
+from src.evaluation.format_regression_audit import (
+    audit_negative_directory,
+    audits_to_frame,
+    write_per_pair_baseline,
+)
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.io.block_extractor import extract_blocks_from_docx
 from src.rules.methodical_extractor import extract_methodical_profile
@@ -207,6 +211,8 @@ def cmd_audit_regression(
     profile_id: str,
     limit: Optional[int] = None,
     progress: bool = False,
+    update_baseline: Optional[str] = None,
+    reason: Optional[str] = None,
 ) -> None:
     positive_dir_path = Path(positive_dir)
     negative_dir_path = Path(negative_dir)
@@ -237,6 +243,23 @@ def cmd_audit_regression(
         progress_callback=report_progress if progress else None,
     )
     frame = audits_to_frame(audits)
+
+    if update_baseline:
+        # Probe 6 minimum: --reason must be >= 8 chars after strip (free text,
+        # no forced ticket-ID format). Empty / whitespace / 7-char reasons
+        # are refused.
+        if not reason or len(reason.strip()) < 8:
+            raise SystemExit(
+                "--update-baseline требует --reason '<text>' (минимум 8 символов после strip; "
+                "D-004: no silent rewrites; RESEARCH.md Probe 6)."
+            )
+        write_per_pair_baseline(
+            path=Path(update_baseline),
+            frame=frame,
+            reason=reason.strip(),
+            profile_id=profile_id,
+        )
+
     frame.to_csv(report_path, index=False, encoding="utf-8-sig")
 
     summary = {
@@ -377,6 +400,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Печатать текущий номер документа при регресс-аудите",
     )
+    regression_parser.add_argument(
+        "--update-baseline",
+        required=False,
+        type=str,
+        metavar="PATH",
+        help="Если задано, перезаписать per-pair ceilings из текущего прогона в JSON по этому пути. Требует --reason.",
+    )
+    regression_parser.add_argument(
+        "--reason",
+        required=False,
+        type=str,
+        help="Обязательное обоснование (свободный текст, минимум 8 символов после strip) при --update-baseline.",
+    )
 
     methodical_parser = subparsers.add_parser(
         "extract-methodical-profile",
@@ -461,6 +497,8 @@ def main() -> None:
             profile_id=args.profile_id,
             limit=args.limit,
             progress=args.progress,
+            update_baseline=args.update_baseline,
+            reason=args.reason,
         )
         return
 

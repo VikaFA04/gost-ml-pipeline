@@ -192,3 +192,70 @@ def audits_to_frame(audits: list[NegativePairAudit]) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)
+
+
+def write_per_pair_baseline(
+    *,
+    path: Path,
+    frame: pd.DataFrame,
+    reason: str,
+    profile_id: str,
+) -> None:
+    """Update per-pair regression baseline JSON from a fresh audit `frame`.
+
+    Reads existing JSON at `path` (or seeds an empty `_metadata` shell if
+    absent), filters `frame` to `_metadata.subset_filenames` (Pitfall 1:
+    `--limit N` produces lexicographic-first-N, NOT the pinned subset —
+    silently writing those rows would replicate the Wave B baseline-skip
+    bug in the update path), rewrites every per-pair entry whose `negative`
+    filename appears in the filtered frame, warns on subset filenames
+    missing from the frame (operator likely ran with `--limit`), prints a
+    `<name>: <old> -> <new>` diff per pair, and writes JSON back atomically.
+    """
+    import json
+    from datetime import datetime, timezone
+
+    if path.exists():
+        data = json.loads(path.read_text(encoding="utf-8"))
+    else:
+        data = {
+            "_metadata": {
+                "schema_version": 1,
+                "aggregate_mean_ceiling": 0.4781,
+                "profile_id": profile_id,
+                "subset_filenames": [],
+            }
+        }
+    subset = list(data.get("_metadata", {}).get("subset_filenames", []))
+    if subset:
+        filtered = frame[frame["negative"].isin(subset)].reset_index(drop=True)
+        missing = [name for name in subset if name not in set(filtered["negative"].tolist())]
+        if missing:
+            # Stderr-style warning; do not raise — user may legitimately update
+            # a subset of the baseline. But surface the mismatch loudly so the
+            # operator notices that --limit dropped pairs (Pitfall 1).
+            print(
+                f"WARNING: subset filenames {missing} missing from frame — "
+                f"likely caused by --limit. Re-run without --limit for a full baseline refresh."
+            )
+    else:
+        # No existing subset locked yet → write every row in frame (seed scenario).
+        filtered = frame
+    recorded_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
+    for _, row in filtered.iterrows():
+        name = str(row["negative"])
+        old = data.get(name, {}).get("after_diff_rate_ceiling")
+        new_ceiling = round(float(row["after_diff_rate"]), 6)
+        new_field = int(row["after_field_mismatches"])
+        data[name] = {
+            "after_diff_rate_ceiling": new_ceiling,
+            "field_mismatch_ceiling": new_field,
+            "recorded_at": recorded_at,
+            "profile_id": profile_id,
+            "notes": reason,
+        }
+        print(f"{name}: {old} -> {new_ceiling}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
