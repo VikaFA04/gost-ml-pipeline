@@ -146,7 +146,10 @@ def test_needs_review_derived(tmp_path) -> None:
 
 
 def test_loc_label_is_page_n_for_pdf(tmp_path) -> None:
-    """5-01-RED carrier: PDF input → loc starts with `page_`."""
+    """5-01-RED carrier: PDF input → loc starts with `page_`.
+    Probe via font_name leaf — fitz's built-in fonts can render the ASCII
+    string 'Times New Roman' but render Cyrillic as placeholder glyphs;
+    therefore the matched leaf must come from an ASCII regex hit."""
     import fitz
     pdf = tmp_path / "berger_like.pdf"
     doc = fitz.open()
@@ -158,7 +161,7 @@ def test_loc_label_is_page_n_for_pdf(tmp_path) -> None:
         input_path=pdf, output_dir=tmp_path / "profiles",
         base_profile_ids=["gost_7_32_2017"], profile_name="pdf",
     )
-    leaf = profile["document_rules"]["page"]["margin_left_cm"]
+    leaf = profile["document_rules"]["default_font"]["font_name"]
     assert leaf["_source"]["loc"].startswith("page_"), (
         f"expected page_N for PDF, got {leaf['_source']['loc']!r}"
     )
