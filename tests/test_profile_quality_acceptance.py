@@ -6,11 +6,12 @@ set is empty so Tier B passes vacuously; plan 5-05 CI runs Бергер extracti
 which makes Tier B fire substantively.
 
 The synthetic-RED carrier (`test_red_carrier_fires_on_synthetic_methodical_profile`)
-is the explicit RED carrier per Phase 4 Wave C Option 1 deviation — it injects
-a synthetic methodical profile and asserts the methodical required-key set
-contains no extras. At RED the set contains `__red_placeholder__`, so the
-synthetic profile is missing it and the test fails. The GREEN commit removes
-the placeholder from `REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL`.
+is the explicit RED carrier per Phase 4 Wave C Option 1 deviation — at RED the
+methodical required-key set contains a bogus extra key that no profile carries,
+so the synthetic profile is missing it and the test fails. The GREEN commit
+removes the bogus key from `REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL`. The test
+is retained post-GREEN as a permanent regression guard against future
+re-introduction of a divergent required-key set.
 
 The other tests over real profiles in `src/rules/profiles/*.json` stay GREEN
 at HEAD because no methodical-typed profile is committed (Tier B vacuous).
@@ -33,7 +34,6 @@ REQUIRED_TOP_LEVEL_KEYS_FOR_ANY = {
 REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL = {
     "profile_id", "profile_name", "profile_type", "is_default",
     "extraction_meta",
-    "__red_placeholder__",  # RED carrier (Phase 4 Wave C Option 1); GREEN commit removes this
 }
 
 
@@ -102,13 +102,11 @@ def test_every_profile_has_required_top_level_keys() -> None:
 def test_red_carrier_bogus_required_field() -> None:
     """RED carrier per Phase 4 Wave C Option 1 — bogus-required-field shape mismatch.
 
-    REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL contains `__red_placeholder__` which
-    no profile carries; GREEN commit removes the placeholder from the set.
-
-    Vacuous over real profiles at HEAD because no methodical profile is
-    committed — but if plan 5-01 / plan 5-05 ever ship a methodical profile
-    at HEAD, this test FAILS until the placeholder is removed (intentional).
-    The synthetic-profile twin below makes the RED observable at HEAD.
+    Iterates real methodical profiles and asserts none are missing any of
+    REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL. Vacuous over real profiles at HEAD
+    because no methodical profile is committed; substantive once plan 5-05
+    Бергер extraction lands a methodical profile. The synthetic-profile twin
+    below makes the RED empirically observable at HEAD.
     """
     failures = []
     for path, profile in _load_all_profiles():
@@ -123,10 +121,13 @@ def test_red_carrier_bogus_required_field() -> None:
 def test_red_carrier_fires_on_synthetic_methodical_profile() -> None:
     """Force RED at HEAD by injecting a synthetic methodical profile.
 
-    The synthetic profile satisfies REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL MINUS
-    the `__red_placeholder__` — the test SHOULD fail until the placeholder is
-    removed. This is the Phase 4 Wave C 'Option 1' carrier — empirically
-    observable RED at HEAD even though no methodical profile is committed.
+    The synthetic profile carries every documented field of a methodical
+    profile. At RED, REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL had a bogus extra
+    key (Phase 4 Wave C Option 1 carrier) that no profile — synthetic or real —
+    could supply, so the assertion failed. GREEN removed the bogus key. The
+    test is retained as a permanent regression guard: any future commit that
+    re-adds a divergent required key here will trip this assertion immediately
+    rather than waiting for a methodical profile to land on disk.
     """
     synthetic = {
         "profile_id": "methodical_synthetic_for_lint",
@@ -136,8 +137,6 @@ def test_red_carrier_fires_on_synthetic_methodical_profile() -> None:
         "extraction_meta": {"needs_manual_review": True},
     }
     missing = REQUIRED_TOP_LEVEL_KEYS_FOR_METHODICAL - set(synthetic)
-    # RED at HEAD because __red_placeholder__ is still in the required set;
-    # GREEN commit removes the placeholder, satisfying this assertion.
     assert not missing, f"synthetic methodical profile missing {sorted(missing)}"
 
 
