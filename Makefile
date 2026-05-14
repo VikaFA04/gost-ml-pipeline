@@ -18,4 +18,6 @@ regression-gate:
 		tests/test_negative_corpus_diff_rate.py \
 		tests/test_positive_docx_regression.py \
 		tests/test_rules_quality_acceptance.py \
-		tests/test_format_regression_audit.py
+		tests/test_format_regression_audit.py \
+		tests/test_profile_quality_acceptance.py \
+		tests/test_methodical_extractor.py
