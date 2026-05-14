@@ -122,7 +122,14 @@ Plans:
   2. `review` and `error` blocks are visually distinct from `no_change` and `changed`; per-block confidence is shown; manual-review reason is taken from `explanation`; original block text is always inspectable.
   3. Preflight failures (unreadable file, malformed paragraphs) surface as user-facing messages rather than tracebacks; logs do not leak full document text.
   4. The redesigned UI passes a design-review pass by the project owner; recorded defects fixed before close.
-**Plans**: TBD
+**Plans:** 6 plans
+Plans:
+- [ ] 06-00-PLAN.md — Wave 0 RED: test scaffolding (conftest + test_app_ui + test_run_log + test_render_block_section + test_preflight)
+- [ ] 06-01-PLAN.md — Wave 1 GREEN: src/inference/run_log.py RunLog single-writer logger (PII boundary)
+- [ ] 06-02-PLAN.md — Wave 2: app.py sidebar redesign (D-01) + RunLog wiring in run_processing + preflight_translate_error + modal_reason_is_valid + STATUS_CHIP; remove st.exception traceback leak
+- [ ] 06-03-PLAN.md — Wave 3: app.py render_report + render_block_section + render_summary_counters (D-02 grouped sections); delete render_results + 5 other orphans; run-log JSON download
+- [ ] 06-04-PLAN.md — Wave 4: app.py methodical_modal @st.dialog (D-03 + D-004 mirror — preview / apply / force-reason ≥8)
+- [ ] 06-05-PLAN.md — Wave 5 (checkpoint): app.py cleanup + 06-DESIGN-REVIEW.md + human design-review sign-off
 **UI hint**: yes
 
 ### Phase 7: PDF text-layer audit slice
@@ -163,7 +170,7 @@ once Phase 1 is complete; Phase 4 requires both.
 | 3. Heading signature & DOCX generator | 4/4 | Complete | 2026-05-13 |
 | 4. Regression gate | 5/5 | In progress | - |
 | 5. Rule profiles & methodical-profile ingestion | 0/TBD | Not started | - |
-| 6. Streamlit UI redesign | 0/TBD | Not started | - |
+| 6. Streamlit UI redesign | 0/6 | Not started | - |
 | 7. PDF text-layer audit slice | 0/TBD | Not started | - |
 | 8. Milestone acceptance | 0/TBD | Not started | - |
 
