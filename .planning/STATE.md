@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-01-PLAN.md — Wave A: 3.docx root-cause = Phase 3 7207cbe; D-05 Branch B locked; ceilings 0.359712 / 630"
-last_updated: "2026-05-13T20:07:06.658Z"
-last_activity: 2026-05-13
+stopped_at: Completed 04-02-PLAN.md — Wave B GREEN, 3-pair Option D subset locked at 0.359712/0.412162/0.163743; D-05 Branch B amendments atomic
+last_updated: "2026-05-14T04:26:16.753Z"
+last_activity: 2026-05-14
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 17
-  completed_plans: 13
-  percent: 76
+  completed_plans: 14
+  percent: 82
 ---
 
 # Project State
@@ -27,11 +27,11 @@ explainable, no silent rewrites, safe-only autocorrection.
 ## Current Position
 
 Phase: 04 (regression-gate) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
-Last activity: 2026-05-13
+Last activity: 2026-05-14
 
-Progress: [████████░░] 76%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████████░░] 76%
 | Phase 03-heading-signature-and-docx-generator P03 | 3551 | 2 tasks | 2 files |
 | Phase 03-heading-signature-and-docx-generator P04 | 812 | 2 tasks | 1 files |
 | Phase 04 P01 | 4800s | 3 tasks | 4 files |
+| Phase Phase 04-regression-gate PP02 | 4800s | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,7 @@ current work:
 - Appendix headings (ПРИЛОЖЕНИЯ, Приложение А/Б) excluded from D-07 invariant and non_bib_changed filter per Phase 3 user decision 2026-05-13; D-06 autofix of their direct overrides is correct GOST behavior
 - Phase 4 Wave A: 3.docx pair drift root-caused to Phase 3 7207cbe per-field heading source dispatcher (D-05/D-06). Legit behaviour change, NOT bug — Branch B chosen per CLAUDE.md root-cause-priority rule.
 - Phase 4 Wave A: locked Wave B baseline ceilings for 3.docx pair: after_diff_rate_ceiling=0.359712, field_mismatch_ceiling=630. Subset uses negative-column filenames (not positive); aggregate-mean 0.5857 collision with D-15 0.4781 flagged for Wave B planner.
+- Phase 4 Wave B: 3-pair Option D subset locked (3.docx pair 0.359712/630, 45.docx pair 0.412162/372, 4.docx pair 0.163743/165) with aggregate mean 0.311872 ≤ 0.4781; D-05 Branch B ROADMAP/REQUIREMENTS amendment atomic with baseline JSON GREEN commit e100a44; Wave A artefact appended with 'Wave B amendment (2026-05-14)' section per D-004.
 
 ### Pending Todos
 
@@ -120,8 +122,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-13T20:06:59.664Z
-Stopped at: Completed 04-01-PLAN.md — Wave A: 3.docx root-cause = Phase 3 7207cbe; D-05 Branch B locked; ceilings 0.359712 / 630
+Last session: 2026-05-14T04:26:10.188Z
+Stopped at: Completed 04-02-PLAN.md — Wave B GREEN, 3-pair Option D subset locked at 0.359712/0.412162/0.163743; D-05 Branch B amendments atomic
 Resume file: None
 
 **Planned Phase:** 04 (regression-gate) — 5 plans — 2026-05-13T19:33:26.010Z

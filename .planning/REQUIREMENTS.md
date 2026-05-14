@@ -82,7 +82,7 @@ baseline diff-rate.
 - [ ] **REQ-fix-styled-paragraphs-no-direct-props** *(new — FORMAT_FIX_PLAN
       Этап 2 open item)* — Heading / toc / List Paragraph / Caption-styled
       paragraphs stop receiving extra direct formatting from autofix.
-- [ ] **REQ-fix-negative-corpus-no-regression** *(new — FORMAT_FIX_PLAN
+- [x] **REQ-fix-negative-corpus-no-regression** *(new — FORMAT_FIX_PLAN
       Этап 8 open)* — No negative-corpus pair regresses below its Wave-A-locked
       per-pair ceiling (`3.docx` pair ≤ 0.359712, others tracked in
       `tests/baselines/negative_corpus.json`); mean diff-rate ≤ 0.4781. Per
@@ -212,7 +212,7 @@ Deferred. Not in current roadmap.
 | REQ-list-conservative-handling | Phase 2 | Pending |
 | REQ-heading-style-signature | Phase 3 | Pending |
 | REQ-fix-docx-generator-custom-styles | v2 (deferred from Phase 3) | Deferred — see Phase 3 D-08 |
-| REQ-fix-negative-corpus-no-regression | Phase 4 | Pending |
+| REQ-fix-negative-corpus-no-regression | Phase 4 | Complete (04-02, 2026-05-14) |
 | REQ-audit-regression-cli | Phase 4 | Pending |
 | REQ-rules-quality-acceptance | Phase 4 | Pending |
 | REQ-rule-profiles | Phase 5 | Pending |
