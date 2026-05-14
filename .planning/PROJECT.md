@@ -36,6 +36,7 @@ beautiful UI on a destructive engine is worse than a working CLI on an honest en
   to review; positive corpus `1/4/58/59.docx` all `changed=0`.
 - ✓ README documents current CLI flow + known limitations.
 - ✓ Phase 04 (regression-gate): negative-corpus per-pair diff-rate baseline locked in `tests/baselines/negative_corpus.json` (3-pair Option D subset); `audit-regression --update-baseline / --reason` CLI; `make regression-gate` local check + `.github/workflows/regression-gate.yml` GHA gate validated via two PRs (clean PR run #25846822154 PASS, designed-regression PR run #25847679849 FAIL). Per Phase 4 D-05 Branch B — 3.docx pair ceiling 0.359712, root cause = Phase 3 D-05/D-06 dispatcher commit 7207cbe.
+- ✓ Phase 05 (rule-profiles-methodical-profile-ingestion): per-leaf `_source` annotation + derived `needs_manual_review` in `methodical_extractor.py`; `profile_diff` module (U+2192 readable diff over flattened JSON paths); `extract-methodical-profile` CLI rewrite (dry-run default + `--apply`/`--force --reason ≥8` D-004 audit trail, T-04-02/T-05-01 guards); two-tier profile schema lint (`tests/test_profile_quality_acceptance.py`); SC-1 `--profile-id` threaded through `audit-docx`/`format-docx`/`audit-regression`; 6-file CI regression gate (Phase 4 4-file → +2 Phase 5) validated via clean PR #1 GREEN (run 25862688735) + RED probe PR #3 FAIL (run 25862868163, missing `is_default` schema lint catch). Бергер 1.4MB PDF fixture committed at `tests/fixtures/methodical/normocontrol_berger.pdf`. Presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01.
 
 ### Active
 
@@ -203,4 +204,4 @@ Methodical-profile slice (HEADING_AND_NORMCONTROL Block C, partly already CLI-wi
 | **D-007**: Local-only processing; no external Document AI services. | Privacy + thesis-grade reproducibility. Future web/server version requires its own retention policy. | ✓ Good. Not locked. |
 
 ---
-*Last updated: 2026-05-14 after Phase 04 regression-gate completion*
+*Last updated: 2026-05-14 after Phase 05 rule-profiles-methodical-profile-ingestion completion*
