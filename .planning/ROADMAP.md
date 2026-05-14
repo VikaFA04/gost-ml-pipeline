@@ -22,7 +22,7 @@ operational state and the original Этапы 1–9 are preserved in
 - [ ] **Phase 2: Bibliography & list semantics** - Recognise bibliography lists; single shared `numId`; conservative list autofix.
 - [x] **Phase 3: Heading signature & DOCX generator** *(completed 2026-05-13)* - Extend heading signature and harden the DOCX writer for template-specific styles.
 - [ ] **Phase 4: Regression gate** - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
-- [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PPTX/PDF profile ingestion with diff.
+- [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PDF methodical-profile ingestion with diff (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
 - [ ] **Phase 6: Streamlit UI redesign** - Rebuild the UI around the audit flow and pass design review.
 - [ ] **Phase 7: PDF text-layer audit slice** - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
 - [ ] **Phase 8: Milestone acceptance** - End-to-end MVP acceptance + success-metric verification.
@@ -103,11 +103,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. User can pick a rule profile per audit; the chosen profile id is recorded in the report header.
   2. Profiles live outside code (e.g. `rules/gost_7_32_2017.json`, `rules/gost_r_7_0_100_2018_bibliography.json`, `rules/local_university_profile.json`).
-  3. `extract-methodical-profile` CLI ingests a PPTX/PDF presentation, produces a draft profile, shows a diff against the chosen base profile, and requires explicit user confirmation before save.
-  4. Ambiguous extracted requirements land as `needs_manual_review` with source/slide attribution; presentation never silently replaces GOST.
+  3. `extract-methodical-profile` CLI ingests a PDF methodical (e.g., normcontrol guideline), produces a draft profile, shows a diff against the chosen base profile, and requires explicit user confirmation before save (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
+  4. Ambiguous extracted requirements land as `needs_manual_review` with source/page attribution; methodical never silently replaces GOST.
 **Plans:** 5 plans
 Plans:
-- [ ] 05-01-PLAN.md — Wave 1 (TDD): per-leaf `_source` annotation + derived `needs_manual_review` in `methodical_extractor.py`; atomic doc updates dropping PPTX (D-01)
+- [ ] 05-01-PLAN.md — Wave 1 (TDD): per-leaf `_source` annotation + derived `needs_manual_review` in `methodical_extractor.py`; atomic doc updates dropping presentation-format scope (D-01)
 - [ ] 05-02-PLAN.md — Wave 2 (TDD): profile diff generator (`src/rules/profile_diff.py`) — unified text diff over flattened JSON paths + sidecar writer (D-02)
 - [ ] 05-03-PLAN.md — Wave 3 (TDD): CLI dispatcher rewrite — dry-run default + `--apply` + `--force --reason ≥8` + path-traversal guard (D-03/D-04/D-12, T-04-02/T-05-01)
 - [ ] 05-04-PLAN.md — Wave 4: profile schema lint (`tests/test_profile_quality_acceptance.py`, two-tier) + SC-1 verify (`--profile-id` on `audit-docx`/`format-docx`, D-07/D-08)
