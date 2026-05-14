@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Completed 04-05-PLAN.md — Wave E GHA regression-gate (3 commits, 1 workflow + 7 fixture DOCX + 2 doc files); Phase 04 plans 5/5 complete; awaiting verifier sign-off.
-last_updated: "2026-05-14T11:55:02.837Z"
-last_activity: 2026-05-14 -- Phase 05 execution started
+status: planning
+stopped_at: Phase 6 UI-SPEC approved
+last_updated: "2026-05-14T18:55:49.196Z"
+last_activity: 2026-05-14
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 22
-  completed_plans: 17
-  percent: 63
+  total_plans: 28
+  completed_plans: 22
+  percent: 79
 ---
 
 # Project State
@@ -131,9 +131,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-14T12:00:00.000Z
-Stopped at: Completed 04-05-PLAN.md — Wave E GHA regression-gate (3 commits, 1 workflow + 7 fixture DOCX + 2 doc files); Phase 04 plans 5/5 complete; awaiting verifier sign-off.
-Resume file: None
+Last session: --stopped-at
+Stopped at: Phase 6 UI-SPEC approved
+Resume file: --resume-file
 
-**Planned Phase:** 5 (rule-profiles-methodical-profile-ingestion) — 5 plans — 2026-05-14T11:47:34.042Z
+**Planned Phase:** 6 (streamlit-ui-redesign) — 6 plans — 2026-05-14T18:55:49.175Z
 **Phase 04 next step:** verifier (orchestrator-spawned) runs against PHASE/PLAN/SUMMARY artefacts.
