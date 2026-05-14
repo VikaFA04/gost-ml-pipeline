@@ -105,7 +105,13 @@ Plans:
   2. Profiles live outside code (e.g. `rules/gost_7_32_2017.json`, `rules/gost_r_7_0_100_2018_bibliography.json`, `rules/local_university_profile.json`).
   3. `extract-methodical-profile` CLI ingests a PPTX/PDF presentation, produces a draft profile, shows a diff against the chosen base profile, and requires explicit user confirmation before save.
   4. Ambiguous extracted requirements land as `needs_manual_review` with source/slide attribution; presentation never silently replaces GOST.
-**Plans**: TBD
+**Plans:** 5 plans
+Plans:
+- [ ] 05-01-PLAN.md — Wave 1 (TDD): per-leaf `_source` annotation + derived `needs_manual_review` in `methodical_extractor.py`; atomic doc updates dropping PPTX (D-01)
+- [ ] 05-02-PLAN.md — Wave 2 (TDD): profile diff generator (`src/rules/profile_diff.py`) — unified text diff over flattened JSON paths + sidecar writer (D-02)
+- [ ] 05-03-PLAN.md — Wave 3 (TDD): CLI dispatcher rewrite — dry-run default + `--apply` + `--force --reason ≥8` + path-traversal guard (D-03/D-04/D-12, T-04-02/T-05-01)
+- [ ] 05-04-PLAN.md — Wave 4: profile schema lint (`tests/test_profile_quality_acceptance.py`, two-tier) + SC-1 verify (`--profile-id` on `audit-docx`/`format-docx`, D-07/D-08)
+- [ ] 05-05-PLAN.md — Wave 5 (checkpoint): commit Бергер CI fixture (D-06), extend `.github/workflows/regression-gate.yml` + Makefile 4-file → 6-file pytest, designed-failure PR validation (D-10)
 
 ### Phase 6: Streamlit UI redesign
 **Goal**: The Streamlit UI is rebuilt around the audit flow with consistent visual language across block statuses, profile selection is first-class, and the redesign passes a design-review pass by the project owner.
