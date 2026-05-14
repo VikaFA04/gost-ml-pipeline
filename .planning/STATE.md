@@ -22,16 +22,16 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase 04 — regression-gate
+**Current focus:** Phase 05 — Rule profiles & methodical-profile ingestion (CONTEXT.md gathered, awaiting plan-phase)
 
 ## Current Position
 
 Phase: 5
-Plan: Not started
+Plan: Not started — CONTEXT.md committed 2026-05-14 (commit 6b30639), 12 decisions locked, PPTX dropped from scope
 Status: Ready to plan
-Last activity: 2026-05-14
+Last activity: 2026-05-14 — Phase 5 discuss-phase complete
 
-Progress: [██████████] 100% (17/17 plans complete; awaiting Phase 04 verifier sign-off before advancing)
+Progress: [██████████] 100% Phase 4 complete (17/17 plans, VERIFICATION passed, CI gate live); Phase 5 starting
 
 ## Performance Metrics
 
