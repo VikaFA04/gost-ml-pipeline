@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase-verifying
+status: ready_to_plan
 stopped_at: Completed 04-05-PLAN.md — Wave E GHA regression-gate (3 commits, 1 workflow + 7 fixture DOCX + 2 doc files); validated end-to-end via PR #1 GREEN + PR #2 RED on VikaFA04/gost-ml-pipeline; Phase 04 awaiting verifier sign-off
 last_updated: "2026-05-14T12:00:00.000Z"
 last_activity: 2026-05-14 — Phase 04 plan 05 complete (GHA gate validated end-to-end via 2 PRs)
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 17
   completed_plans: 17
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -26,9 +26,9 @@ explainable, no silent rewrites, safe-only autocorrection.
 
 ## Current Position
 
-Phase: 04 (regression-gate) — AWAITING VERIFICATION
-Plan: 5 of 5 complete — phase verification next
-Status: All Phase 04 plans complete; GHA gate live; verifier runs next.
+Phase: 5
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-05-14
 
 Progress: [██████████] 100% (17/17 plans complete; awaiting Phase 04 verifier sign-off before advancing)
@@ -37,7 +37,7 @@ Progress: [██████████] 100% (17/17 plans complete; awaiting 
 
 **Velocity:**
 
-- Total plans completed: 16 (current milestone)
+- Total plans completed: 21 (current milestone)
 - Average duration: —
 - Total execution time: —
 
@@ -49,6 +49,7 @@ Progress: [██████████] 100% (17/17 plans complete; awaiting 
 | 01 | 4 | - | - |
 | 02 | 4 | - | - |
 | 03 | 4 | - | - |
+| 04 | 5 | - | - |
 
 **Recent Trend:**
 
