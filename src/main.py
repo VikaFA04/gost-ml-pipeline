@@ -153,7 +153,12 @@ def cmd_evaluate(model_path: Optional[str], input_csv: str) -> None:
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
-def cmd_audit_docx(input_docx: str, predictions_csv: str, report_csv: Optional[str]) -> None:
+def cmd_audit_docx(
+    input_docx: str,
+    predictions_csv: str,
+    report_csv: Optional[str],
+    profile_id: str = "gost_7_32_2017",
+) -> None:
     input_docx_path = Path(input_docx)
     predictions_csv_path = Path(predictions_csv)
 
@@ -171,6 +176,7 @@ def cmd_audit_docx(input_docx: str, predictions_csv: str, report_csv: Optional[s
         report_csv=report_path,
         output_docx=None,
         apply_safe=False,
+        profile_id=profile_id,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -181,6 +187,7 @@ def cmd_format_docx(
     report_csv: Optional[str],
     output_docx: Optional[str],
     apply_safe: bool,
+    profile_id: str = "gost_7_32_2017",
 ) -> None:
     input_docx_path = Path(input_docx)
     predictions_csv_path = Path(predictions_csv)
@@ -204,6 +211,7 @@ def cmd_format_docx(
         report_csv=report_path,
         output_docx=resolved_output_docx,
         apply_safe=apply_safe,
+        profile_id=profile_id,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -418,6 +426,12 @@ def build_parser() -> argparse.ArgumentParser:
     audit_parser.add_argument("--input-docx", required=True, help="Путь к исходному DOCX")
     audit_parser.add_argument("--predictions-csv", required=True, help="CSV с предсказаниями")
     audit_parser.add_argument("--report-csv", required=False, help="Куда сохранить отчет")
+    audit_parser.add_argument(
+        "--profile-id",
+        required=False,
+        default="gost_7_32_2017",
+        help="profile_id для аудита (по умолчанию gost_7_32_2017)",
+    )
 
     format_parser = subparsers.add_parser(
         "format-docx",
@@ -431,6 +445,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--apply-safe",
         action="store_true",
         help="Применить только безопасные изменения. Без этого флага будет только отчет.",
+    )
+    format_parser.add_argument(
+        "--profile-id",
+        required=False,
+        default="gost_7_32_2017",
+        help="profile_id для safe-formatting (по умолчанию gost_7_32_2017)",
     )
 
     regression_parser = subparsers.add_parser(
@@ -564,6 +584,7 @@ def main() -> None:
             input_docx=args.input_docx,
             predictions_csv=args.predictions_csv,
             report_csv=args.report_csv,
+            profile_id=args.profile_id,
         )
         return
 
@@ -574,6 +595,7 @@ def main() -> None:
             report_csv=args.report_csv,
             output_docx=args.output_docx,
             apply_safe=args.apply_safe,
+            profile_id=args.profile_id,
         )
         return
 
