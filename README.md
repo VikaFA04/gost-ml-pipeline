@@ -51,6 +51,30 @@ total_errors: 0
 worse_count: 0
 ```
 
+## Pre-PR проверка
+
+Перед любым fix-track PR запусти:
+
+```bash
+make regression-gate
+```
+
+или (без GNU Make):
+
+```bash
+python3 -m src.main audit-regression \
+  --positive-dir positive_examples \
+  --negative-dir negative_examples \
+  --limit 4
+python3 -m pytest -q \
+  tests/test_negative_corpus_diff_rate.py \
+  tests/test_positive_docx_regression.py \
+  tests/test_rules_quality_acceptance.py \
+  tests/test_format_regression_audit.py
+```
+
+См. `CONTRIBUTING.md` для деталей (включая процедуру обновления baseline через `--update-baseline` + `--reason`).
+
 ## Обучение модели
 
 ```bash
