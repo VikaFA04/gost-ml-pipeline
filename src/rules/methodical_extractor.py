@@ -4,99 +4,216 @@ import json
 import re
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from src.rules.profile_loader import PROFILES_DIR, deep_merge, load_profile
 
 
-def _read_pdf_text(path: Path) -> str:
-    try:
-        from pypdf import PdfReader
-    except Exception as e:
-        try:
-            import fitz  # PyMuPDF
-        except Exception as fitz_exc:
-            raise ImportError(
-                "Для извлечения текста из PDF нужен пакет pypdf или PyMuPDF. "
-                "Установи: pip install pypdf pymupdf"
-            ) from fitz_exc
-
-        document = fitz.open(str(path))
-        return "\n".join((page.get_text("text") or "") for page in document)
-
-    reader = PdfReader(str(path))
-    return "\n".join((page.extract_text() or "") for page in reader.pages)
+# ---------------------------------------------------------------------------
+# Source attribution helpers (Phase 5 D-05)
+# ---------------------------------------------------------------------------
 
 
-def _read_docx_text(path: Path) -> str:
-    from docx import Document
-    document = Document(str(path))
-    return "\n".join(p.text.strip() for p in document.paragraphs if p.text and p.text.strip())
+def _clamp_confidence(c: float) -> float:
+    """T-05-02 mitigation: clamp confidence to [0.0, 1.0] on emit."""
+    if c < 0.0:
+        return 0.0
+    if c > 1.0:
+        return 1.0
+    return c
+
+
+def _annotate(value: Any, file_name: str, loc: str, confidence: float) -> dict[str, Any]:
+    """Wrap a leaf value with its `_source` sidecar. D-05 schema."""
+    c = _clamp_confidence(confidence)
+    return {
+        "value": value,
+        "_source": {
+            "file": file_name,
+            "loc": loc,
+            "confidence": c,
+            "needs_review": c < 0.7,
+        },
+    }
+
+
+def _any_leaf_needs_review(node: Any) -> bool:
+    """Walk profile dict; True if any leaf's _source.needs_review is True.
+    The _source dict itself is NOT recursed into."""
+    if isinstance(node, dict):
+        if "_source" in node and isinstance(node["_source"], dict):
+            if node["_source"].get("needs_review"):
+                return True
+        return any(_any_leaf_needs_review(v) for k, v in node.items() if k != "_source")
+    if isinstance(node, list):
+        return any(_any_leaf_needs_review(item) for item in node)
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Chunked text iteration (Phase 5 D-05 + Pitfall 2)
+# ---------------------------------------------------------------------------
+
+
+def iterate_text_chunks(path: Path) -> Iterator[tuple[str, str]]:
+    """Yield (loc_label, text). PDF -> page_N, DOCX -> paragraph_N, TXT/MD -> line_N.
+    Per Pitfall 2: strip Arabic-block noise from PDF text before yielding."""
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        import fitz
+        doc = fitz.open(str(path))
+        for i, page in enumerate(doc, start=1):
+            text = page.get_text("text") or ""
+            text = re.sub(r"[؀-ۿ]", "", text)  # Pitfall 2
+            if text.strip():
+                yield (f"page_{i}", text)
+    elif suffix == ".docx":
+        from docx import Document
+        document = Document(str(path))
+        for i, p in enumerate(document.paragraphs, start=1):
+            t = (p.text or "").strip()
+            if t:
+                yield (f"paragraph_{i}", t)
+    elif suffix in {".txt", ".md"}:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for i, line in enumerate(text.splitlines(), start=1):
+            if line.strip():
+                yield (f"line_{i}", line)
+    else:
+        raise ValueError(f"Неподдерживаемый формат методички: {path.suffix}")
 
 
 def extract_text_from_file(path: str | Path) -> str:
-    path = Path(path)
-    suffix = path.suffix.lower()
-    if suffix == ".pdf":
-        text = _read_pdf_text(path)
-        if not text.strip():
-            raise ValueError(
-                f"PDF-файл не содержит извлекаемого текста: {path}. "
-                "Если это скан, нужен OCR-проход перед извлечением профиля."
-            )
-        return text
-    if suffix == ".docx":
-        return _read_docx_text(path)
-    if suffix in {".txt", ".md"}:
-        return path.read_text(encoding="utf-8", errors="ignore")
-    raise ValueError(f"Неподдерживаемый формат методички: {path.suffix}")
+    """Thin backwards-compat wrapper: joins chunks into a single string."""
+    chunks = list(iterate_text_chunks(Path(path)))
+    if Path(path).suffix.lower() == ".pdf" and not chunks:
+        raise ValueError(
+            f"PDF-файл не содержит извлекаемого текста: {path}. "
+            "Если это скан, нужен OCR-проход перед извлечением профиля."
+        )
+    return "\n".join(text for _, text in chunks)
 
 
-def _search_float(text: str, patterns: list[str], default: float) -> float:
-    for pattern in patterns:
-        m = re.search(pattern, text, flags=re.IGNORECASE)
-        if m:
-            value = m.group(1).replace(",", ".")
-            try:
-                return float(value)
-            except Exception:
-                pass
-    return default
+# ---------------------------------------------------------------------------
+# Chunk-aware search primitives
+# ---------------------------------------------------------------------------
 
 
-def _search_font_name(text: str, default: str = "Times New Roman") -> str:
-    return "Times New Roman" if re.search(r"Times\s+New\s+Roman", text, flags=re.IGNORECASE) else default
+def _search_float_chunks(
+    chunks: list[tuple[str, str]],
+    patterns: list[str],
+    default: float,
+) -> tuple[float, str, float]:
+    """Return (value, loc, confidence). On regex hit: confidence=0.85, loc=chunk loc.
+    On default fallback: confidence=0.0, loc='default'."""
+    for loc, text in chunks:
+        for pattern in patterns:
+            m = re.search(pattern, text, flags=re.IGNORECASE)
+            if m:
+                value = m.group(1).replace(",", ".")
+                try:
+                    return (float(value), loc, 0.85)
+                except Exception:
+                    continue
+    return (default, "default", 0.0)
 
 
-def _has_pattern(text: str, pattern: str) -> bool:
-    return bool(re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE))
+def _search_font_name_chunks(
+    chunks: list[tuple[str, str]],
+    default: str = "Times New Roman",
+) -> tuple[str, str, float]:
+    for loc, text in chunks:
+        if re.search(r"Times\s+New\s+Roman", text, flags=re.IGNORECASE):
+            return ("Times New Roman", loc, 0.85)
+    return (default, "default", 0.0)
 
 
-def _extract_document_rules(text: str, profile: dict[str, Any]) -> None:
+def _find_in_chunks(chunks: list[tuple[str, str]], pattern: str) -> tuple[bool, str]:
+    """Return (matched, loc). Loc is the chunk's loc on hit, else 'default'."""
+    for loc, text in chunks:
+        if re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE):
+            return (True, loc)
+    return (False, "default")
+
+
+# ---------------------------------------------------------------------------
+# Extractors (chunk-aware, emit _annotate-wrapped leaves)
+# ---------------------------------------------------------------------------
+
+
+def _extract_document_rules(
+    chunks: list[tuple[str, str]],
+    profile: dict[str, Any],
+    file_name: str,
+) -> None:
     body = profile["labels"]["body_text"]["style_profile"]
 
-    font_name = _search_font_name(text)
-    font_size = _search_float(text, [r"кегль\s*(\d{1,2})", r"размер[^\d]{0,10}(\d{1,2})\s*пт"], 14.0)
-    line_spacing = 1.5 if re.search(r"полутор", text, flags=re.IGNORECASE) else 1.0
-    first_line_indent = _search_float(text, [r"абзац[^\d]{0,20}(\d+[.,]?\d*)\s*см", r"первая\s+строка[^\d]{0,20}(\d+[.,]?\d*)\s*см"], 1.25)
-    margin_left_mm = _search_float(text, [r"левое\s*[—\-:]\s*(\d+[.,]?\d*)\s*мм"], 30.0)
-    margin_right_mm = _search_float(text, [r"правое\s*[—\-:]\s*(\d+[.,]?\d*)\s*мм"], 10.0)
-    margin_top_mm = _search_float(text, [r"верхн[ее]+\s*(?:и\s*нижн[ее]+\s*)?[—\-:]\s*(\d+[.,]?\d*)\s*мм"], 20.0)
+    font_name, font_loc, font_conf = _search_font_name_chunks(chunks)
+    font_size, fs_loc, fs_conf = _search_float_chunks(
+        chunks,
+        [r"кегль\s*(\d{1,2})", r"размер[^\d]{0,10}(\d{1,2})\s*пт"],
+        14.0,
+    )
+    line_spacing_hit, ls_loc = _find_in_chunks(chunks, r"полутор")
+    line_spacing = 1.5 if line_spacing_hit else 1.0
+    ls_conf = 0.85 if line_spacing_hit else 0.0
+    ls_loc_final = ls_loc if line_spacing_hit else "default"
 
-    profile["document_rules"]["page"]["margin_left_cm"] = round(margin_left_mm / 10.0, 2)
-    profile["document_rules"]["page"]["margin_right_cm"] = round(margin_right_mm / 10.0, 2)
-    profile["document_rules"]["page"]["margin_top_cm"] = round(margin_top_mm / 10.0, 2)
-    profile["document_rules"]["page"]["margin_bottom_cm"] = round(margin_top_mm / 10.0, 2)
-    profile["document_rules"]["default_font"]["font_name"] = font_name
-    profile["document_rules"]["default_font"]["font_size_pt"] = font_size
-    profile["document_rules"]["default_line_spacing"] = line_spacing
+    first_line_indent, fli_loc, fli_conf = _search_float_chunks(
+        chunks,
+        [r"абзац[^\d]{0,20}(\d+[.,]?\d*)\s*см", r"первая\s+строка[^\d]{0,20}(\d+[.,]?\d*)\s*см"],
+        1.25,
+    )
+    margin_left_mm, ml_loc, ml_conf = _search_float_chunks(
+        chunks,
+        [r"левое\s*[—\-:]\s*(\d+[.,]?\d*)\s*мм"],
+        30.0,
+    )
+    margin_right_mm, mr_loc, mr_conf = _search_float_chunks(
+        chunks,
+        [r"правое\s*[—\-:]\s*(\d+[.,]?\d*)\s*мм"],
+        10.0,
+    )
+    margin_top_mm, mt_loc, mt_conf = _search_float_chunks(
+        chunks,
+        [r"верхн[ее]+\s*(?:и\s*нижн[ее]+\s*)?[—\-:]\s*(\d+[.,]?\d*)\s*мм"],
+        20.0,
+    )
 
-    body["font_size_pt"] = font_size
-    body["line_spacing"] = line_spacing
-    body["first_line_indent_cm"] = first_line_indent
+    profile["document_rules"]["page"]["margin_left_cm"] = _annotate(
+        round(margin_left_mm / 10.0, 2), file_name, ml_loc, ml_conf,
+    )
+    profile["document_rules"]["page"]["margin_right_cm"] = _annotate(
+        round(margin_right_mm / 10.0, 2), file_name, mr_loc, mr_conf,
+    )
+    profile["document_rules"]["page"]["margin_top_cm"] = _annotate(
+        round(margin_top_mm / 10.0, 2), file_name, mt_loc, mt_conf,
+    )
+    profile["document_rules"]["page"]["margin_bottom_cm"] = _annotate(
+        round(margin_top_mm / 10.0, 2), file_name, mt_loc, mt_conf,
+    )
+    profile["document_rules"]["default_font"]["font_name"] = _annotate(
+        font_name, file_name, font_loc, font_conf,
+    )
+    profile["document_rules"]["default_font"]["font_size_pt"] = _annotate(
+        font_size, file_name, fs_loc, fs_conf,
+    )
+    profile["document_rules"]["default_line_spacing"] = _annotate(
+        line_spacing, file_name, ls_loc_final, ls_conf,
+    )
+
+    body["font_size_pt"] = _annotate(font_size, file_name, fs_loc, fs_conf)
+    body["line_spacing"] = _annotate(line_spacing, file_name, ls_loc_final, ls_conf)
+    body["first_line_indent_cm"] = _annotate(
+        first_line_indent, file_name, fli_loc, fli_conf,
+    )
 
 
-def _extract_structure_rules(text: str, profile: dict[str, Any]) -> None:
+def _extract_structure_rules(
+    chunks: list[tuple[str, str]],
+    profile: dict[str, Any],
+    file_name: str,
+) -> None:
     numbering_rules = profile.setdefault("numbering_rules", {})
     nn_context = profile.setdefault("nn_context", {})
     labels = profile.setdefault("labels", {})
@@ -116,7 +233,8 @@ def _extract_structure_rules(text: str, profile: dict[str, Any]) -> None:
         ("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", r"\bСПИСОК\s+ИСПОЛЬЗОВАННЫХ\s+ИСТОЧНИКОВ\b"),
         ("ПРИЛОЖЕНИЯ", r"\bПРИЛОЖЕНИЯ\b"),
     ]:
-        if _has_pattern(text, pattern):
+        hit, _ = _find_in_chunks(chunks, pattern)
+        if hit:
             present_sections.append(section_name)
 
     merged_sections: list[str] = []
@@ -126,19 +244,24 @@ def _extract_structure_rules(text: str, profile: dict[str, Any]) -> None:
     numbering_rules["unnumbered_sections"] = merged_sections
     nn_context["expected_section_keywords"] = [section.lower() for section in merged_sections]
 
-    if _has_pattern(text, r"^\s*\d+\s+[А-ЯA-ZЁ]"):
+    title_section_hit, _ = _find_in_chunks(chunks, r"^\s*\d+\s+[А-ЯA-ZЁ]")
+    if title_section_hit:
         numbering_rules.setdefault("title_section", {})["enabled"] = True
         numbering_rules["title_section"]["pattern"] = r"^\d+\s+.+$"
 
-    if _has_pattern(text, r"^\s*\d+\.\d+\s+[А-ЯA-ZЁ]"):
+    title_subsection_hit, _ = _find_in_chunks(chunks, r"^\s*\d+\.\d+\s+[А-ЯA-ZЁ]")
+    if title_subsection_hit:
         numbering_rules.setdefault("title_subsection", {})["enabled"] = True
         numbering_rules["title_subsection"]["pattern"] = r"^\d+\.\d+\s+.+$"
 
-    if _has_pattern(text, r"Рисунок\s+\d+\.\d+\s+—"):
+    figure_hit, _ = _find_in_chunks(chunks, r"Рисунок\s+\d+\.\d+\s+—")
+    if figure_hit:
         nn_context.setdefault("prefix_patterns", {})["figure_caption"] = r"^Рисунок\s+\d+\.\d+\s+—\s+.+"
-    if _has_pattern(text, r"Таблица\s+\d+\.\d+\s+—"):
+    table_hit, _ = _find_in_chunks(chunks, r"Таблица\s+\d+\.\d+\s+—")
+    if table_hit:
         nn_context.setdefault("prefix_patterns", {})["table_caption"] = r"^Таблица\s+\d+\.\d+\s+—\s+.+"
-    if _has_pattern(text, r"Приложение\s+[А-ЯA-Z]"):
+    appendix_hit, _ = _find_in_chunks(chunks, r"Приложение\s+[А-ЯA-Z]")
+    if appendix_hit:
         nn_context.setdefault("prefix_patterns", {})["appendix_title"] = r"^Приложение\s+[А-ЯA-Z]"
 
     list_item_cfg = labels.setdefault("list_item", {}).setdefault("text_constraints", {})
@@ -196,7 +319,11 @@ def _extract_structure_rules(text: str, profile: dict[str, Any]) -> None:
     }
 
 
-def _extract_bibliography_soft_features(text: str, profile: dict[str, Any]) -> None:
+def _extract_bibliography_soft_features(
+    chunks: list[tuple[str, str]],
+    profile: dict[str, Any],
+    file_name: str,
+) -> None:
     bibliography_rules = profile.setdefault("bibliography_rules", {})
     soft_features = bibliography_rules.setdefault("soft_features", {})
 
@@ -207,39 +334,48 @@ def _extract_bibliography_soft_features(text: str, profile: dict[str, Any]) -> N
         "standard_markers": [],
     }
 
-    if _has_pattern(text, r"\bс\."):
-        detected_soft_features["book_markers"].append("с.")
-    if _has_pattern(text, r"\bизд\."):
-        detected_soft_features["book_markers"].append("изд.")
-    if _has_pattern(text, r"—\s*Москва"):
-        detected_soft_features["book_markers"].append("— Москва")
-    if _has_pattern(text, r"—\s*СПб\."):
-        detected_soft_features["book_markers"].append("— СПб.")
-    if _has_pattern(text, r"—\s*М\."):
-        detected_soft_features["book_markers"].append("— М.")
+    book_checks = [
+        (r"\bс\.", "с."),
+        (r"\bизд\.", "изд."),
+        (r"—\s*Москва", "— Москва"),
+        (r"—\s*СПб\.", "— СПб."),
+        (r"—\s*М\.", "— М."),
+    ]
+    for pattern, marker in book_checks:
+        hit, _ = _find_in_chunks(chunks, pattern)
+        if hit:
+            detected_soft_features["book_markers"].append(marker)
 
-    if _has_pattern(text, r"//"):
-        detected_soft_features["journal_markers"].append("//")
-    if _has_pattern(text, r"\b№\b"):
-        detected_soft_features["journal_markers"].append("№")
-    if _has_pattern(text, r"\bС\."):
-        detected_soft_features["journal_markers"].append("С.")
-    if _has_pattern(text, r"\bТ\."):
-        detected_soft_features["journal_markers"].append("Т.")
-    if _has_pattern(text, r"\bВып\."):
-        detected_soft_features["journal_markers"].append("Вып.")
+    journal_checks = [
+        (r"//", "//"),
+        (r"\b№\b", "№"),
+        (r"\bС\.", "С."),
+        (r"\bТ\.", "Т."),
+        (r"\bВып\.", "Вып."),
+    ]
+    for pattern, marker in journal_checks:
+        hit, _ = _find_in_chunks(chunks, pattern)
+        if hit:
+            detected_soft_features["journal_markers"].append(marker)
 
-    if _has_pattern(text, r"Электронный\s+ресурс"):
-        detected_soft_features["web_markers"].append("[Электронный ресурс]")
-    if _has_pattern(text, r"\bURL:"):
-        detected_soft_features["web_markers"].append("URL:")
-    if _has_pattern(text, r"Режим\s+доступа"):
-        detected_soft_features["web_markers"].append("Режим доступа:")
+    web_checks = [
+        (r"Электронный\s+ресурс", "[Электронный ресурс]"),
+        (r"\bURL:", "URL:"),
+        (r"Режим\s+доступа", "Режим доступа:"),
+    ]
+    for pattern, marker in web_checks:
+        hit, _ = _find_in_chunks(chunks, pattern)
+        if hit:
+            detected_soft_features["web_markers"].append(marker)
 
-    if _has_pattern(text, r"\bГОСТ\s+Р\b"):
-        detected_soft_features["standard_markers"].append("ГОСТ Р")
-    if _has_pattern(text, r"\bГОСТ\b"):
-        detected_soft_features["standard_markers"].append("ГОСТ")
+    standard_checks = [
+        (r"\bГОСТ\s+Р\b", "ГОСТ Р"),
+        (r"\bГОСТ\b", "ГОСТ"),
+    ]
+    for pattern, marker in standard_checks:
+        hit, _ = _find_in_chunks(chunks, pattern)
+        if hit:
+            detected_soft_features["standard_markers"].append(marker)
 
     for key, markers in detected_soft_features.items():
         if not markers:
@@ -279,14 +415,25 @@ def _update_bibliography_context(profile: dict[str, Any]) -> None:
         nn_context["reference_entry_types"] = reference_entry_types
 
 
-def _extract_reference_rules(text: str, profile: dict[str, Any]) -> None:
+def _extract_reference_rules(
+    chunks: list[tuple[str, str]],
+    profile: dict[str, Any],
+    file_name: str,
+) -> None:
     bibliography_rules = profile.setdefault("bibliography_rules", {})
 
-    if _has_pattern(text, r"Web[\-\s]?ссыл"):
+    web_hit, _ = _find_in_chunks(chunks, r"Web[\-\s]?ссыл")
+    if web_hit:
         bibliography_rules.setdefault("general", {})["require_url_for_web_resource"] = True
 
-    if _has_pattern(text, r"Ссылки\s+в\s+тексте.+квадратн"):
+    bracket_hit, _ = _find_in_chunks(chunks, r"Ссылки\s+в\s+тексте.+квадратн")
+    if bracket_hit:
         profile.setdefault("citation_rules", {})["enabled"] = True
+
+
+# ---------------------------------------------------------------------------
+# Public API (signatures kept stable for src/main.py)
+# ---------------------------------------------------------------------------
 
 
 def extract_methodical_profile(
@@ -296,11 +443,9 @@ def extract_methodical_profile(
     profile_name: str | None = None,
 ) -> tuple[dict[str, Any], Path]:
     input_path = Path(input_path)
-    text = extract_text_from_file(input_path)
 
     profile = build_methodical_profile(
         input_path=input_path,
-        text=text,
         base_profile_ids=base_profile_ids,
         profile_name=profile_name,
     )
@@ -313,11 +458,17 @@ def extract_methodical_profile(
 
 def build_methodical_profile(
     input_path: str | Path,
-    text: str,
     base_profile_ids: list[str] | None = None,
     profile_name: str | None = None,
 ) -> dict[str, Any]:
     input_path = Path(input_path)
+    chunks = list(iterate_text_chunks(input_path))
+    if input_path.suffix.lower() == ".pdf" and not chunks:
+        raise ValueError(
+            f"PDF-файл не содержит извлекаемого текста: {input_path}. "
+            "Если это скан, нужен OCR-проход перед извлечением профиля."
+        )
+    file_name = input_path.name
 
     base_profile_ids = base_profile_ids or ["gost_7_32_2017", "gost_r_7_0_100_2018_bibliography"]
 
@@ -335,26 +486,17 @@ def build_methodical_profile(
     profile["is_default"] = False
     profile["base_profiles"] = base_profile_ids
 
-    _extract_document_rules(text, profile)
-    _extract_structure_rules(text, profile)
-    _extract_bibliography_soft_features(text, profile)
-    _extract_reference_rules(text, profile)
+    _extract_document_rules(chunks, profile, file_name)
+    _extract_structure_rules(chunks, profile, file_name)
+    _extract_bibliography_soft_features(chunks, profile, file_name)
+    _extract_reference_rules(chunks, profile, file_name)
     _update_bibliography_context(profile)
-
-    match_score = 0
-    match_score += 1 if _has_pattern(text, r"Times\s+New\s+Roman") else 0
-    match_score += 1 if _has_pattern(text, r"полутор") else 0
-    match_score += 1 if _has_pattern(text, r"СОДЕРЖАНИЕ") else 0
-    match_score += 1 if _has_pattern(text, r"Рисунок\s+\d+\.\d+\s+—") else 0
-    match_score += 1 if _has_pattern(text, r"Таблица\s+\d+\.\d+\s+—") else 0
-    extraction_confidence = round(min(1.0, 0.45 + match_score * 0.1), 2)
 
     profile["extraction_meta"] = {
         "generated_automatically": True,
         "generated_from_methodical_guidelines": True,
         "source_file_name": input_path.name,
-        "extraction_confidence": extraction_confidence,
-        "needs_manual_review": extraction_confidence < 0.9,
+        "needs_manual_review": _any_leaf_needs_review(profile),
     }
 
     return profile
