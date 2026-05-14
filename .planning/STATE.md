@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
+status: executing
 stopped_at: Completed 04-05-PLAN.md — Wave E GHA regression-gate (3 commits, 1 workflow + 7 fixture DOCX + 2 doc files); Phase 04 plans 5/5 complete; awaiting verifier sign-off.
-last_updated: "2026-05-14T11:47:34.062Z"
-last_activity: 2026-05-14 — Phase 5 discuss-phase complete
+last_updated: "2026-05-14T11:55:02.837Z"
+last_activity: 2026-05-14 -- Phase 05 execution started
 progress:
   total_phases: 8
   completed_phases: 4
@@ -22,14 +22,14 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase 05 — Rule profiles & methodical-profile ingestion (CONTEXT.md gathered, awaiting plan-phase)
+**Current focus:** Phase 05 — rule-profiles-methodical-profile-ingestion
 
 ## Current Position
 
-Phase: 5
-Plan: Not started — CONTEXT.md committed 2026-05-14 (commit 6b30639), 12 decisions locked, PPTX dropped from scope
-Status: Ready to plan
-Last activity: 2026-05-14 — Phase 5 discuss-phase complete
+Phase: 05 (rule-profiles-methodical-profile-ingestion) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 05
+Last activity: 2026-05-14 -- Phase 05 execution started
 
 Progress: [██████████] 100% Phase 4 complete (17/17 plans, VERIFICATION passed, CI gate live); Phase 5 starting
 
