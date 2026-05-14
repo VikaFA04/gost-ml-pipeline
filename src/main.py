@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -22,7 +23,12 @@ from src.evaluation.format_regression_audit import (
 )
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.io.block_extractor import extract_blocks_from_docx
-from src.rules.methodical_extractor import extract_methodical_profile
+from src.rules.methodical_extractor import (
+    build_methodical_profile,
+    extract_methodical_profile,
+)
+from src.rules.profile_diff import compute_profile_diff, write_diff_sidecar
+from src.rules.profile_loader import PROFILES_DIR, load_profile
 from src.predict_blocks import load_blocks_csv, predict_blocks
 from src.train import run_training
 
@@ -283,31 +289,88 @@ def cmd_extract_methodical_profile(
     output_dir: Optional[str],
     profile_name: Optional[str],
     base_profile_ids: list[str],
+    apply: bool = False,
+    force: bool = False,
+    reason: Optional[str] = None,
 ) -> None:
-    input_path_obj = Path(input_path)
-    if not input_path_obj.exists():
-        raise FileNotFoundError(f"Не найден файл методички: {input_path_obj}")
+    """Extract methodical profile with dry-run-by-default + --apply / --force / --reason guard.
 
-    profile, output_path = extract_methodical_profile(
+    D-03 / D-04 / D-12. Mirrors Phase 4 Wave D `cmd_audit_regression` pattern.
+    T-04-02: --input-path is resolved + rejected if outside CWD subtree.
+    T-05-01: --reason validated against whitespace-only / control-only / <8 strip chars.
+    """
+    input_path_obj = Path(input_path).resolve()
+    cwd = Path.cwd().resolve()
+
+    # T-04-02: input must exist AND live within the CWD subtree
+    if not input_path_obj.exists() or not input_path_obj.is_file():
+        raise SystemExit(
+            f"Не найден файл методички: {input_path_obj}. "
+            "Проверь --input-path."
+        )
+    try:
+        input_path_obj.relative_to(cwd)
+    except ValueError:
+        raise SystemExit(
+            f"Путь вне рабочего каталога отклонён: {input_path_obj}. "
+            f"--input-path должен быть в дереве {cwd} (T-04-02)."
+        )
+
+    # Build candidate profile in-memory; NO disk write yet (D-03)
+    profile = build_methodical_profile(
         input_path=input_path_obj,
-        output_dir=output_dir,
         base_profile_ids=base_profile_ids or None,
         profile_name=profile_name,
     )
-    print(f"Профиль сохранен в: {output_path}")
-    print(
-        json.dumps(
-            {
-                "profile_id": profile.get("profile_id"),
-                "profile_name": profile.get("profile_name"),
-                "profile_type": profile.get("profile_type"),
-                "source_type": profile.get("source_type"),
-                "base_profiles": profile.get("base_profiles", []),
-            },
-            ensure_ascii=True,
-            indent=2,
+
+    target_dir = Path(output_dir) if output_dir else PROFILES_DIR
+    target_path = target_dir / f"{profile['profile_id']}.json"
+
+    # Compute & emit diff against the first base profile (D-02)
+    base_profile_id = (base_profile_ids or ["gost_7_32_2017"])[0]
+    base_profile = load_profile(profile_id=base_profile_id)
+    diff_lines = compute_profile_diff(base_profile, profile)
+    for line in diff_lines:
+        print(line)
+
+    if not apply:
+        # Dry-run (default per D-03/D-12). Write to tempfile preview + sidecar.
+        preview_path = Path(tempfile.gettempdir()) / f"{profile['profile_id']}.preview.json"
+        preview_path.write_text(
+            json.dumps(profile, ensure_ascii=False, indent=2), encoding="utf-8",
         )
+        sidecar = preview_path.with_suffix(".diff.txt")
+        write_diff_sidecar(diff_lines, sidecar)
+        print(
+            f"Dry-run: профиль записан в {preview_path}. "
+            f"Diff: {sidecar}. Используй --apply для записи в {target_dir} "
+            f"(D-004: no silent rewrites)."
+        )
+        return
+
+    # --apply branch
+    if target_path.exists():
+        if not force:
+            raise SystemExit(
+                f"Профиль {target_path} уже существует. Используй --apply --force "
+                f"--reason '<text>' (минимум 8 символов; D-004: no silent rewrites)."
+            )
+        # T-05-01: strip-min-8 AND require at least one non-whitespace, non-control char
+        stripped = (reason or "").strip()
+        printable_non_ws = [c for c in stripped if c.isprintable() and not c.isspace()]
+        if len(stripped) < 8 or not printable_non_ws:
+            raise SystemExit(
+                "--force требует --reason '<text>' (минимум 8 символов после strip, "
+                "хотя бы один печатный непробельный символ; D-004: no silent rewrites; "
+                "T-05-01)."
+            )
+        profile["extraction_meta"]["override_reason"] = stripped
+
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(
+        json.dumps(profile, ensure_ascii=False, indent=2), encoding="utf-8",
     )
+    print(f"Профиль сохранен в: {target_path}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -435,6 +498,33 @@ def build_parser() -> argparse.ArgumentParser:
         default=["gost_7_32_2017", "gost_r_7_0_100_2018_bibliography"],
         help="Базовые profile_id, которые нужно слить перед извлечением",
     )
+    methodical_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help=(
+            "Записать профиль в PROFILES_DIR/<id>.json. Без флага — dry-run в "
+            "tempfile.gettempdir() (D-004: no silent rewrites; D-12: backwards-compat — "
+            "ранее команда сохраняла молча, теперь требует явного --apply)."
+        ),
+    )
+    methodical_parser.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "Перезаписать существующий профиль (требует --reason ≥8 символов). "
+            "D-004: no silent rewrites."
+        ),
+    )
+    methodical_parser.add_argument(
+        "--reason",
+        required=False,
+        type=str,
+        help=(
+            "Обязательное обоснование (минимум 8 символов после strip) при "
+            "--apply --force над существующим профилем. T-05-01: whitespace-only "
+            "и control-only отказываются."
+        ),
+    )
 
     return parser
 
@@ -508,6 +598,9 @@ def main() -> None:
             output_dir=args.output_dir,
             profile_name=args.profile_name,
             base_profile_ids=args.base_profile_ids,
+            apply=args.apply,
+            force=args.force,
+            reason=args.reason,
         )
         return
 
