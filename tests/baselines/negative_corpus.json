@@ -1,0 +1,33 @@
+{
+  "_metadata": {
+    "schema_version": 1,
+    "aggregate_mean_ceiling": 0.0,
+    "profile_id": "gost_7_32_2017",
+    "subset_filenames": [
+      "3_formatted_20260413_194927.docx",
+      "45_formatted_20260414_220339.docx",
+      "4_formatted_20260413_185420.docx"
+    ]
+  },
+  "3_formatted_20260413_194927.docx": {
+    "after_diff_rate_ceiling": 0.0,
+    "field_mismatch_ceiling": 0,
+    "recorded_at": "2026-05-14T00:00:00Z",
+    "profile_id": "gost_7_32_2017",
+    "notes": "RED placeholder — Wave B Task 2 replaces with locked values."
+  },
+  "45_formatted_20260414_220339.docx": {
+    "after_diff_rate_ceiling": 0.0,
+    "field_mismatch_ceiling": 0,
+    "recorded_at": "2026-05-14T00:00:00Z",
+    "profile_id": "gost_7_32_2017",
+    "notes": "RED placeholder — Wave B Task 2 replaces with locked values."
+  },
+  "4_formatted_20260413_185420.docx": {
+    "after_diff_rate_ceiling": 0.0,
+    "field_mismatch_ceiling": 0,
+    "recorded_at": "2026-05-14T00:00:00Z",
+    "profile_id": "gost_7_32_2017",
+    "notes": "RED placeholder — Wave B Task 2 replaces with locked values."
+  }
+}
