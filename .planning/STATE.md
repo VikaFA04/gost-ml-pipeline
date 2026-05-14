@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md — Wave B GREEN, 3-pair Option D subset locked at 0.359712/0.412162/0.163743; D-05 Branch B amendments atomic
-last_updated: "2026-05-14T04:26:16.753Z"
+stopped_at: "Completed 04-03-PLAN.md — Wave C rules-quality acceptance gate landed (Option 1 deviation: bogus-required-field RED carrier)"
+last_updated: "2026-05-14T04:52:39.925Z"
 last_activity: 2026-05-14
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 17
-  completed_plans: 14
-  percent: 82
+  completed_plans: 15
+  percent: 88
 ---
 
 # Project State
@@ -27,11 +27,11 @@ explainable, no silent rewrites, safe-only autocorrection.
 ## Current Position
 
 Phase: 04 (regression-gate) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-05-14
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [████████░░] 82%
 | Phase 03-heading-signature-and-docx-generator P04 | 812 | 2 tasks | 1 files |
 | Phase 04 P01 | 4800s | 3 tasks | 4 files |
 | Phase Phase 04-regression-gate PP02 | 4800s | 2 tasks | 5 files |
+| Phase 04-regression-gate P03 | 900s | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,7 @@ current work:
 - Phase 4 Wave A: 3.docx pair drift root-caused to Phase 3 7207cbe per-field heading source dispatcher (D-05/D-06). Legit behaviour change, NOT bug — Branch B chosen per CLAUDE.md root-cause-priority rule.
 - Phase 4 Wave A: locked Wave B baseline ceilings for 3.docx pair: after_diff_rate_ceiling=0.359712, field_mismatch_ceiling=630. Subset uses negative-column filenames (not positive); aggregate-mean 0.5857 collision with D-15 0.4781 flagged for Wave B planner.
 - Phase 4 Wave B: 3-pair Option D subset locked (3.docx pair 0.359712/630, 45.docx pair 0.412162/372, 4.docx pair 0.163743/165) with aggregate mean 0.311872 ≤ 0.4781; D-05 Branch B ROADMAP/REQUIREMENTS amendment atomic with baseline JSON GREEN commit e100a44; Wave A artefact appended with 'Wave B amendment (2026-05-14)' section per D-004.
+- Phase 4 Wave C: rules-quality acceptance gate landed at tests/test_rules_quality_acceptance.py (5 static lints + 1 runtime smoke). RED carrier switched (Option 1) from action-vocab narrowing to bogus-required-field shape mismatch — RESEARCH probe 2 'action ∈ {fix, review, check_or_fix}' claim is empirically wrong (git log -S confirms only 'fix' ever existed in rules JSON). REQ-rules-quality-acceptance closed; CONTEXT.md D-08 amended to canonical filename (D-004).
 
 ### Pending Todos
 
@@ -122,8 +124,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-14T04:26:10.188Z
-Stopped at: Completed 04-02-PLAN.md — Wave B GREEN, 3-pair Option D subset locked at 0.359712/0.412162/0.163743; D-05 Branch B amendments atomic
+Last session: 2026-05-14T04:52:28.223Z
+Stopped at: Completed 04-03-PLAN.md — Wave C rules-quality acceptance gate landed (Option 1 deviation: bogus-required-field RED carrier)
 Resume file: None
 
 **Planned Phase:** 04 (regression-gate) — 5 plans — 2026-05-13T19:33:26.010Z

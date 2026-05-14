@@ -133,9 +133,11 @@ baseline diff-rate.
 - [ ] **REQ-pipeline-logging** — Pipeline logs document-read, classification,
       rule-apply and save errors without leaking unnecessary PII beyond
       filename/path/technical context. (PRD US-027)
-- [ ] **REQ-rules-quality-acceptance** — Every rule follows RuleRecord; every
+- [x] **REQ-rules-quality-acceptance** — Every rule follows RuleRecord; every
       violation in report; every fix in report; unsafe fixes blocked;
-      low-confidence blocks become manual review. (PRD §9.3)
+      low-confidence blocks become manual review. (PRD §9.3) *(closed in 04-03,
+      2026-05-14 — tests/test_rules_quality_acceptance.py: 5 static lints +
+      1 runtime smoke; CONTEXT.md D-08 amended)*
 - [ ] **REQ-input-preflight** — Preflight verifies readability and tolerates
       malformed paragraphs; empty blocks recorded for exclusion. (PRD US-002 —
       legacy partial coverage; ensure the new UI surfaces preflight failures
@@ -214,7 +216,7 @@ Deferred. Not in current roadmap.
 | REQ-fix-docx-generator-custom-styles | v2 (deferred from Phase 3) | Deferred — see Phase 3 D-08 |
 | REQ-fix-negative-corpus-no-regression | Phase 4 | Complete (04-02, 2026-05-14) |
 | REQ-audit-regression-cli | Phase 4 | Pending |
-| REQ-rules-quality-acceptance | Phase 4 | Pending |
+| REQ-rules-quality-acceptance | Phase 4 | Complete (04-03, 2026-05-14) |
 | REQ-rule-profiles | Phase 5 | Pending |
 | REQ-methodical-profile-extract | Phase 5 | Pending |
 | REQ-ui-main-flow | Phase 6 | Pending |
