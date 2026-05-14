@@ -22,7 +22,7 @@ operational state and the original Этапы 1–9 are preserved in
 - [ ] **Phase 2: Bibliography & list semantics** - Recognise bibliography lists; single shared `numId`; conservative list autofix.
 - [x] **Phase 3: Heading signature & DOCX generator** *(completed 2026-05-13)* - Extend heading signature and harden the DOCX writer for template-specific styles.
 - [ ] **Phase 4: Regression gate** - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
-- [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PPTX/PDF profile ingestion with diff.
+- [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PDF/DOCX methodical profile ingestion with diff (PPTX dropped 2026-05-14 per D-01).
 - [ ] **Phase 6: Streamlit UI redesign** - Rebuild the UI around the audit flow and pass design review.
 - [ ] **Phase 7: PDF text-layer audit slice** - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
 - [ ] **Phase 8: Milestone acceptance** - End-to-end MVP acceptance + success-metric verification.
@@ -97,14 +97,14 @@ Plans:
 - [x] 04-05-PLAN.md — Wave E: .github/workflows/regression-gate.yml (D-08) + manual end-to-end verification via deliberately-regressing PR *(completed 2026-05-14 — Option D corpus fixture + workflow staging step + `python -m pytest` deviation; validated end-to-end via PR #1 clean GREEN run #25846822154 + PR #2 regression RED run #25847679849; gate live on VikaFA04/gost-ml-pipeline; commits 4831a8f / 7204698 / 5c6327d)*
 
 ### Phase 5: Rule profiles & methodical-profile ingestion
-**Goal**: Multiple rule profiles (GOST + university-local) are selectable per audit run; a normcontrol presentation can be ingested as a methodological source and a profile diff is shown to the user before save.
+**Goal**: Multiple rule profiles (GOST + university-local) are selectable per audit run; a normcontrol methodical document (PDF/DOCX) can be ingested as a methodological source and a profile diff is shown to the user before save.
 **Depends on**: Phase 4
 **Requirements**: REQ-rule-profiles, REQ-methodical-profile-extract
 **Success Criteria** (what must be TRUE):
   1. User can pick a rule profile per audit; the chosen profile id is recorded in the report header.
   2. Profiles live outside code (e.g. `rules/gost_7_32_2017.json`, `rules/gost_r_7_0_100_2018_bibliography.json`, `rules/local_university_profile.json`).
-  3. `extract-methodical-profile` CLI ingests a PPTX/PDF presentation, produces a draft profile, shows a diff against the chosen base profile, and requires explicit user confirmation before save.
-  4. Ambiguous extracted requirements land as `needs_manual_review` with source/slide attribution; presentation never silently replaces GOST.
+  3. `extract-methodical-profile` CLI ingests a PDF or DOCX methodical document (PPTX dropped 2026-05-14 per Phase 5 D-01), produces a draft profile, shows a diff against the chosen base profile, and requires explicit `--apply` confirmation before save.
+  4. Ambiguous extracted requirements land as `needs_manual_review` with source/page attribution; the methodical document never silently replaces GOST.
 **Plans:** 5 plans
 Plans:
 - [ ] 05-01-PLAN.md — Wave 1 (TDD): per-leaf `_source` annotation + derived `needs_manual_review` in `methodical_extractor.py`; atomic doc updates dropping PPTX (D-01)

@@ -115,11 +115,12 @@ baseline diff-rate.
       stays `changed=0`; negative heading fixtures move toward target signature
       with no text changes.
 - [ ] **REQ-methodical-profile-extract** *(new — HEADING_AND_NORMCONTROL Block C)*
-      — `extract-methodical-profile` CLI ingests PPTX/PDF normcontrol
-      presentation as a methodological source (not as a checked document);
-      synthesised profile shown as a diff over `gost_7_32_2017` /
+      — `extract-methodical-profile` CLI ingests PDF/DOCX normcontrol
+      methodical guidelines as a methodological source (not as a checked
+      document); PPTX dropped 2026-05-14 per Phase 5 D-01; synthesised
+      profile shown as a diff over `gost_7_32_2017` /
       `gost_r_7_0_100_2018_bibliography` before save; ambiguous requirements
-      marked `needs_manual_review` with source/slide attribution.
+      marked `needs_manual_review` with source/page attribution.
 
 ### PDF audit slice (D-PDF-SCOPE locked)
 
