@@ -94,7 +94,7 @@ Plans:
 - [x] 04-02-PLAN.md — Wave B (TDD): per-pair baseline JSON at tests/baselines/negative_corpus.json + extend tests/test_negative_corpus_diff_rate.py with 3 new tests (D-03 triple metric, RED→GREEN); conditional ROADMAP/REQUIREMENTS amendment in same commit if Wave A picked Branch B *(completed 2026-05-14 — 3-pair Option D subset; D-05 Branch B atomic amendment commit e100a44; pytest 3 passed)*
 - [x] 04-03-PLAN.md — Wave C (TDD): new tests/test_rules_quality_acceptance.py (canonical name per RESEARCH probe 7) with 5 static-schema lint tests + 1 runtime CSV-invariants smoke test (REQ-rules-quality-acceptance, D-12) *(completed 2026-05-14 — Option 1 deviation: bogus-required-field RED carrier; commits cdc9055/02e1207/b8ee13a)*
 - [x] 04-04-PLAN.md — Wave D (TDD): audit-regression --update-baseline / --reason CLI flags (D-13) + write_per_pair_baseline helper + Makefile regression-gate target + README Pre-PR section + CONTRIBUTING.md *(completed 2026-05-14 — RED/GREEN commits 210105d/2bdaf71; Pitfall-6 argparse + 8-char dispatcher guard; Pitfall-1 subset filter + WARNING; make regression-gate exits 0 against 4 gate test files in 1380s; commit 19b6592)*
-- [ ] 04-05-PLAN.md — Wave E: .github/workflows/regression-gate.yml (D-08) + manual end-to-end verification via deliberately-regressing PR
+- [x] 04-05-PLAN.md — Wave E: .github/workflows/regression-gate.yml (D-08) + manual end-to-end verification via deliberately-regressing PR *(completed 2026-05-14 — Option D corpus fixture + workflow staging step + `python -m pytest` deviation; validated end-to-end via PR #1 clean GREEN run #25846822154 + PR #2 regression RED run #25847679849; gate live on VikaFA04/gost-ml-pipeline; commits 4831a8f / 7204698 / 5c6327d)*
 
 ### Phase 5: Rule profiles & methodical-profile ingestion
 **Goal**: Multiple rule profiles (GOST + university-local) are selectable per audit run; a normcontrol presentation can be ingested as a methodological source and a profile diff is shown to the user before save.
@@ -155,7 +155,7 @@ once Phase 1 is complete; Phase 4 requires both.
 | 1. Engine guardrails & cohesion audit | 4/4 | Complete | 2026-05-12 |
 | 2. Bibliography & list semantics | 4/4 | Complete | 2026-05-12 |
 | 3. Heading signature & DOCX generator | 4/4 | Complete | 2026-05-13 |
-| 4. Regression gate | 4/5 | In progress | - |
+| 4. Regression gate | 5/5 | In progress | - |
 | 5. Rule profiles & methodical-profile ingestion | 0/TBD | Not started | - |
 | 6. Streamlit UI redesign | 0/TBD | Not started | - |
 | 7. PDF text-layer audit slice | 0/TBD | Not started | - |

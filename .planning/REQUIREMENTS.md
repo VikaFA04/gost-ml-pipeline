@@ -216,7 +216,7 @@ Deferred. Not in current roadmap.
 | REQ-heading-style-signature | Phase 3 | Pending |
 | REQ-fix-docx-generator-custom-styles | v2 (deferred from Phase 3) | Deferred — see Phase 3 D-08 |
 | REQ-fix-negative-corpus-no-regression | Phase 4 | Complete (04-02, 2026-05-14) |
-| REQ-audit-regression-cli | Phase 4 | Complete (04-04, 2026-05-14) |
+| REQ-audit-regression-cli | Phase 4 | Complete (04-04 local Makefile gate + 04-05 GHA CI gate, 2026-05-14) |
 | REQ-rules-quality-acceptance | Phase 4 | Complete (04-03, 2026-05-14) |
 | REQ-rule-profiles | Phase 5 | Pending |
 | REQ-methodical-profile-extract | Phase 5 | Pending |

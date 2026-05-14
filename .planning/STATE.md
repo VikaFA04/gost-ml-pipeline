@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 04-04-PLAN.md — Wave D CLI baseline-update flags + Makefile gate + README/CONTRIBUTING (3 commits, 6 files)
-last_updated: "2026-05-14T05:52:10.561Z"
-last_activity: 2026-05-14
+status: phase-verifying
+stopped_at: Completed 04-05-PLAN.md — Wave E GHA regression-gate (3 commits, 1 workflow + 7 fixture DOCX + 2 doc files); validated end-to-end via PR #1 GREEN + PR #2 RED on VikaFA04/gost-ml-pipeline; Phase 04 awaiting verifier sign-off
+last_updated: "2026-05-14T12:00:00.000Z"
+last_activity: 2026-05-14 — Phase 04 plan 05 complete (GHA gate validated end-to-end via 2 PRs)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 17
-  completed_plans: 16
-  percent: 94
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -26,12 +26,12 @@ explainable, no silent rewrites, safe-only autocorrection.
 
 ## Current Position
 
-Phase: 04 (regression-gate) — EXECUTING
-Plan: 5 of 5
-Status: Ready to execute
+Phase: 04 (regression-gate) — AWAITING VERIFICATION
+Plan: 5 of 5 complete — phase verification next
+Status: All Phase 04 plans complete; GHA gate live; verifier runs next.
 Last activity: 2026-05-14
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100% (17/17 plans complete; awaiting Phase 04 verifier sign-off before advancing)
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [█████████░] 94%
 | Phase Phase 04-regression-gate PP02 | 4800s | 2 tasks | 5 files |
 | Phase 04-regression-gate P03 | 900s | 3 tasks | 2 files |
 | Phase 04-regression-gate P04 | 2820 | 3 tasks | 6 files |
+| Phase 04-regression-gate P05 | 7200s | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,7 @@ current work:
 - Phase 4 Wave C: rules-quality acceptance gate landed at tests/test_rules_quality_acceptance.py (5 static lints + 1 runtime smoke). RED carrier switched (Option 1) from action-vocab narrowing to bogus-required-field shape mismatch — RESEARCH probe 2 'action ∈ {fix, review, check_or_fix}' claim is empirically wrong (git log -S confirms only 'fix' ever existed in rules JSON). REQ-rules-quality-acceptance closed; CONTEXT.md D-08 amended to canonical filename (D-004).
 - Phase 4 Wave D: audit-regression --update-baseline PATH + --reason '<text>' CLI flags landed with Pitfall-6-compliant dispatcher guard (argparse required=False on both, dispatcher enforces 8-char strip-minimum on reason). write_per_pair_baseline helper filters frame by _metadata.subset_filenames BEFORE iterating (Pitfall 1) and surfaces WARNING on missing subset members. RED/GREEN commits 210105d/2bdaf71.
 - Phase 4 Wave D: Makefile regression-gate target invokes audit-regression --limit 4 + pytest on all four gate test files (negative_corpus_diff_rate, positive_docx_regression, rules_quality_acceptance, format_regression_audit) — last one closes ROADMAP Phase 4 SC-1. PYTHON ?= python3 (host has no plain python) with override documented. README Pre-PR проверка + new CONTRIBUTING.md document workflow + 8-char rule + --limit anti-pattern. End-to-end make regression-gate exits 0 (1380s, 14 passed 1 skipped). Commit 19b6592.
+- Phase 4 Wave E: GHA workflow .github/workflows/regression-gate.yml landed and validated end-to-end. Two deviations: (1) Rule 4 architectural — corpus dirs gitignored at ~107MB, so shipped 5MB subset under tests/fixtures/corpus/{positive,negative}/ + workflow staging step that copies fixtures into positive_examples/+negative_examples/ at CI runtime; (2) Rule 1 bug — bare `pytest` does not inject cwd into sys.path with no pyproject.toml/conftest.py at repo root; one-token fix `pytest` → `python -m pytest` (commit 5c6327d). Validated via PR #1 GREEN run #25846822154 + PR #2 RED run #25847679849 on VikaFA04/gost-ml-pipeline. Phase 4 D-08 satisfied; gate live. Commits 4831a8f/7204698/5c6327d.
 
 ### Pending Todos
 
@@ -127,8 +129,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-14T05:52:00.596Z
-Stopped at: Completed 04-04-PLAN.md — Wave D CLI baseline-update flags + Makefile gate + README/CONTRIBUTING (3 commits, 6 files)
+Last session: 2026-05-14T12:00:00.000Z
+Stopped at: Completed 04-05-PLAN.md — Wave E GHA regression-gate (3 commits, 1 workflow + 7 fixture DOCX + 2 doc files); Phase 04 plans 5/5 complete; awaiting verifier sign-off.
 Resume file: None
 
 **Planned Phase:** 04 (regression-gate) — 5 plans — 2026-05-13T19:33:26.010Z
+**Phase 04 next step:** verifier (orchestrator-spawned) runs against PHASE/PLAN/SUMMARY artefacts.
