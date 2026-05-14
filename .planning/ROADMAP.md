@@ -93,7 +93,7 @@ Plans:
 - [x] 04-01-PLAN.md — Wave A: 3.docx root-cause investigation; produces 04-WAVE-A-3docx-rootcause.md + worst-offender CSV; locks D-05 branch (A=bug fix→0.318 OR B=ROADMAP amendment→root-cause-justified ceiling) before any baseline is written *(completed 2026-05-13 — Branch B locked: ceiling 0.359712 / 630, root cause = Phase 3 7207cbe D-05/D-06)*
 - [x] 04-02-PLAN.md — Wave B (TDD): per-pair baseline JSON at tests/baselines/negative_corpus.json + extend tests/test_negative_corpus_diff_rate.py with 3 new tests (D-03 triple metric, RED→GREEN); conditional ROADMAP/REQUIREMENTS amendment in same commit if Wave A picked Branch B *(completed 2026-05-14 — 3-pair Option D subset; D-05 Branch B atomic amendment commit e100a44; pytest 3 passed)*
 - [x] 04-03-PLAN.md — Wave C (TDD): new tests/test_rules_quality_acceptance.py (canonical name per RESEARCH probe 7) with 5 static-schema lint tests + 1 runtime CSV-invariants smoke test (REQ-rules-quality-acceptance, D-12) *(completed 2026-05-14 — Option 1 deviation: bogus-required-field RED carrier; commits cdc9055/02e1207/b8ee13a)*
-- [ ] 04-04-PLAN.md — Wave D (TDD): audit-regression --update-baseline / --reason CLI flags (D-13) + write_per_pair_baseline helper + Makefile regression-gate target + README Pre-PR section + CONTRIBUTING.md
+- [x] 04-04-PLAN.md — Wave D (TDD): audit-regression --update-baseline / --reason CLI flags (D-13) + write_per_pair_baseline helper + Makefile regression-gate target + README Pre-PR section + CONTRIBUTING.md *(completed 2026-05-14 — RED/GREEN commits 210105d/2bdaf71; Pitfall-6 argparse + 8-char dispatcher guard; Pitfall-1 subset filter + WARNING; make regression-gate exits 0 against 4 gate test files in 1380s; commit 19b6592)*
 - [ ] 04-05-PLAN.md — Wave E: .github/workflows/regression-gate.yml (D-08) + manual end-to-end verification via deliberately-regressing PR
 
 ### Phase 5: Rule profiles & methodical-profile ingestion
@@ -155,7 +155,7 @@ once Phase 1 is complete; Phase 4 requires both.
 | 1. Engine guardrails & cohesion audit | 4/4 | Complete | 2026-05-12 |
 | 2. Bibliography & list semantics | 4/4 | Complete | 2026-05-12 |
 | 3. Heading signature & DOCX generator | 4/4 | Complete | 2026-05-13 |
-| 4. Regression gate | 3/5 | In progress | - |
+| 4. Regression gate | 4/5 | In progress | - |
 | 5. Rule profiles & methodical-profile ingestion | 0/TBD | Not started | - |
 | 6. Streamlit UI redesign | 0/TBD | Not started | - |
 | 7. PDF text-layer audit slice | 0/TBD | Not started | - |

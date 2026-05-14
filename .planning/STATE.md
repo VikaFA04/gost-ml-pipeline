@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 04-03-PLAN.md — Wave C rules-quality acceptance gate landed (Option 1 deviation: bogus-required-field RED carrier)"
-last_updated: "2026-05-14T04:52:39.925Z"
+stopped_at: Completed 04-04-PLAN.md — Wave D CLI baseline-update flags + Makefile gate + README/CONTRIBUTING (3 commits, 6 files)
+last_updated: "2026-05-14T05:52:10.561Z"
 last_activity: 2026-05-14
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 17
-  completed_plans: 15
-  percent: 88
+  completed_plans: 16
+  percent: 94
 ---
 
 # Project State
@@ -27,11 +27,11 @@ explainable, no silent rewrites, safe-only autocorrection.
 ## Current Position
 
 Phase: 04 (regression-gate) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-05-14
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [█████████░] 88%
 | Phase 04 P01 | 4800s | 3 tasks | 4 files |
 | Phase Phase 04-regression-gate PP02 | 4800s | 2 tasks | 5 files |
 | Phase 04-regression-gate P03 | 900s | 3 tasks | 2 files |
+| Phase 04-regression-gate P04 | 2820 | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ current work:
 - Phase 4 Wave A: locked Wave B baseline ceilings for 3.docx pair: after_diff_rate_ceiling=0.359712, field_mismatch_ceiling=630. Subset uses negative-column filenames (not positive); aggregate-mean 0.5857 collision with D-15 0.4781 flagged for Wave B planner.
 - Phase 4 Wave B: 3-pair Option D subset locked (3.docx pair 0.359712/630, 45.docx pair 0.412162/372, 4.docx pair 0.163743/165) with aggregate mean 0.311872 ≤ 0.4781; D-05 Branch B ROADMAP/REQUIREMENTS amendment atomic with baseline JSON GREEN commit e100a44; Wave A artefact appended with 'Wave B amendment (2026-05-14)' section per D-004.
 - Phase 4 Wave C: rules-quality acceptance gate landed at tests/test_rules_quality_acceptance.py (5 static lints + 1 runtime smoke). RED carrier switched (Option 1) from action-vocab narrowing to bogus-required-field shape mismatch — RESEARCH probe 2 'action ∈ {fix, review, check_or_fix}' claim is empirically wrong (git log -S confirms only 'fix' ever existed in rules JSON). REQ-rules-quality-acceptance closed; CONTEXT.md D-08 amended to canonical filename (D-004).
+- Phase 4 Wave D: audit-regression --update-baseline PATH + --reason '<text>' CLI flags landed with Pitfall-6-compliant dispatcher guard (argparse required=False on both, dispatcher enforces 8-char strip-minimum on reason). write_per_pair_baseline helper filters frame by _metadata.subset_filenames BEFORE iterating (Pitfall 1) and surfaces WARNING on missing subset members. RED/GREEN commits 210105d/2bdaf71.
+- Phase 4 Wave D: Makefile regression-gate target invokes audit-regression --limit 4 + pytest on all four gate test files (negative_corpus_diff_rate, positive_docx_regression, rules_quality_acceptance, format_regression_audit) — last one closes ROADMAP Phase 4 SC-1. PYTHON ?= python3 (host has no plain python) with override documented. README Pre-PR проверка + new CONTRIBUTING.md document workflow + 8-char rule + --limit anti-pattern. End-to-end make regression-gate exits 0 (1380s, 14 passed 1 skipped). Commit 19b6592.
 
 ### Pending Todos
 
@@ -124,8 +127,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-14T04:52:28.223Z
-Stopped at: Completed 04-03-PLAN.md — Wave C rules-quality acceptance gate landed (Option 1 deviation: bogus-required-field RED carrier)
+Last session: 2026-05-14T05:52:00.596Z
+Stopped at: Completed 04-04-PLAN.md — Wave D CLI baseline-update flags + Makefile gate + README/CONTRIBUTING (3 commits, 6 files)
 Resume file: None
 
 **Planned Phase:** 04 (regression-gate) — 5 plans — 2026-05-13T19:33:26.010Z

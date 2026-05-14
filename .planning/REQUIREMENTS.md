@@ -142,7 +142,8 @@ baseline diff-rate.
       malformed paragraphs; empty blocks recorded for exclusion. (PRD US-002 —
       legacy partial coverage; ensure the new UI surfaces preflight failures
       without crashing.)
-- [ ] **REQ-audit-regression-cli** *(new)* — `audit-regression` CLI compares a
+- [x] **REQ-audit-regression-cli
+** *(new)* — `audit-regression` CLI compares a
       corpus run against a saved baseline (style-diff harness from
       FORMAT_FIX_PLAN Этап 1 + progressive limit support already in repo);
       output is a per-pair CSV plus a summary JSON. (Already partly implemented
@@ -215,7 +216,7 @@ Deferred. Not in current roadmap.
 | REQ-heading-style-signature | Phase 3 | Pending |
 | REQ-fix-docx-generator-custom-styles | v2 (deferred from Phase 3) | Deferred — see Phase 3 D-08 |
 | REQ-fix-negative-corpus-no-regression | Phase 4 | Complete (04-02, 2026-05-14) |
-| REQ-audit-regression-cli | Phase 4 | Pending |
+| REQ-audit-regression-cli | Phase 4 | Complete (04-04, 2026-05-14) |
 | REQ-rules-quality-acceptance | Phase 4 | Complete (04-03, 2026-05-14) |
 | REQ-rule-profiles | Phase 5 | Pending |
 | REQ-methodical-profile-extract | Phase 5 | Pending |
