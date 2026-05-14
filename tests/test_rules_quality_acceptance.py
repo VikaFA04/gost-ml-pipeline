@@ -21,7 +21,6 @@ REQUIRED_FIELDS = {
     "severity",
     "autocorrect",
     "priority",
-    "__red_placeholder__",  # RED placeholder — Task 2 removes this line.
 }
 ALLOWED_ACTION_VALUES = {"fix", "review", "check_or_fix"}
 ALLOWED_SEVERITY_VALUES = {"low", "medium", "high"}
