@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: ready_to_plan
 stopped_at: Completed 04-05-PLAN.md — Wave E GHA regression-gate (3 commits, 1 workflow + 7 fixture DOCX + 2 doc files); Phase 04 plans 5/5 complete; awaiting verifier sign-off.
 last_updated: "2026-05-14T11:55:02.837Z"
 last_activity: 2026-05-14 -- Phase 05 execution started
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 22
   completed_plans: 17
-  percent: 77
+  percent: 63
 ---
 
 # Project State
@@ -26,10 +26,10 @@ explainable, no silent rewrites, safe-only autocorrection.
 
 ## Current Position
 
-Phase: 05 (rule-profiles-methodical-profile-ingestion) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 05
-Last activity: 2026-05-14 -- Phase 05 execution started
+Phase: 6
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-05-14
 
 Progress: [██████████] 100% Phase 4 complete (17/17 plans, VERIFICATION passed, CI gate live); Phase 5 starting
 
@@ -37,7 +37,7 @@ Progress: [██████████] 100% Phase 4 complete (17/17 plans, V
 
 **Velocity:**
 
-- Total plans completed: 21 (current milestone)
+- Total plans completed: 26 (current milestone)
 - Average duration: —
 - Total execution time: —
 
@@ -50,6 +50,7 @@ Progress: [██████████] 100% Phase 4 complete (17/17 plans, V
 | 02 | 4 | - | - |
 | 03 | 4 | - | - |
 | 04 | 5 | - | - |
+| 05 | 5 | - | - |
 
 **Recent Trend:**
 
