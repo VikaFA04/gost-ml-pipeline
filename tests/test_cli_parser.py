@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from src.main import build_parser, cmd_audit_regression
 
@@ -233,3 +234,47 @@ def test_cmd_audit_regression_defaults_summary_json_to_report_stem(tmp_path, mon
     assert report_path.exists()
     assert summary_path.exists()
     assert summary_path.stem == report_path.stem
+
+
+def test_cli_parser_accepts_update_baseline_and_reason(tmp_path) -> None:
+    parser = build_parser()
+    baseline_path = tmp_path / "baseline.json"
+    args = parser.parse_args(
+        [
+            "audit-regression",
+            "--positive-dir", "positive_examples",
+            "--negative-dir", "negative_examples",
+            "--update-baseline", str(baseline_path),
+            "--reason", "FIX-XX: root cause locked",
+        ]
+    )
+    assert args.command == "audit-regression"
+    assert args.update_baseline == str(baseline_path)
+    assert args.reason == "FIX-XX: root cause locked"
+
+
+def test_cmd_audit_regression_refuses_update_baseline_without_reason(tmp_path) -> None:
+    positive_dir = tmp_path / "positive"
+    negative_dir = tmp_path / "negative"
+    positive_dir.mkdir()
+    negative_dir.mkdir()
+    # Empty positive/negative dirs are acceptable for this guard test —
+    # we expect SystemExit BEFORE any audit runs because reason is too short.
+    baseline_path = tmp_path / "baseline.json"
+    # Sub-test cases: empty, whitespace-only, and 7-char (below 8-char Probe 6 minimum).
+    for bad_reason in ("", "   ", "abcdefg"):  # 7 chars triggers Probe 6 min-length guard
+        with pytest.raises(SystemExit) as excinfo:
+            cmd_audit_regression(
+                positive_dir=str(positive_dir),
+                negative_dir=str(negative_dir),
+                workspace_dir=str(tmp_path / "ws"),
+                report_csv=None,
+                summary_json=None,
+                profile_id="gost_7_32_2017",
+                limit=None,
+                progress=False,
+                update_baseline=str(baseline_path),
+                reason=bad_reason,
+            )
+        assert "--update-baseline" in str(excinfo.value)
+        assert "--reason" in str(excinfo.value)
