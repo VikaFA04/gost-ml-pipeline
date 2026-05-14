@@ -71,17 +71,17 @@ def test_every_rule_autocorrect_is_bool() -> None:
 
 
 def test_audit_csv_invariants_on_negative_fixture(tmp_path) -> None:
-    """Runtime smoke: pick negative_examples/3.docx, audit it, enforce
+    """Runtime smoke: pick positive_examples/3.docx, audit it, enforce
     REQ-rules-quality-acceptance acceptance bullets:
       - every status=changed row has non-empty applied_fixes
       - every manual_review_required=True row has non-empty explanation
       - every low_confidence=True row routes to manual_review_required=True
     """
-    input_docx = Path("negative_examples") / "3.docx"
+    input_docx = Path("positive_examples") / "3.docx"
     if not input_docx.exists():
         if os.environ.get("CI") == "true":
-            pytest.fail("negative_examples/3.docx missing in CI — rules-quality smoke cannot run.")
-        pytest.skip("negative_examples/3.docx not present in this environment")
+            pytest.fail("positive_examples/3.docx missing in CI — rules-quality smoke cannot run.")
+        pytest.skip("positive_examples/3.docx not present in this environment")
 
     predictions_csv = tmp_path / "3_predictions.csv"
     report_csv = tmp_path / "3_report.csv"

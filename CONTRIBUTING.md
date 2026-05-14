@@ -56,3 +56,11 @@ python3 -m src.main audit-regression \
 - `tests/test_format_regression_audit.py` — `audits_to_frame` column contract + `audit_negative_directory` smoke (REQ-audit-regression-cli — ROADMAP Phase 4 SC-1).
 
 Full corpus прогон (без `--limit`) — ручной, перед merge большого fix-track PR, и обязательный для `--update-baseline`.
+
+## CI corpus fixture (Option D)
+
+`tests/fixtures/corpus/` holds a minimal DOCX subset (3.docx, 4.docx, 45.docx positives + their formatted negatives + 1.docx positive) so the GHA `regression-gate` workflow can run the gate against real DOCX inputs without committing the full `positive_examples/` / `negative_examples/` directories (gitignored, ~107MB combined).
+
+The workflow copies the fixture into the hardcoded test paths before running pytest. Local devs continue to use the full real `positive_examples/` / `negative_examples/`.
+
+If you change the Wave B `_metadata.subset_filenames` in `tests/baselines/negative_corpus.json`, update `tests/fixtures/corpus/negative/` to match.
