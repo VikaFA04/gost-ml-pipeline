@@ -1,0 +1,30 @@
+name: regression-gate
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+env:
+  CI: "true"
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run regression gate
+        run: |
+          pytest -q \
+            tests/test_negative_corpus_diff_rate.py \
+            tests/test_positive_docx_regression.py \
+            tests/test_rules_quality_acceptance.py \
+            tests/test_format_regression_audit.py
