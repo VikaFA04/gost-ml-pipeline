@@ -399,6 +399,50 @@ def test_apply_force_with_valid_reason_writes_override_reason_in_meta(tmp_path, 
             target_path.unlink()
 
 
+# ----------------------------------------------------------------------
+# Phase 5 plan 5-04 — SC-1 (Pitfall 5): --profile-id on audit-docx / format-docx
+# ----------------------------------------------------------------------
+
+
+def test_audit_docx_and_format_docx_accept_profile_id() -> None:
+    """SC-1 / Pitfall 5: audit-docx and format-docx accept --profile-id."""
+    parser = build_parser()
+
+    args_audit = parser.parse_args([
+        "audit-docx",
+        "--input-docx", "fake.docx", "--predictions-csv", "fake.csv",
+        "--profile-id", "mirea_normcontrol_local",
+    ])
+    assert args_audit.profile_id == "mirea_normcontrol_local"
+
+    args_format = parser.parse_args([
+        "format-docx",
+        "--input-docx", "fake.docx", "--predictions-csv", "fake.csv",
+        "--profile-id", "mirea_normcontrol_local",
+    ])
+    assert args_format.profile_id == "mirea_normcontrol_local"
+
+
+def test_audit_docx_default_profile_id_is_gost_7_32_2017() -> None:
+    """SC-1: default value preserved when --profile-id is omitted."""
+    parser = build_parser()
+    args = parser.parse_args([
+        "audit-docx",
+        "--input-docx", "fake.docx", "--predictions-csv", "fake.csv",
+    ])
+    assert args.profile_id == "gost_7_32_2017"
+
+
+def test_format_docx_default_profile_id_is_gost_7_32_2017() -> None:
+    """SC-1: default value preserved on format-docx when --profile-id is omitted."""
+    parser = build_parser()
+    args = parser.parse_args([
+        "format-docx",
+        "--input-docx", "fake.docx", "--predictions-csv", "fake.csv",
+    ])
+    assert args.profile_id == "gost_7_32_2017"
+
+
 def test_extract_methodical_profile_rejects_path_traversal(tmp_path, monkeypatch) -> None:
     """T-04-02 mitigation: --input-path outside CWD subtree is refused."""
     from src.main import cmd_extract_methodical_profile
