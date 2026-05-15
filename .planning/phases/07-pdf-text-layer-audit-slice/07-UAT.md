@@ -1,13 +1,16 @@
 ---
-status: partial
+status: complete
 phase: 07-pdf-text-layer-audit-slice
 source:
   - .planning/phases/07-pdf-text-layer-audit-slice/07-01-SUMMARY.md
   - .planning/phases/07-pdf-text-layer-audit-slice/07-02-SUMMARY.md
-  - .planning/phases/07-pdf-text-layer-audit-slice/07-03-PLAN.md (Task 4 checkpoint script)
+  - .planning/phases/07-pdf-text-layer-audit-slice/07-03-SUMMARY.md
+  - .planning/phases/07-pdf-text-layer-audit-slice/07-04-SUMMARY.md (gap closure plan G-07-01)
+  - .planning/phases/07-pdf-text-layer-audit-slice/07-05-SUMMARY.md (gap closure plan G-07-02 + G-07-03)
 started: 2026-05-15T08:30:00Z
-updated: 2026-05-15T12:10:00Z
-e2e_runner: playwright-cli@0.1.8 against streamlit served from worktree-agent-ae7c41d1
+updated: 2026-05-15T13:35:00Z
+re_uat_completed: 2026-05-15T13:35:00Z
+e2e_runner: playwright-cli@0.1.8 against streamlit served from main repo (post-gap-fix)
 ---
 
 ## Current Test
@@ -120,61 +123,69 @@ notes: |
 ## Summary
 
 total: 7
-passed: 6
-issues: 1
+passed: 7
+issues: 0
 pending: 0
 skipped: 0
+re_uat_runs: 1
+re_uat_verdict: all_gaps_resolved
 
 ## Gaps
 
 - gap_id: G-07-01
   truth: "PDF audit flow runs without requiring a baseline .joblib artifact (PDF path bypasses SVM per Plan 07-02 §truths)"
-  status: failed
-  reason: |
-    app.py:run_processing line 425 short-circuits on
-    `selected_model_key == "baseline_unavailable"` BEFORE process_document is
-    called. Since process_document is where the PDF/DOCX branch lives, the
-    PDF flow can never run when the workspace lacks a baseline.joblib. UAT
-    was unblocked by manually copying a legacy .joblib into
-    `<worktree>/results/models/`; the underlying guard is the actual defect.
+  status: resolved
+  resolved_by: plan-07-04
+  resolution_commits:
+    - fa628f2 (RED test)
+    - 1af1d3a (GREEN guard widen)
+    - a98ecd9 (CLAUDE.md self-improvement rule)
+    - 2ccdd1e (07-04 SUMMARY)
+  resolution_evidence: |
+    Re-UAT 2026-05-15: all 3 .joblib artifacts moved out of results/models/,
+    streamlit restarted from main repo, Berger PDF uploaded — sidebar shows
+    «Baseline (unavailable: no saved artifact)» (confirming the scenario);
+    «Запустить аудит» clicked; audit pipeline completed end-to-end with 319
+    blocks under «Требуют проверки», amber «PDF — режим аудита, без
+    исправлений» badge, NO «Baseline-модель недоступна» error banner.
+    Captured in snap-uat2-04-audit-result.yml.
   severity: major
   test: 2
-  artifacts:
-    - .planning/phases/07-pdf-text-layer-audit-slice/snap-05-after-audit.yml
-    - .planning/phases/07-pdf-text-layer-audit-slice/snap-08-audit-result.yml
-  missing:
-    - PDF-aware bypass on the baseline_unavailable guard (skip the guard when
-      `Path(uploaded_file.name).suffix.lower() == ".pdf"`)
-    - regression test asserting `run_processing` does not short-circuit for PDF
-      input when `selected_model_key == "baseline_unavailable"`
+  prior_artifacts:
+    - .planning/phases/07-pdf-text-layer-audit-slice/uat-snap-05.yml
+    - .planning/phases/07-pdf-text-layer-audit-slice/uat-snap-08.yml
 
 - gap_id: G-07-02
   truth: "Main-pane empty-state copy matches the Phase 7 upload contract"
-  status: failed
-  reason: |
-    Empty-state alert in the main pane still reads «Загрузите DOCX-документ,
-    чтобы начать аудит» (Phase 6 leftover). Phase 7 expanded SUPPORTED_UPLOAD_TYPES
-    to ['docx', 'pdf'] but did not update this empty-state hint; copy is now
-    inconsistent with the sidebar uploader label «Загрузите документ (DOCX или PDF)».
+  status: resolved
+  resolved_by: plan-07-05
+  resolution_commits:
+    - 57dac86 (RED test update)
+    - 9500121 (GREEN string replacements)
+    - f3db558 (07-05 SUMMARY)
+  resolution_evidence: |
+    Re-UAT 2026-05-15: empty-state alert in main pane (snap-uat2-02-loaded.yml
+    paragraph e131) now reads «Загрузите документ (DOCX или PDF), чтобы начать
+    аудит» verbatim — mirrors sidebar uploader label.
   severity: cosmetic
   test: 1
-  artifacts:
-    - .planning/phases/07-pdf-text-layer-audit-slice/snap-03-wt-loaded.yml
-  missing:
-    - one-line copy update in app.py main-pane empty-state branch
+  prior_artifacts:
+    - .planning/phases/07-pdf-text-layer-audit-slice/uat-snap-03-wt-loaded.yml
 
 - gap_id: G-07-03
   truth: "Per-block PDF audit reason is framed for the human reviewer"
-  status: failed
-  reason: |
-    Per-block reason reads «PDF блок — классификация недоступна (SVM требует
-    DOCX-формата)». Locked substring «PDF блок» is satisfied (Test 4 truth),
-    but the phrasing is framed from the model's POV. Prefer wording centred on
-    the reviewer's action, e.g. «PDF блок — текстовый слой, требует ручной
-    проверки» (matches the example in plan 07-01 §truths).
+  status: resolved
+  resolved_by: plan-07-05
+  resolution_commits:
+    - 57dac86 (RED test addition)
+    - 9500121 (GREEN string replacement)
+    - f3db558 (07-05 SUMMARY)
+  resolution_evidence: |
+    Re-UAT 2026-05-15: every block expander in snap-uat2-04-audit-result.yml
+    shows «Причина ручной проверки: PDF блок — текстовый слой, требует ручной
+    проверки» — locked substring «PDF блок» preserved + new reviewer-facing
+    substring «требует ручной проверки» present.
   severity: cosmetic
   test: 4
-  artifacts:
-    - .planning/phases/07-pdf-text-layer-audit-slice/snap-08-audit-result.yml
-  missing:
-    - reason-string update in extract_pdf_blocks (src/inference/pdf_loader.py)
+  prior_artifacts:
+    - .planning/phases/07-pdf-text-layer-audit-slice/uat-snap-08.yml
