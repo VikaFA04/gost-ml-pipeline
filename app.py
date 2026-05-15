@@ -17,10 +17,9 @@ from src.inference.application_service import (
     save_uploaded_bytes,
 )
 from src.inference.run_log import RunLog
-# methodical_extractor imports (build_methodical_profile, extract_text_from_file,
-# save_methodical_profile) will be re-added by 06-04 when the methodical modal
-# lands. Removed here per CLAUDE.md «Удаляй orphans» since the sidebar form
-# that consumed them is deleted in this plan.
+from src.rules.methodical_extractor import build_methodical_profile, save_methodical_profile
+from src.rules.profile_diff import compute_profile_diff
+from src.rules.profile_loader import PROFILES_DIR, list_available_profiles, load_profile
 
 SUPPORTED_UPLOAD_TYPES = ["docx"]
 SUPPORTED_METHODICAL_UPLOAD_TYPES = ["pdf", "docx", "txt", "md"]
@@ -468,6 +467,143 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
     st.session_state["last_run_log"] = run_log
 
 
+@st.dialog("Создать профиль из методички", width="large")
+def methodical_modal(available_profile_ids: list[str]) -> None:
+    """Methodical-profile-extraction modal mirroring Phase 5 CLI contract.
+
+    Mirrors `cmd_extract_methodical_profile`: dry-run preview by default,
+    «Применить и сохранить» = `--apply`, collision branch requires both the
+    overwrite checkbox AND a reason ≥ 8 non-whitespace chars after strip
+    (D-004 «no silent rewrites» / T-05-01 client-side enforcement).
+    """
+    # Step 1 — file uploader.
+    uploaded = st.file_uploader(
+        "Загрузите методичку",
+        type=SUPPORTED_METHODICAL_UPLOAD_TYPES,
+        key="modal_methodical_file",
+    )
+    # Step 2 — base-profile multiselect.
+    if "gost_7_32_2017" in available_profile_ids:
+        default_base = ["gost_7_32_2017"]
+    elif available_profile_ids:
+        default_base = available_profile_ids[:1]
+    else:
+        default_base = []
+    base_ids = st.multiselect(
+        "Базовые профили",
+        options=available_profile_ids,
+        default=default_base,
+        key="modal_base_profiles",
+    )
+    # Step 3 — preview.
+    preview_clicked = st.button("Сгенерировать предпросмотр", key="modal_preview_button")
+    if preview_clicked:
+        if uploaded is None:
+            st.warning("Загрузите файл методички (PDF / DOCX / TXT / MD).")
+        elif not base_ids:
+            st.warning("Выберите хотя бы один базовый профиль.")
+        else:
+            try:
+                tmp_path = save_uploaded_bytes(
+                    uploaded.getvalue(),
+                    suffix=Path(uploaded.name).suffix,
+                )
+                draft = build_methodical_profile(input_path=tmp_path, base_profile_ids=base_ids)
+                base_profile = load_profile(profile_id=base_ids[0])
+                diff_lines = compute_profile_diff(base_profile, draft)
+                st.session_state["modal_diff_lines"] = diff_lines
+                st.session_state["modal_draft_profile"] = draft
+            except ValueError as exc:
+                msg = str(exc)
+                if "PDF" in msg or "text" in msg.lower():
+                    st.error(
+                        "PDF-файл не содержит извлекаемого текста. "
+                        "Скан без OCR не поддерживается."
+                    )
+                else:
+                    st.error("Не удалось извлечь методичку: " + type(exc).__name__)
+            except Exception as exc:
+                st.error("Не удалось извлечь методичку: " + type(exc).__name__)
+
+    # Step 4 — render diff + apply branch (no-collision OR collision/force-reason).
+    diff = st.session_state.get("modal_diff_lines")
+    draft = st.session_state.get("modal_draft_profile")
+    if diff is not None and draft is not None:
+        st.code("\n".join(diff), language=None)
+        profile_id = draft["profile_id"]
+        target_paths = [
+            PROFILES_DIR / f"{profile_id}.json",
+            CUSTOM_PROFILES_DIR / f"{profile_id}.json",
+        ]
+        target_exists = any(p.exists() for p in target_paths)
+        if not target_exists:
+            apply_clicked = st.button(
+                "Применить и сохранить",
+                type="primary",
+                key="modal_apply_button",
+            )
+            if apply_clicked:
+                CUSTOM_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+                save_methodical_profile(draft, CUSTOM_PROFILES_DIR)
+                # Pitfall 4: sidebar selectbox stores the FORMATTED label, not the
+                # raw profile_id. Compute the formatted label for the new item.
+                new_items = list_available_profiles([PROFILES_DIR, CUSTOM_PROFILES_DIR])
+                new_match = next(
+                    (it for it in new_items if it.get("profile_id") == profile_id),
+                    None,
+                )
+                if new_match is not None:
+                    st.session_state["profile_selectbox"] = format_profile_option(new_match)
+                for k in ("modal_diff_lines", "modal_draft_profile"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+        else:
+            st.warning(
+                f"Профиль `{profile_id}` уже существует. Чтобы перезаписать, "
+                "отметьте чекбокс ниже и заполните поле «Причина» (минимум 8 символов)."
+            )
+            overwrite = st.checkbox(
+                "Перезаписать существующий профиль",
+                key="modal_overwrite_checkbox",
+            )
+            reason = st.text_area("Причина (минимум 8 символов)", key="modal_reason_textarea")
+            reason_ok = modal_reason_is_valid(reason)
+            if not reason_ok and reason:
+                st.caption(
+                    "Причина должна содержать минимум 8 непробельных символов "
+                    "(D-004: no silent rewrites)."
+                )
+            apply_disabled = not (overwrite and reason_ok)
+            apply_clicked = st.button(
+                "Применить и сохранить",
+                type="primary",
+                disabled=apply_disabled,
+                key="modal_apply_force_button",
+            )
+            if apply_clicked and not apply_disabled:
+                draft.setdefault("extraction_meta", {})
+                draft["extraction_meta"]["override_reason"] = reason.strip()
+                CUSTOM_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+                save_methodical_profile(draft, CUSTOM_PROFILES_DIR)
+                new_items = list_available_profiles([PROFILES_DIR, CUSTOM_PROFILES_DIR])
+                new_match = next(
+                    (it for it in new_items if it.get("profile_id") == profile_id),
+                    None,
+                )
+                if new_match is not None:
+                    st.session_state["profile_selectbox"] = format_profile_option(new_match)
+                for k in ("modal_diff_lines", "modal_draft_profile"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+
+    # Cancel — clear modal state and dismiss.
+    cancel_clicked = st.button("Отмена", key="modal_cancel_button")
+    if cancel_clicked:
+        for k in ("modal_diff_lines", "modal_draft_profile"):
+            st.session_state.pop(k, None)
+        st.rerun()
+
+
 def main() -> None:
     """Render the Streamlit application — D-01 sidebar (config) + main pane (report).
 
@@ -492,6 +628,7 @@ def main() -> None:
     custom_profile_items = st.session_state.get("custom_profile_items", [])
     all_profile_items = build_profile_options(profile_items, custom_profile_items)
     profile_label_to_path = {format_profile_option(item): item["path"] for item in all_profile_items}
+    available_profile_ids = [str(item["profile_id"]) for item in all_profile_items if item.get("profile_id")]
     model_options = list_model_options()
 
     with st.sidebar:
@@ -508,8 +645,7 @@ def main() -> None:
             use_container_width=True,
         )
         if open_modal_clicked:
-            # Placeholder — 06-04 replaces this body with the methodical st.dialog call.
-            st.info("Модал создания профиля из методички будет доступен после плана 06-04.")
+            methodical_modal(available_profile_ids)
         model_key = st.selectbox(
             "Модель",
             options=list(model_options.keys()),
