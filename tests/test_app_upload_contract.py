@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-import app
+import pytest
+
+pytest.importorskip("streamlit")
+
+import app  # noqa: E402
 
 
 def test_streamlit_upload_contract_is_docx_and_pdf() -> None:
