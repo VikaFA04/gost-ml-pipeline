@@ -141,7 +141,11 @@ Plans:
   2. Audit report for a PDF input uses the same CSV schema as DOCX; `applied_fixes` is always empty and no PDF is written.
   3. UI uploader supports `.pdf` alongside `.docx` and clearly labels PDF as audit-only.
   4. README + UI copy state the text-layer + read-only + no-OCR limits; no autofix code path runs on PDF input.
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 07-01-PLAN.md — Wave 0 RED (TDD): tests/inference/ scaffolding + 9 RED tests for pdf_loader / ProcessingArtifacts.input_extension / README §Limits; update tests/test_preflight.py + tests/test_app_upload_contract.py + tests/test_render_block_section.py (delete dead NotImplementedError test, flip upload-type assertions, add PdfNoTextLayer test)
+- [ ] 07-02-PLAN.md — Wave 1 GREEN backend: src/inference/pdf_loader.py (check_text_layer + extract_pdf_blocks + PdfNoTextLayer); document_loader.py delete NotImplementedError block; application_service.py ProcessingArtifacts.input_extension field + _process_pdf branch (Pitfalls 3+5 resolved)
+- [ ] 07-03-PLAN.md — Wave 2 GREEN UI + docs: app.py 4 sites (SUPPORTED_UPLOAD_TYPES, preflight branch swap, render_report badge + DOCX gate, sidebar uploader label + caption); README.md §Limits paragraph (audit-only / text layer / no OCR / no corrected PDF); manual UAT checkpoint
 **UI hint**: yes
 
 ### Phase 8: Milestone acceptance
