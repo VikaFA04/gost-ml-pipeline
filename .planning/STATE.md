@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 6 Wave 3 (06-03) complete — main-pane render_report shipped, 6 orphans deleted
-last_updated: "2026-05-14T21:00:00.000Z"
-last_activity: 2026-05-14 -- Phase 06 Wave 3 (06-03 main-pane render_report) complete
+stopped_at: Phase 6 Wave 4 (06-04) complete — methodical st.dialog modal shipped, sidebar wired, Pitfall 4 resolved
+last_updated: "2026-05-14T22:00:00.000Z"
+last_activity: 2026-05-14 -- Phase 06 Wave 4 (06-04 methodical st.dialog modal) complete
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 28
-  completed_plans: 25
-  percent: 89
+  completed_plans: 27
+  percent: 96
 ---
 
 # Project State
@@ -27,11 +27,11 @@ explainable, no silent rewrites, safe-only autocorrection.
 ## Current Position
 
 Phase: 06 (streamlit-ui-redesign) — EXECUTING
-Plan: 4 of 6 next
-Status: Executing Phase 06 — Wave 3 complete (06-00, 06-01, 06-02, 06-03 done)
-Last activity: 2026-05-14 -- Phase 06 Wave 3 (06-03 main-pane render_report) complete
+Plan: 5 of 6 next
+Status: Executing Phase 06 — Wave 4 complete (06-00, 06-01, 06-02, 06-03, 06-04 done)
+Last activity: 2026-05-14 -- Phase 06 Wave 4 (06-04 methodical st.dialog modal) complete
 
-Progress: [████████░░] 89% — Phase 6 Wave 3 done (06-00 RED scaffold, 06-01 RunLog, 06-02 sidebar D-01, 06-03 main-pane render_report); next: 06-04 methodical st.dialog modal
+Progress: [█████████░] 96% — Phase 6 Wave 4 done (06-00 RED scaffold, 06-01 RunLog, 06-02 sidebar D-01, 06-03 main-pane render_report, 06-04 methodical st.dialog modal); next: 06-05 cleanup + design-review
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [████████░░] 89% — Phase 6 Wave 3 done (06-00 RE
 | Phase 04-regression-gate P05 | 7200s | 2 tasks | 10 files |
 | Phase 06-streamlit-ui-redesign P02 | 1800s | 2 tasks | 1 file |
 | Phase 06-streamlit-ui-redesign P03 | 1500s | 2 tasks | 1 file |
+| Phase 06-streamlit-ui-redesign P04 | 1500s | 1 task  | 1 file |
 
 ## Accumulated Context
 
@@ -102,6 +103,7 @@ current work:
 - Phase 4 Wave D: Makefile regression-gate target invokes audit-regression --limit 4 + pytest on all four gate test files (negative_corpus_diff_rate, positive_docx_regression, rules_quality_acceptance, format_regression_audit) — last one closes ROADMAP Phase 4 SC-1. PYTHON ?= python3 (host has no plain python) with override documented. README Pre-PR проверка + new CONTRIBUTING.md document workflow + 8-char rule + --limit anti-pattern. End-to-end make regression-gate exits 0 (1380s, 14 passed 1 skipped). Commit 19b6592.
 - Phase 4 Wave E: GHA workflow .github/workflows/regression-gate.yml landed and validated end-to-end. Two deviations: (1) Rule 4 architectural — corpus dirs gitignored at ~107MB, so shipped 5MB subset under tests/fixtures/corpus/{positive,negative}/ + workflow staging step that copies fixtures into positive_examples/+negative_examples/ at CI runtime; (2) Rule 1 bug — bare `pytest` does not inject cwd into sys.path with no pyproject.toml/conftest.py at repo root; one-token fix `pytest` → `python -m pytest` (commit 5c6327d). Validated via PR #1 GREEN run #25846822154 + PR #2 RED run #25847679849 on VikaFA04/gost-ml-pipeline. Phase 4 D-08 satisfied; gate live. Commits 4831a8f/7204698/5c6327d.
 - Phase 6 Wave 2 (06-02): app.py main() rewritten to D-01 sidebar (Панель управления / Профиль ГОСТ key="profile_selectbox" / + Создать профиль из методички placeholder / model+mode selectors / docx_uploader / Запустить аудит primary). 6 obsolete methodical-form helpers deleted (render_hero, build_methodical_profile_draft, persist_custom_profile, _set_session_methodical_draft, _get_session_methodical_draft, _apply_methodical_form_edits). methodical_extractor + json + datetime imports cleaned (06-04 will re-add what the modal needs). Net diff -513 LoC (1288 → 775). RunLog wiring + STATUS_CHIP + preflight_translate_error + modal_reason_is_valid from Task 1 (commit 54e8aff) preserved. Streamlit-dependent tests skip cleanly on system Python 3.9; verifier 06-05 runs in Streamlit-enabled env per OQ-3.
+- Phase 6 Wave 4 (06-04): methodical_modal @st.dialog("Создать профиль из методички", width="large") added in app.py — mirrors Phase 5 cmd_extract_methodical_profile contract: dry-run preview by default, «Применить и сохранить» = --apply, collision branch requires checkbox + reason ≥ 8 strip-chars (D-004 / T-05-01 client-side via modal_reason_is_valid). Sidebar `+ Создать профиль из методички` button now invokes methodical_modal(available_profile_ids); placeholder st.info removed. Pitfall 4 resolved: both save branches resolve the FORMATTED selectbox label via list_available_profiles + format_profile_option(new_match) before setting st.session_state["profile_selectbox"] + st.rerun(). Imports re-added: build_methodical_profile, save_methodical_profile, compute_profile_diff, load_profile, list_available_profiles, PROFILES_DIR. extract_text_from_file deliberately NOT re-added (unused at module scope). Net diff +136 LoC (562 → 698). All Pitfall-3 widget keys use modal_* prefix — no collision with sidebar widgets. Russian copy verbatim from 06-UI-SPEC §Copywriting Contract. test_run_log.py 7/7 still GREEN.
 
 ### Pending Todos
 
@@ -134,10 +136,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-14T20:00:00Z
-Stopped at: Phase 6 Wave 2 (06-02) complete — sidebar redesigned to D-01
-Resume file: .planning/phases/06-streamlit-ui-redesign/06-03-PLAN.md
+Last session: 2026-05-14T22:00:00Z
+Stopped at: Phase 6 Wave 4 (06-04) complete — methodical st.dialog modal shipped
+Resume file: .planning/phases/06-streamlit-ui-redesign/06-05-PLAN.md
 
 **Planned Phase:** 6 (streamlit-ui-redesign) — 6 plans — 2026-05-14T18:55:49.175Z
-**Phase 06 next step:** Wave 3 plan 06-03 (render_report + render_block_section main pane).
+**Phase 06 next step:** Wave 5 plan 06-05 (cleanup + design-review checklist).
 **Phase 04 next step:** verifier (orchestrator-spawned) runs against PHASE/PLAN/SUMMARY artefacts.
