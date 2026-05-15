@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 6 Wave 5 (06-05) Tasks 1-2 complete — app.py cleanup + 06-DESIGN-REVIEW.md staged; awaiting human design-review checkpoint (Task 3)
-last_updated: "2026-05-14T22:30:00.000Z"
-last_activity: 2026-05-14 -- Phase 06 Wave 5 (06-05) Tasks 1-2 complete; Task 3 (human design-review) awaiting
+stopped_at: Phase 6 complete (6/6 plans, CR-01+CR-02 fixed, HUMAN-UAT partial — 6 items pending live walk, item-7 override-accepted per Wave 5 sign-off)
+last_updated: "2026-05-15T07:50:00.000Z"
+last_activity: 2026-05-15 -- Phase 06 complete; ready to plan Phase 7
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 28
-  completed_plans: 27
-  percent: 75
+  completed_plans: 28
+  percent: 100
 ---
 
 # Project State
@@ -22,7 +22,7 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase 06 — streamlit-ui-redesign
+**Current focus:** Phase 07 — pdf-text-layer-audit-slice (next)
 
 ## Current Position
 
@@ -31,7 +31,7 @@ Plan: Not started
 Status: Ready to plan
 Last activity: 2026-05-15
 
-Progress: [█████████░] 96% — Phase 6 Wave 5 partial (06-00..06-04 done; 06-05 Tasks 1-2 staged: app.py cleanup + 06-DESIGN-REVIEW.md created); next: human design-review pass + summary on resume
+Progress: [██████████] 100% — Phase 6 complete (6/6 plans, CR-01+CR-02 resolved, HUMAN-UAT partial); next: /gsd-discuss-phase 7
 
 ## Performance Metrics
 

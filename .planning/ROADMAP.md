@@ -23,7 +23,7 @@ operational state and the original Этапы 1–9 are preserved in
 - [x] **Phase 3: Heading signature & DOCX generator** *(completed 2026-05-13)* - Extend heading signature and harden the DOCX writer for template-specific styles.
 - [ ] **Phase 4: Regression gate** - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
 - [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PDF methodical-profile ingestion with diff (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
-- [ ] **Phase 6: Streamlit UI redesign** - Rebuild the UI around the audit flow and pass design review.
+- [x] **Phase 6: Streamlit UI redesign** *(completed 2026-05-15)* - Rebuild the UI around the audit flow and pass design review.
 - [ ] **Phase 7: PDF text-layer audit slice** - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
 - [ ] **Phase 8: Milestone acceptance** - End-to-end MVP acceptance + success-metric verification.
 
