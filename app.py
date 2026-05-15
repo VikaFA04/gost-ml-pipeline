@@ -39,8 +39,13 @@ STATUS_CHIP: dict[str, tuple[str, str, str]] = {
 
 
 def modal_reason_is_valid(reason: str) -> bool:
-    """D-004 / T-05-01: reason must be ≥ 8 non-whitespace chars after strip."""
-    return len(reason.strip()) >= 8
+    """D-004 / T-05-01: reason must be ≥8 chars after strip AND contain at
+    least one printable non-whitespace character. Mirrors the CLI predicate
+    in src/main.py:367-374 verbatim — UI must not accept what CLI rejects."""
+    stripped = (reason or "").strip()
+    if len(stripped) < 8:
+        return False
+    return any(c.isprintable() and not c.isspace() for c in stripped)
 
 
 def preflight_translate_error(exc: Exception) -> str:
@@ -615,7 +620,7 @@ def main() -> None:
             use_container_width=True,
         )
         if open_modal_clicked:
-            methodical_modal(available_profile_ids)
+            st.session_state["methodical_modal_request"] = True
         model_key = st.selectbox(
             "Модель",
             options=list(model_options.keys()),
@@ -641,6 +646,9 @@ def main() -> None:
             use_container_width=True,
             key="run_audit_button",
         )
+
+    if st.session_state.pop("methodical_modal_request", False):
+        methodical_modal(available_profile_ids)
 
     if run_clicked and not run_disabled:
         selected_profile_path = profile_label_to_path[selected_profile_label]
