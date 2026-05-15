@@ -194,3 +194,27 @@ preserved in `.planning/intel/context.md` under topics:
   Phase 5 of this roadmap.
 
 Do not duplicate that content here.
+
+## Backlog
+
+### Phase 999.1: ui-tabbed-layout-restoration (BACKLOG)
+
+**Goal:** [Captured for future planning] Restore the multi-tab navigation layout from the pre-Phase-6 Streamlit interface (screenshots in `interface/`). Current single-page layout collapses block-by-block review into one scroll surface and users find it harder to navigate. Decide whether to re-introduce tabs (per-block, per-section, per-status) or hybridise with the current audit-flow design.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 999.2: docx-formatting-bugs-list-indent-formula-vars (BACKLOG)
+
+**Goal:** [Captured for future planning] Four related DOCX formatter indent defects surfaced during Phase 7 UAT (negative_examples/tmppo4el27k_baseline_formatted_20260515_141351.docx p.7):
+1. Bulleted-list items whose body wraps to a second line lose hanging-indent alignment — must match numbered-list indent contract.
+2. After formulas, variable legends starting with «где» must render as «где[Tab]variable — description» with a fixed tab stop, all rows aligned along the same column.
+3. Bibliography («СПИСОК ИСПОЛЬЗУЕМЫХ ИСТОЧНИКОВ») indentation is inconsistent — numbering is now correct (post Phase 2/3) but the wrapped-line indent does not align under the first non-numeric character.
+4. Section subheading «1 Теоретическая часть» inside the bibliography uses a different indent than the same-level heading elsewhere in the document.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
