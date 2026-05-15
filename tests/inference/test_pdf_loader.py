@@ -21,13 +21,23 @@ def test_check_text_layer_scanned_rejected(scanned_pdf: Path) -> None:
     assert check_text_layer(scanned_pdf) < 0.50
 
 
-def test_check_text_layer_zero_page_returns_zero(tmp_path: Path) -> None:
-    from src.inference.pdf_loader import check_text_layer
-    empty = tmp_path / "empty.pdf"
-    doc = fitz.open()
-    doc.save(str(empty))
-    doc.close()
-    assert check_text_layer(empty) == 0.0
+def test_check_text_layer_zero_page_returns_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # fitz refuses to save a 0-page PDF ("cannot save with zero pages"), so the
+    # defensive `if total == 0: return 0.0` branch in check_text_layer cannot
+    # be reached via a real file. Patch fitz.open at the pdf_loader module
+    # boundary to return a stub doc with len == 0.
+    from src.inference import pdf_loader
+
+    class _ZeroPageStub:
+        def __len__(self) -> int:
+            return 0
+        def __iter__(self):
+            return iter(())
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(pdf_loader, "fitz", type("F", (), {"open": staticmethod(lambda _p: _ZeroPageStub())}))
+    assert pdf_loader.check_text_layer(tmp_path / "empty.pdf") == 0.0
 
 
 def test_check_text_layer_50pct_threshold_inclusive(tmp_path: Path) -> None:
