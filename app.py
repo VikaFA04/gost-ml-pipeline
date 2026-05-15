@@ -367,12 +367,10 @@ def render_report(result: ProcessingArtifacts) -> None:
         )
 
     # 6. Run-log JSON download (D-04).
-    run_log: RunLog | None = st.session_state.get("last_run_log")
-    if run_log is not None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        stem = Path(result.input_path).stem
-        log_path = REPORTS_DIR / f"{stem}_run_log_{timestamp}.json"
-        run_log.dump_json(log_path)
+    # WR-02: read the cached log path from session_state — it was written
+    # exactly once when run_processing finished. No per-rerun disk write.
+    log_path: Path | None = st.session_state.get("last_run_log_path")
+    if log_path is not None and log_path.exists():
         st.download_button(
             "Скачать журнал запуска (JSON)",
             data=log_path.read_bytes(),
@@ -381,6 +379,21 @@ def render_report(result: ProcessingArtifacts) -> None:
             use_container_width=True,
             key="download_run_log",
         )
+
+
+def _persist_run_log(run_log: RunLog, input_filename: str) -> Path:
+    """Dump `run_log` to a stable per-run JSON file under REPORTS_DIR.
+
+    Single write per run — D-04 «journal запуска is downloadable per audit
+    run, including failed runs» (WR-03). Caller caches the returned path in
+    `st.session_state['last_run_log_path']` so subsequent reruns read from
+    disk instead of re-writing a new timestamped file every rerun (WR-02).
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    stem = Path(input_filename).stem
+    log_path = REPORTS_DIR / f"{stem}_run_log_{timestamp}.json"
+    run_log.dump_json(log_path)
+    return log_path
 
 
 def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, selected_profile_path: str) -> None:
@@ -419,17 +432,25 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
         )
         st.error(user_msg)
         st.session_state["last_run_log"] = run_log
+        st.session_state["last_run_log_path"] = _persist_run_log(run_log, uploaded_file.name)
         st.session_state["last_uploaded_name"] = uploaded_file.name
         return
     except Exception as exc:
+        # WR-01: stage=`unknown` — process_document spans 4 stages
+        # (document-read / classification / rule-apply / save) and the
+        # catch-all cannot attribute a non-translated exception to one
+        # specific stage without wrapping. `unknown` documents the
+        # limitation rather than mislabelling save/classification as
+        # rule-apply (UI-SPEC §Run-log JSON contract enum).
         run_log.record(
-            "rule-apply",
+            "unknown",
             "error",
             error_class=type(exc).__name__,
             error_message="Не удалось обработать документ.",
         )
         st.error("Не удалось обработать документ: " + type(exc).__name__)
         st.session_state["last_run_log"] = run_log
+        st.session_state["last_run_log_path"] = _persist_run_log(run_log, uploaded_file.name)
         st.session_state["last_uploaded_name"] = uploaded_file.name
         return
 
@@ -440,6 +461,10 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
     st.session_state["last_result"] = result
     st.session_state["last_uploaded_name"] = uploaded_file.name
     st.session_state["last_run_log"] = run_log
+    # WR-02: write the run-log JSON exactly ONCE per run (here, on success)
+    # and cache the path in session_state. `render_report` reads from disk
+    # on subsequent reruns instead of timestamping a new file every rerun.
+    st.session_state["last_run_log_path"] = _persist_run_log(run_log, uploaded_file.name)
 
 
 @st.dialog("Создать профиль из методички", width="large")
@@ -506,11 +531,20 @@ def methodical_modal(available_profile_ids: list[str]) -> None:
     if diff is not None and draft is not None:
         st.code("\n".join(diff), language=None)
         profile_id = draft["profile_id"]
-        target_paths = [
-            PROFILES_DIR / f"{profile_id}.json",
-            CUSTOM_PROFILES_DIR / f"{profile_id}.json",
-        ]
-        target_exists = any(p.exists() for p in target_paths)
+        # WR-05: collision is checked against the actual write target only
+        # (CUSTOM_PROFILES_DIR), mirroring the CLI which uses
+        # `target_dir = output_dir or PROFILES_DIR` (src/main.py:334-335).
+        # Shadowing a built-in shipped profile is surfaced as an inline
+        # info note, NOT as a force-reason gate — the modal must accept
+        # any profile_id the CLI accepts.
+        target_path = CUSTOM_PROFILES_DIR / f"{profile_id}.json"
+        target_exists = target_path.exists()
+        shadowing_builtin = (PROFILES_DIR / f"{profile_id}.json").exists()
+        if shadowing_builtin and not target_exists:
+            st.info(
+                f"`{profile_id}` совпадает с именем встроенного профиля — "
+                "пользовательский профиль скроет встроенный в списке."
+            )
         if not target_exists:
             apply_clicked = st.button(
                 "Применить и сохранить",
@@ -667,6 +701,18 @@ def main() -> None:
             "В левой панели выберите профиль ГОСТ и загрузите файл. "
             "После запуска аудита здесь появятся счётчики и блоки."
         )
+        # WR-03: show the run-log download even on the early-return error
+        # path so users can attach the journal to a bug report when
+        # processing failed and there is no `result` to render.
+        log_path: Path | None = st.session_state.get("last_run_log_path")
+        if log_path is not None and log_path.exists():
+            st.download_button(
+                "Скачать журнал запуска (JSON)",
+                data=log_path.read_bytes(),
+                file_name=log_path.name,
+                mime="application/json",
+                key="download_run_log_failed",
+            )
         return
 
     render_report(result)
