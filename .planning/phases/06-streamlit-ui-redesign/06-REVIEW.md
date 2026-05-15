@@ -16,7 +16,14 @@ findings:
   warning: 5
   info: 4
   total: 11
-status: issues_found
+critical_resolved:
+  - id: CR-01
+    fix_commit: a81b892
+    note: modal_reason_is_valid now requires printable non-whitespace char per src/main.py:367-374 T-05-01
+  - id: CR-02
+    fix_commit: a81b892
+    note: methodical_modal call lifted out of `with st.sidebar:` via session_state flag pop at top level
+status: issues_resolved
 ---
 
 # Phase 6: Code Review Report
