@@ -107,31 +107,6 @@ def inject_page_styles() -> None:
         .stButton > button[kind="secondary"] {
             border-radius: 8px;
         }
-        .hero {
-            padding: 1.6rem 1.85rem;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #10192f 0%, #1a2750 55%, #281f62 100%);
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
-            margin-bottom: 1rem;
-        }
-        .hero h1 {
-            margin: 0 0 0.35rem 0;
-            font-size: 1.85rem;
-            line-height: 1.15;
-            color: #ffffff;
-        }
-        .hero p {
-            margin: 0;
-            color: rgba(255, 255, 255, 0.78);
-            font-size: 0.96rem;
-            max-width: 86ch;
-        }
-        .hero-meta {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-top: 0.9rem;
-        }
         .badge {
             display: inline-block;
             padding: 0.35rem 0.7rem;
@@ -185,14 +160,6 @@ def inject_page_styles() -> None:
             margin: 0 0 0.75rem 0;
             color: #6b7280;
             font-size: 0.88rem;
-        }
-        .section-note {
-            color: #6b7280;
-            font-size: 0.92rem;
-            margin-bottom: 0.75rem;
-        }
-        div[data-testid="stTabs"] button p {
-            font-weight: 700;
         }
         </style>
         """,
@@ -289,15 +256,18 @@ def render_block_section(title: str, df: pd.DataFrame, expanded_by_default: bool
     st.subheader(f"{title} ({len(df)})")
     for _, row in df.iterrows():
         if bool(row.get("blocked_unsafe_autofix", False)) is True:
-            icon, label, _css = STATUS_CHIP["blocked_unsafe_autofix"]
+            icon, label, _ = STATUS_CHIP["blocked_unsafe_autofix"]
         else:
             key = str(row.get("status", ""))
-            icon, label, _css = STATUS_CHIP.get(key, ("?", key or "—", "badge-neutral"))
+            icon, label, _ = STATUS_CHIP.get(key, ("?", key or "—", "badge-neutral"))
 
         conf = row.get("confidence_score")
-        try:
-            conf_str = f"{float(conf):.2f}" if _has(conf) else "—"
-        except (TypeError, ValueError):
+        if _has(conf):
+            try:
+                conf_str = f"{float(conf):.2f}"  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                conf_str = "—"
+        else:
             conf_str = "—"
 
         header = (
@@ -353,9 +323,9 @@ def render_report(result: ProcessingArtifacts) -> None:
         df = df.assign(blocked_unsafe_autofix=False)
     blocked_mask = df["blocked_unsafe_autofix"].astype(bool)
     attention_mask = df["status"].isin(["review", "error"]) | blocked_mask
-    df_attention = df[attention_mask]
-    df_changed = df[(df["status"] == "changed") & ~blocked_mask]
-    df_ok = df[df["status"] == "no_change"]
+    df_attention = pd.DataFrame(df[attention_mask])
+    df_changed = pd.DataFrame(df[(df["status"] == "changed") & ~blocked_mask])
+    df_ok = pd.DataFrame(df[df["status"] == "no_change"])
 
     # 4. Render groups in order.
     if df_attention.empty:
