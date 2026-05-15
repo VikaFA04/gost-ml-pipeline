@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +15,10 @@ from src.inference.application_service import (
     save_uploaded_bytes,
 )
 from src.inference.run_log import RunLog
-from src.rules.methodical_extractor import build_methodical_profile, extract_text_from_file, save_methodical_profile
+# methodical_extractor imports (build_methodical_profile, extract_text_from_file,
+# save_methodical_profile) will be re-added by 06-04 when the methodical modal
+# lands. Removed here per CLAUDE.md «Удаляй orphans» since the sidebar form
+# that consumed them is deleted in this plan.
 
 SUPPORTED_UPLOAD_TYPES = ["docx"]
 SUPPORTED_METHODICAL_UPLOAD_TYPES = ["pdf", "docx", "txt", "md"]
@@ -198,26 +199,6 @@ def inject_page_styles() -> None:
     )
 
 
-def render_hero() -> None:
-    """Render the top hero block."""
-    st.markdown(
-        """
-        <div class="hero">
-            <h1>ГОСТ Formatter — интеллектуальный нормоконтроль документов</h1>
-            <p>Выбери профиль ГОСТ и загрузи DOCX-документ. Система извлечет блоки,
-            классифицирует их, выполнит нормативный аудит и подготовит безопасные исправления.</p>
-            <div class="hero-meta">
-                <span class="badge badge-neutral">Профиль: ГОСТ 7.32-2017</span>
-                <span class="badge badge-neutral">DOCX</span>
-                <span class="badge badge-neutral">Аудит и безопасные правки</span>
-                <span class="badge badge-neutral">Объяснения по правилам</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def render_metric_card(label: str, value: int | str, meta: str) -> None:
     """Render a summary card."""
     st.markdown(
@@ -277,156 +258,6 @@ def build_profile_options(profile_items: list[dict[str, str]], custom_items: lis
             seen_profile_ids.add(profile_id)
         merged.append(item)
     return merged
-
-
-def build_methodical_profile_draft(uploaded_file, profile_name: str, base_profile_ids: list[str]) -> dict[str, Any]:
-    temp_input = save_uploaded_bytes(uploaded_file.getvalue(), suffix=Path(uploaded_file.name).suffix)
-    text = extract_text_from_file(temp_input)
-    profile = build_methodical_profile(
-        input_path=temp_input,
-        text=text,
-        base_profile_ids=base_profile_ids or None,
-        profile_name=profile_name or f"Методичка: {uploaded_file.name}",
-    )
-    profile["extraction_meta"]["source_file_name"] = uploaded_file.name
-    return profile
-
-
-def persist_custom_profile(profile: dict[str, Any]) -> dict[str, str]:
-    CUSTOM_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = save_methodical_profile(profile=profile, output_dir=CUSTOM_PROFILES_DIR)
-    return {
-        "profile_id": output_path.stem,
-        "profile_name": str(profile.get("profile_name", output_path.stem)),
-        "profile_type": str(profile.get("profile_type", "methodical_guidelines")),
-        "source_type": str(profile.get("source_type", "user_uploaded")),
-        "path": str(output_path),
-    }
-
-
-def _set_session_methodical_draft(profile: dict[str, Any], source_name: str, source_type: str) -> None:
-    st.session_state["methodical_profile_draft"] = profile
-    st.session_state["methodical_profile_source_name"] = source_name
-    st.session_state["methodical_profile_source_type"] = source_type
-
-
-def _get_session_methodical_draft() -> dict[str, Any] | None:
-    draft = st.session_state.get("methodical_profile_draft")
-    return draft if isinstance(draft, dict) else None
-
-
-def _apply_methodical_form_edits(profile: dict[str, Any], form_data: dict[str, Any]) -> dict[str, Any]:
-    edited = json.loads(json.dumps(profile, ensure_ascii=False))
-    edited["profile_name"] = form_data["profile_name"].strip()
-    edited["base_profiles"] = form_data["base_profiles"]
-
-    document_rules = edited.setdefault("document_rules", {})
-    page_rules = document_rules.setdefault("page", {})
-    default_font = document_rules.setdefault("default_font", {})
-
-    page_rules["margin_left_cm"] = float(form_data["margin_left_cm"])
-    page_rules["margin_right_cm"] = float(form_data["margin_right_cm"])
-    page_rules["margin_top_cm"] = float(form_data["margin_top_cm"])
-    page_rules["margin_bottom_cm"] = float(form_data["margin_bottom_cm"])
-    default_font["font_name"] = form_data["font_name"].strip()
-    default_font["font_size_pt"] = float(form_data["font_size_pt"])
-    document_rules["default_line_spacing"] = float(form_data["default_line_spacing"])
-
-    labels = edited.setdefault("labels", {})
-    body_style = labels.setdefault("body_text", {}).setdefault("style_profile", {})
-    body_style["first_line_indent_cm"] = float(form_data["body_first_line_indent_cm"])
-    body_style["line_spacing"] = float(form_data["body_line_spacing"])
-
-    title_style = labels.setdefault("title_section", {}).setdefault("style_profile", {})
-    title_style["left_indent_cm"] = float(form_data["title_left_indent_cm"])
-    title_style["font_size_pt"] = float(form_data["title_font_size_pt"])
-    title_style["space_after_pt"] = float(form_data["title_space_after_pt"])
-    title_style["bold"] = bool(form_data["title_bold"])
-
-    list_style = labels.setdefault("list_item", {}).setdefault("style_profile", {})
-    list_style["left_indent_cm"] = float(form_data["list_left_indent_cm"])
-    list_style["line_spacing"] = float(form_data["list_line_spacing"])
-
-    figure_style = labels.setdefault("figure_caption", {}).setdefault("style_profile", {})
-    figure_style["font_size_pt"] = float(form_data["figure_font_size_pt"])
-    figure_style["alignment"] = form_data["figure_alignment"]
-
-    bibliography_title_style = labels.setdefault("bibliography_title", {}).setdefault("style_profile", {})
-    bibliography_title_style["font_size_pt"] = float(form_data["bibliography_title_font_size_pt"])
-    bibliography_title_style["left_indent_cm"] = float(form_data["bibliography_title_left_indent_cm"])
-
-    numbering_rules = edited.setdefault("numbering_rules", {})
-    numbering_rules["title_section"] = {
-        "enabled": bool(form_data["title_section_numbering_enabled"]),
-        "pattern": str(form_data["title_section_numbering_pattern"]).strip(),
-    }
-    numbering_rules["title_subsection"] = {
-        "enabled": bool(form_data["title_subsection_numbering_enabled"]),
-        "pattern": str(form_data["title_subsection_numbering_pattern"]).strip(),
-    }
-    numbering_rules["unnumbered_sections"] = [
-        line.strip()
-        for line in str(form_data["unnumbered_sections"]).splitlines()
-        if line.strip()
-    ]
-    bibliography_rules = edited.setdefault("bibliography_rules", {})
-    bibliography_rules["enabled"] = bool(form_data["bibliography_enabled"])
-    bibliography_rules["separate_profile_required"] = bool(form_data["bibliography_separate_profile_required"])
-    bibliography_rules.setdefault("general", {})["require_url_for_web_resource"] = bool(
-        form_data["bibliography_require_url"]
-    )
-    entry_patterns = bibliography_rules.setdefault("entry_patterns", {})
-    for field_name, entry_key in [
-        ("bibliography_book_patterns", "book"),
-        ("bibliography_journal_patterns", "journal_article"),
-        ("bibliography_web_patterns", "web_resource"),
-        ("bibliography_standard_patterns", "standard"),
-        ("bibliography_law_patterns", "law"),
-        ("bibliography_thesis_patterns", "thesis"),
-    ]:
-        patterns = [
-            line.strip()
-            for line in str(form_data.get(field_name, "")).splitlines()
-            if line.strip()
-        ]
-        entry_patterns[entry_key] = patterns
-    soft_features = bibliography_rules.setdefault("soft_features", {})
-    for field_name, soft_key in [
-        ("bibliography_book_markers", "book_markers"),
-        ("bibliography_journal_markers", "journal_markers"),
-        ("bibliography_web_markers", "web_markers"),
-        ("bibliography_standard_markers", "standard_markers"),
-    ]:
-        markers = [
-            line.strip()
-            for line in str(form_data.get(field_name, "")).splitlines()
-            if line.strip()
-        ]
-        soft_features[soft_key] = markers
-    citation_rules = edited.setdefault("citation_rules", {})
-    citation_rules["enabled"] = bool(form_data["citation_enabled"])
-    citation_patterns = [
-        str(pattern).strip()
-        for pattern in form_data.get("citation_patterns", [])
-        if str(pattern).strip()
-    ]
-    if citation_patterns:
-        citation_rules["in_text_reference_patterns"] = citation_patterns
-        citation_rules["in_text_reference_pattern"] = citation_patterns[0]
-    else:
-        citation_rules.pop("in_text_reference_patterns", None)
-        citation_rules.pop("in_text_reference_pattern", None)
-
-    nn_context = edited.setdefault("nn_context", {})
-    expected_keywords = [
-        line.strip()
-        for line in str(form_data.get("nn_expected_bibliography_keywords", "")).splitlines()
-        if line.strip()
-    ]
-    if expected_keywords:
-        nn_context["expected_bibliography_keywords"] = expected_keywords
-
-    return edited
 
 
 def filter_audit_df(report_df: pd.DataFrame) -> pd.DataFrame:
@@ -850,9 +681,16 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
 
 
 def main() -> None:
-    """Render the Streamlit application."""
+    """Render the Streamlit application — D-01 sidebar (config) + main pane (report).
+
+    Sidebar holds: profile picker (key='profile_selectbox' is the modal-close
+    anchor for 06-04), modal trigger placeholder (06-04 swaps the body),
+    model + mode selectors, DOCX uploader (key='docx_uploader'), primary
+    «Запустить аудит» button (key='run_audit_button'). Main pane shows the
+    interim empty state (06-03 replaces with render_report) or — when a
+    result exists — delegates to legacy render_results for the time being.
+    """
     inject_page_styles()
-    render_hero()
 
     profile_items = get_profile_options()
     if not profile_items:
@@ -860,427 +698,76 @@ def main() -> None:
         st.stop()
 
     st.session_state.setdefault("custom_profile_items", [])
-    st.session_state.setdefault("methodical_profile_draft", None)
-    st.session_state.setdefault("methodical_profile_source_name", "")
-    st.session_state.setdefault("methodical_profile_source_type", "")
+    st.session_state.setdefault("last_run_log", None)
+    st.session_state.setdefault("modal_diff_lines", None)
+    st.session_state.setdefault("modal_draft_profile", None)
     custom_profile_items = st.session_state.get("custom_profile_items", [])
     all_profile_items = build_profile_options(profile_items, custom_profile_items)
     profile_label_to_path = {format_profile_option(item): item["path"] for item in all_profile_items}
     model_options = list_model_options()
-    available_profile_ids = [item["profile_id"] for item in profile_items]
 
     with st.sidebar:
         st.header("Панель управления")
-        st.caption("Выберите профиль проверки, при необходимости создайте локальный профиль из методички, затем загрузите DOCX-документ.")
-        with st.expander("Методичка и локальный профиль", expanded=False):
-            methodical_file = st.file_uploader(
-                "Загрузите методичку для извлечения правил",
-                type=SUPPORTED_METHODICAL_UPLOAD_TYPES,
-                key="methodical_file_uploader",
-            )
-            methodical_profile_name = st.text_input(
-                "Название локального профиля",
-                value="",
-                placeholder="Например: МИРЭА нормоконтроль",
-                key="methodical_profile_name",
-            )
-            methodical_base_profiles = st.multiselect(
-                "Базовые профили",
-                options=available_profile_ids,
-                default=["gost_7_32_2017", "gost_r_7_0_100_2018_bibliography"],
-                key="methodical_base_profiles",
-            )
-            create_profile_clicked = st.button(
-                "Извлечь правила",
-                use_container_width=True,
-                key="create_methodical_profile",
-            )
-            if create_profile_clicked:
-                if methodical_file is None:
-                    st.warning("Сначала загрузите PDF, DOCX, TXT или MD файл методички.")
-                else:
-                    try:
-                        draft_profile = build_methodical_profile_draft(
-                            uploaded_file=methodical_file,
-                            profile_name=methodical_profile_name.strip(),
-                            base_profile_ids=methodical_base_profiles,
-                        )
-                        _set_session_methodical_draft(
-                            profile=draft_profile,
-                            source_name=methodical_file.name,
-                            source_type=methodical_file.type or "application/octet-stream",
-                        )
-                        st.success("Черновик профиля извлечен.")
-                    except Exception as exc:
-                        st.error(str(exc))
-
-            draft_profile = _get_session_methodical_draft()
-            if draft_profile is not None:
-                st.markdown("**Черновик профиля**")
-                st.caption(
-                    f"Источник: {st.session_state.get('methodical_profile_source_name', 'неизвестно')} · "
-                    f"confidence: {draft_profile.get('extraction_meta', {}).get('extraction_confidence', 'n/a')}"
-                )
-                draft_summary = {
-                    "profile_id": draft_profile.get("profile_id"),
-                    "profile_name": draft_profile.get("profile_name"),
-                    "profile_type": draft_profile.get("profile_type"),
-                    "base_profiles": draft_profile.get("base_profiles", []),
-                    "needs_manual_review": draft_profile.get("extraction_meta", {}).get("needs_manual_review"),
-                }
-                st.json(draft_summary)
-                with st.form("methodical_profile_editor", clear_on_submit=False):
-                    edited_profile_name = st.text_input(
-                        "Название профиля",
-                        value=str(draft_profile.get("profile_name", "")),
-                    )
-                    edited_base_profiles = st.multiselect(
-                        "Базовые профили",
-                        options=available_profile_ids,
-                        default=[item for item in draft_profile.get("base_profiles", []) if item in available_profile_ids],
-                    )
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        margin_left_cm = st.number_input(
-                            "Левое поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_left_cm", 3.0)),
-                            step=0.1,
-                        )
-                        margin_right_cm = st.number_input(
-                            "Правое поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_right_cm", 1.0)),
-                            step=0.1,
-                        )
-                        margin_top_cm = st.number_input(
-                            "Верхнее поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_top_cm", 2.0)),
-                            step=0.1,
-                        )
-                        margin_bottom_cm = st.number_input(
-                            "Нижнее поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_bottom_cm", 2.0)),
-                            step=0.1,
-                        )
-                        font_name = st.text_input(
-                            "Шрифт",
-                            value=str(draft_profile.get("document_rules", {}).get("default_font", {}).get("font_name", "Times New Roman")),
-                        )
-                        font_size_pt = st.number_input(
-                            "Размер шрифта, pt",
-                            min_value=8.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("document_rules", {}).get("default_font", {}).get("font_size_pt", 14.0)),
-                            step=1.0,
-                        )
-                        default_line_spacing = st.number_input(
-                            "Интервал по умолчанию",
-                            min_value=1.0,
-                            max_value=2.5,
-                            value=float(draft_profile.get("document_rules", {}).get("default_line_spacing", 1.5)),
-                            step=0.1,
-                        )
-                    with c2:
-                        body_first_line_indent_cm = st.number_input(
-                            "Абзацный отступ body_text, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("body_text", {}).get("style_profile", {}).get("first_line_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        body_line_spacing = st.number_input(
-                            "Интервал body_text",
-                            min_value=1.0,
-                            max_value=2.5,
-                            value=float(draft_profile.get("labels", {}).get("body_text", {}).get("style_profile", {}).get("line_spacing", 1.5)),
-                            step=0.1,
-                        )
-                        title_left_indent_cm = st.number_input(
-                            "Отступ title_section слева, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("left_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        title_font_size_pt = st.number_input(
-                            "Размер title_section, pt",
-                            min_value=10.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("font_size_pt", 18.0)),
-                            step=1.0,
-                        )
-                        title_space_after_pt = st.number_input(
-                            "Интервал после title_section, pt",
-                            min_value=0.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("space_after_pt", 10.0)),
-                            step=1.0,
-                        )
-                        title_bold = st.checkbox(
-                            "title_section жирный",
-                            value=bool(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("bold", True)),
-                        )
-                        list_left_indent_cm = st.number_input(
-                            "Отступ list_item слева, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("list_item", {}).get("style_profile", {}).get("left_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        list_line_spacing = st.number_input(
-                            "Интервал list_item",
-                            min_value=1.0,
-                            max_value=2.5,
-                            value=float(draft_profile.get("labels", {}).get("list_item", {}).get("style_profile", {}).get("line_spacing", 1.5)),
-                            step=0.1,
-                        )
-                        figure_alignment = st.selectbox(
-                            "Выравнивание figure_caption",
-                            options=["LEFT", "CENTER", "RIGHT", "JUSTIFY"],
-                            index=["LEFT", "CENTER", "RIGHT", "JUSTIFY"].index(
-                                str(draft_profile.get("labels", {}).get("figure_caption", {}).get("style_profile", {}).get("alignment", "CENTER"))
-                            ),
-                        )
-                        figure_font_size_pt = st.number_input(
-                            "Размер figure_caption, pt",
-                            min_value=8.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("figure_caption", {}).get("style_profile", {}).get("font_size_pt", 12.0)),
-                            step=1.0,
-                        )
-                        bibliography_title_left_indent_cm = st.number_input(
-                            "Отступ bibliography_title слева, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("bibliography_title", {}).get("style_profile", {}).get("left_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        bibliography_title_font_size_pt = st.number_input(
-                            "Размер bibliography_title, pt",
-                            min_value=8.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("bibliography_title", {}).get("style_profile", {}).get("font_size_pt", 14.0)),
-                            step=1.0,
-                        )
-
-                    st.markdown("**Структурные правила**")
-                    title_section_numbering_enabled = st.checkbox(
-                        "Нумерация для title_section",
-                        value=bool(draft_profile.get("numbering_rules", {}).get("title_section", {}).get("enabled", True)),
-                    )
-                    title_section_numbering_pattern = st.text_input(
-                        "Шаблон title_section",
-                        value=str(draft_profile.get("numbering_rules", {}).get("title_section", {}).get("pattern", r"^\d+\s+.+$")),
-                    )
-                    title_subsection_numbering_enabled = st.checkbox(
-                        "Нумерация для title_subsection",
-                        value=bool(draft_profile.get("numbering_rules", {}).get("title_subsection", {}).get("enabled", True)),
-                    )
-                    title_subsection_numbering_pattern = st.text_input(
-                        "Шаблон title_subsection",
-                        value=str(draft_profile.get("numbering_rules", {}).get("title_subsection", {}).get("pattern", r"^\d+\.\d+\s+.+$")),
-                    )
-                    unnumbered_sections = st.text_area(
-                        "Секции без нумерации",
-                        value="\n".join(draft_profile.get("numbering_rules", {}).get("unnumbered_sections", [])),
-                        height=120,
-                    )
-                    bibliography_enabled = st.checkbox(
-                        "Включить bibliography_rules",
-                        value=bool(draft_profile.get("bibliography_rules", {}).get("enabled", True)),
-                    )
-                    bibliography_separate_profile_required = st.checkbox(
-                        "Требуется отдельный профиль библиографии",
-                        value=bool(draft_profile.get("bibliography_rules", {}).get("separate_profile_required", False)),
-                    )
-                    bibliography_require_url = st.checkbox(
-                        "Требовать URL для web_resource",
-                        value=bool(draft_profile.get("bibliography_rules", {}).get("general", {}).get("require_url_for_web_resource", True)),
-                    )
-                    bibliography_soft_features = draft_profile.get("bibliography_rules", {}).get("soft_features", {})
-                    st.markdown("**Мягкие признаки библиографии**")
-                    bibliography_book_markers = st.text_area(
-                        "book_markers",
-                        value="\n".join(bibliography_soft_features.get("book_markers", [])),
-                        height=90,
-                    )
-                    bibliography_journal_markers = st.text_area(
-                        "journal_markers",
-                        value="\n".join(bibliography_soft_features.get("journal_markers", [])),
-                        height=90,
-                    )
-                    bibliography_web_markers = st.text_area(
-                        "web_markers",
-                        value="\n".join(bibliography_soft_features.get("web_markers", [])),
-                        height=90,
-                    )
-                    bibliography_standard_markers = st.text_area(
-                        "standard_markers",
-                        value="\n".join(bibliography_soft_features.get("standard_markers", [])),
-                        height=90,
-                    )
-                    bibliography_entry_patterns = draft_profile.get("bibliography_rules", {}).get("entry_patterns", {})
-                    st.markdown("**Шаблоны библиографических описаний**")
-                    bibliography_book_patterns = st.text_area(
-                        "book",
-                        value="\n".join(bibliography_entry_patterns.get("book", [])),
-                        height=90,
-                    )
-                    bibliography_journal_patterns = st.text_area(
-                        "journal_article",
-                        value="\n".join(bibliography_entry_patterns.get("journal_article", [])),
-                        height=90,
-                    )
-                    bibliography_web_patterns = st.text_area(
-                        "web_resource",
-                        value="\n".join(bibliography_entry_patterns.get("web_resource", [])),
-                        height=90,
-                    )
-                    bibliography_standard_patterns = st.text_area(
-                        "standard",
-                        value="\n".join(bibliography_entry_patterns.get("standard", [])),
-                        height=90,
-                    )
-                    bibliography_law_patterns = st.text_area(
-                        "law",
-                        value="\n".join(bibliography_entry_patterns.get("law", [])),
-                        height=90,
-                    )
-                    bibliography_thesis_patterns = st.text_area(
-                        "thesis",
-                        value="\n".join(bibliography_entry_patterns.get("thesis", [])),
-                        height=90,
-                    )
-                    nn_expected_bibliography_keywords = st.text_area(
-                        "expected_bibliography_keywords",
-                        value="\n".join(draft_profile.get("nn_context", {}).get("expected_bibliography_keywords", [])),
-                        height=90,
-                    )
-                    citation_enabled = st.checkbox(
-                        "Включить citation_rules",
-                        value=bool(draft_profile.get("citation_rules", {}).get("enabled", True)),
-                    )
-                    citation_patterns_value = draft_profile.get("citation_rules", {}).get("in_text_reference_patterns", [])
-                    if not citation_patterns_value:
-                        single_citation_pattern = draft_profile.get("citation_rules", {}).get("in_text_reference_pattern", "")
-                        citation_patterns_value = [single_citation_pattern] if single_citation_pattern else []
-                    citation_patterns = st.text_area(
-                        "Шаблоны ссылок в тексте",
-                        value="\n".join(str(item) for item in citation_patterns_value if str(item).strip()),
-                        height=120,
-                    )
-                    save_profile_clicked = st.form_submit_button("Сохранить профиль")
-                    if save_profile_clicked:
-                        try:
-                            citation_patterns_list = [
-                                line.strip()
-                                for line in str(citation_patterns).splitlines()
-                                if line.strip()
-                            ]
-                            edited_profile = _apply_methodical_form_edits(
-                                draft_profile,
-                                {
-                                    "profile_name": edited_profile_name,
-                                    "base_profiles": edited_base_profiles,
-                                    "margin_left_cm": margin_left_cm,
-                                    "margin_right_cm": margin_right_cm,
-                                    "margin_top_cm": margin_top_cm,
-                                    "margin_bottom_cm": margin_bottom_cm,
-                                    "font_name": font_name,
-                                    "font_size_pt": font_size_pt,
-                                    "default_line_spacing": default_line_spacing,
-                                    "body_first_line_indent_cm": body_first_line_indent_cm,
-                                    "body_line_spacing": body_line_spacing,
-                                    "title_left_indent_cm": title_left_indent_cm,
-                                    "title_font_size_pt": title_font_size_pt,
-                                    "title_space_after_pt": title_space_after_pt,
-                                    "title_bold": title_bold,
-                                    "list_left_indent_cm": list_left_indent_cm,
-                                    "list_line_spacing": list_line_spacing,
-                                    "figure_alignment": figure_alignment,
-                                    "figure_font_size_pt": figure_font_size_pt,
-                                    "bibliography_title_left_indent_cm": bibliography_title_left_indent_cm,
-                                    "bibliography_title_font_size_pt": bibliography_title_font_size_pt,
-                                    "title_section_numbering_enabled": title_section_numbering_enabled,
-                                    "title_section_numbering_pattern": title_section_numbering_pattern,
-                                    "title_subsection_numbering_enabled": title_subsection_numbering_enabled,
-                                    "title_subsection_numbering_pattern": title_subsection_numbering_pattern,
-                                    "unnumbered_sections": unnumbered_sections,
-                                    "bibliography_enabled": bibliography_enabled,
-                                    "bibliography_separate_profile_required": bibliography_separate_profile_required,
-                                    "bibliography_require_url": bibliography_require_url,
-                                    "bibliography_book_markers": bibliography_book_markers,
-                                    "bibliography_journal_markers": bibliography_journal_markers,
-                                    "bibliography_web_markers": bibliography_web_markers,
-                                    "bibliography_standard_markers": bibliography_standard_markers,
-                                    "bibliography_book_patterns": bibliography_book_patterns,
-                                    "bibliography_journal_patterns": bibliography_journal_patterns,
-                                    "bibliography_web_patterns": bibliography_web_patterns,
-                                    "bibliography_standard_patterns": bibliography_standard_patterns,
-                                    "bibliography_law_patterns": bibliography_law_patterns,
-                                    "bibliography_thesis_patterns": bibliography_thesis_patterns,
-                                    "nn_expected_bibliography_keywords": nn_expected_bibliography_keywords,
-                                    "citation_enabled": citation_enabled,
-                                    "citation_patterns": citation_patterns_list,
-                                },
-                            )
-                            custom_profile = persist_custom_profile(edited_profile)
-                            st.session_state["custom_profile_items"] = [
-                                *st.session_state.get("custom_profile_items", []),
-                                custom_profile,
-                            ]
-                            st.session_state["methodical_profile_draft"] = edited_profile
-                            st.success(f"Профиль сохранен: {custom_profile['profile_name']}")
-                            st.rerun()
-                        except Exception as exc:
-                            st.error(str(exc))
-        uploaded_file = st.file_uploader("Загрузите DOCX-документ для проверки", type=SUPPORTED_UPLOAD_TYPES)
-        selected_model_key = st.selectbox(
-            "Модель",
-            options=list(model_options.keys()),
-            format_func=lambda key: {
-                "baseline": "SVM baseline",
-                "transformer": "Transformer",
-                "baseline_unavailable": "Baseline недоступен",
-            }.get(key, model_options[key]),
-        )
-        selected_mode = st.radio(
-            "Режим",
-            options=["audit", "fix"],
-            format_func=lambda value: "Только аудит" if value == "audit" else "Аудит и безопасное форматирование",
-        )
+        st.caption("Выберите профиль ГОСТ, загрузите DOCX-документ и запустите аудит.")
         selected_profile_label = st.selectbox(
             "Профиль ГОСТ",
             options=list(profile_label_to_path.keys()),
             key="profile_selectbox",
         )
-        process_clicked = st.button("Запустить анализ документа", type="primary", use_container_width=True)
-        st.markdown("---")
-        st.caption("Поддерживаемый формат MVP: DOCX.")
-
-    if process_clicked:
-        selected_profile_path = profile_label_to_path[selected_profile_label]
-        run_processing(
-            uploaded_file=uploaded_file,
-            selected_model_key=selected_model_key,
-            selected_mode=selected_mode,
-            selected_profile_path=selected_profile_path,
+        open_modal_clicked = st.button(
+            "+ Создать профиль из методички",
+            key="open_methodical_modal",
+            use_container_width=True,
         )
+        if open_modal_clicked:
+            # Placeholder — 06-04 replaces this body with the methodical st.dialog call.
+            st.info("Модал создания профиля из методички будет доступен после плана 06-04.")
+        model_key = st.selectbox(
+            "Модель",
+            options=list(model_options.keys()),
+            format_func=lambda k: model_options.get(k, k),
+            key="model_selectbox",
+        )
+        mode_key = st.radio(
+            "Режим",
+            options=["audit", "fix"],
+            format_func=lambda k: "Только аудит" if k == "audit" else "Применить безопасные исправления",
+            key="mode_radio",
+        )
+        uploaded_file = st.file_uploader(
+            "Загрузите DOCX",
+            type=SUPPORTED_UPLOAD_TYPES,
+            key="docx_uploader",
+        )
+        run_disabled = uploaded_file is None or selected_profile_label is None
+        run_clicked = st.button(
+            "Запустить аудит",
+            type="primary",
+            disabled=run_disabled,
+            use_container_width=True,
+            key="run_audit_button",
+        )
+
+    if run_clicked and not run_disabled:
+        selected_profile_path = profile_label_to_path[selected_profile_label]
+        with st.spinner("Идёт аудит документа..."):
+            run_processing(
+                uploaded_file=uploaded_file,
+                selected_model_key=model_key,
+                selected_mode=mode_key,
+                selected_profile_path=selected_profile_path,
+            )
 
     result = st.session_state.get("last_result")
     if result is None:
-        st.info("Загрузите документ и запустите анализ, чтобы увидеть сводку, аудит и артефакты.")
+        st.info("Загрузите DOCX-документ, чтобы начать аудит")
+        st.caption(
+            "В левой панели выберите профиль ГОСТ и загрузите файл. "
+            "После запуска аудита здесь появятся счётчики и блоки."
+        )
         return
 
-    current_upload = st.session_state.get("last_uploaded_name", result.input_path.name)
-    st.caption(f"Последний запуск: {current_upload}")
+    # Interim: 06-03 replaces this with render_report(result).
     render_results(result)
 
 
