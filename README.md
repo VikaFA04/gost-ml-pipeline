@@ -193,3 +193,7 @@ Baseline-модель выбирается первой, если в `results/mo
 - Автокоррекция не применяется к небезопасным или неоднозначным блокам.
 - Финальная проверка спорных `review`-блоков остается за пользователем.
 - Метрики считаются на weak-label датасете; спорные классы нужно дополнительно валидировать вручную.
+
+## Limits
+
+PDF input is supported in audit-only mode: the document must contain an extractable text layer (≥ 50% of pages must return non-empty text via `fitz.Page.get_text()`). Scanned PDFs and page-image PDFs are rejected at preflight — OCR is not supported. There is no corrected PDF produced; `applied_fixes` is always empty for PDF blocks. DOCX input remains the only path that produces a corrected document.

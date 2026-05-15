@@ -16,12 +16,13 @@ from src.inference.application_service import (
     process_document,
     save_uploaded_bytes,
 )
+from src.inference.pdf_loader import PdfNoTextLayer
 from src.inference.run_log import RunLog
 from src.rules.methodical_extractor import build_methodical_profile, save_methodical_profile
 from src.rules.profile_diff import compute_profile_diff
 from src.rules.profile_loader import PROFILES_DIR, list_available_profiles, load_profile
 
-SUPPORTED_UPLOAD_TYPES = ["docx"]
+SUPPORTED_UPLOAD_TYPES = ["docx", "pdf"]
 SUPPORTED_METHODICAL_UPLOAD_TYPES = ["pdf", "docx", "txt", "md"]
 CUSTOM_PROFILES_DIR = Path("results/generated_profiles")
 
@@ -59,8 +60,10 @@ def preflight_translate_error(exc: Exception) -> str:
             "Файл не читается. Проверьте, что это валидный DOCX (.docx, ZIP-архив). "
             "Откройте файл в Word и пересохраните, если нужно."
         )
-    if isinstance(exc, NotImplementedError):
-        return "PDF аудит ещё не поддерживается в этой версии."
+    if isinstance(exc, PdfNoTextLayer):
+        # 07-CONTEXT.md D-03 — locked Russian message; substrings asserted by
+        # tests/test_preflight.py::test_preflight_translate_pdf_no_text_layer.
+        return "PDF без извлекаемого текстового слоя — OCR не поддерживается."
     if isinstance(exc, ValueError):
         msg = str(exc)
         if "extractable non-empty blocks" in msg:
@@ -300,7 +303,7 @@ def render_block_section(title: str, df: pd.DataFrame, expanded_by_default: bool
                 st.write(str(row.get("explanation") or "Внутренняя ошибка правила. См. журнал запуска."))
 
 
-def render_report(result: ProcessingArtifacts) -> None:
+def render_report(result: ProcessingArtifacts, filename: str | None = None) -> None:
     """Render the linear main-pane report (06-UI-SPEC §Section headings 1-6).
 
     Sections:
@@ -313,11 +316,19 @@ def render_report(result: ProcessingArtifacts) -> None:
          + run-log JSON (D-04)
     """
     # 1. Report header.
-    filename = Path(result.input_path).name
+    if filename is None:
+        filename = Path(result.input_path).name
     profile_name = result.summary.get("profile_name", "—")
     profile_id = result.summary.get("profile_id") or Path(result.profile_path).stem
     st.subheader(f"Отчёт по документу: {filename}")
     st.caption(f"Профиль: {profile_name} ({profile_id})")
+    if result.input_extension == ".pdf":
+        # 07-CONTEXT.md D-04 §2 + 07-UI-SPEC §"Copywriting Contract" — locked badge text.
+        # Reuses existing .badge.badge-warn class (no new CSS — CLAUDE.md «минимум кода»).
+        st.markdown(
+            '<span class="badge badge-warn">PDF — режим аудита, без исправлений</span>',
+            unsafe_allow_html=True,
+        )
 
     # 2. Summary counters.
     render_summary_counters(result.summary)
@@ -357,7 +368,11 @@ def render_report(result: ProcessingArtifacts) -> None:
         mime="application/json",
         key="download_summary_json",
     )
-    if result.output_docx is not None and result.output_docx.exists():
+    if (
+        result.input_extension != ".pdf"
+        and result.output_docx is not None
+        and result.output_docx.exists()
+    ):
         render_artifact_download_card(
             title="Исправленный DOCX",
             description="Редактируемый DOCX, созданный после безопасных исправлений.",
@@ -422,7 +437,7 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
             mode=selected_mode,
             profile_path=selected_profile_path,
         )
-    except (FileNotFoundError, NotImplementedError, ValueError, zipfile.BadZipFile) as exc:
+    except (FileNotFoundError, PdfNoTextLayer, ValueError, zipfile.BadZipFile) as exc:
         user_msg = preflight_translate_error(exc)
         run_log.record(
             "document-read",
@@ -668,10 +683,11 @@ def main() -> None:
             key="mode_radio",
         )
         uploaded_file = st.file_uploader(
-            "Загрузите DOCX",
+            "Загрузите документ (DOCX или PDF)",
             type=SUPPORTED_UPLOAD_TYPES,
             key="docx_uploader",
         )
+        st.caption("PDF: только аудит, без OCR")
         run_disabled = uploaded_file is None or selected_profile_label is None
         run_clicked = st.button(
             "Запустить аудит",
