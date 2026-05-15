@@ -128,7 +128,7 @@ Plans:
 - [x] 06-01-PLAN.md — Wave 1 GREEN: src/inference/run_log.py RunLog single-writer logger (PII boundary)
 - [x] 06-02-PLAN.md — Wave 2: app.py sidebar redesign (D-01) + RunLog wiring in run_processing + preflight_translate_error + modal_reason_is_valid + STATUS_CHIP; remove st.exception traceback leak
 - [x] 06-03-PLAN.md — Wave 3: app.py render_report + render_block_section + render_summary_counters (D-02 grouped sections); delete render_results + 5 other orphans; run-log JSON download
-- [ ] 06-04-PLAN.md — Wave 4: app.py methodical_modal @st.dialog (D-03 + D-004 mirror — preview / apply / force-reason ≥8)
+- [x] 06-04-PLAN.md — Wave 4: app.py methodical_modal @st.dialog (D-03 + D-004 mirror — preview / apply / force-reason ≥8)
 - [ ] 06-05-PLAN.md — Wave 5 (checkpoint): app.py cleanup + 06-DESIGN-REVIEW.md + human design-review sign-off
 **UI hint**: yes
 
