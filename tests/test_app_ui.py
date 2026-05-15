@@ -30,10 +30,14 @@ def test_app_test_renders_without_exception(app_test) -> None:
 
 
 def test_app_empty_state_visible_without_docx(app_test) -> None:
-    """Phase 6 empty-state heading from UI-SPEC §Empty state copy must be rendered.
+    """Phase 7 D-04 §3 / G-07-02 empty-state copy must mention DOCX + PDF.
 
-    RED today — current `render_hero` text is different. Drives Waves 2/3.
-    Match substring `Загрузите DOCX-документ` (without trailing punctuation).
+    Original Phase 6 copy was «Загрузите DOCX-документ»; Phase 7 expanded
+    SUPPORTED_UPLOAD_TYPES to ['docx', 'pdf'] and Plan 07-03 updated the
+    sidebar uploader label to «Загрузите документ (DOCX или PDF)». G-07-02
+    closes the drift between sidebar uploader copy and main-pane empty
+    state — the empty-state alert now mirrors the uploader: «Загрузите
+    документ (DOCX или PDF), чтобы начать аудит».
     """
     at = app_test.run(timeout=30)
     rendered = []
@@ -43,8 +47,11 @@ def test_app_empty_state_visible_without_docx(app_test) -> None:
             if value is not None:
                 rendered.append(str(value))
     haystack = "\n".join(rendered)
-    assert "Загрузите DOCX-документ" in haystack, (
-        "Phase 6 empty-state heading missing from rendered output"
+    assert "Загрузите документ" in haystack, (
+        "Phase 7 G-07-02 empty-state copy missing «Загрузите документ» substring"
+    )
+    assert "(DOCX или PDF)" in haystack, (
+        "Phase 7 G-07-02 empty-state copy missing «(DOCX или PDF)» substring"
     )
 
 

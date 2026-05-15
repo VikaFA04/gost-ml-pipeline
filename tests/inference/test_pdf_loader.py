@@ -83,6 +83,26 @@ def test_extract_pdf_blocks_image_only_page_sentinel(scanned_pdf: Path) -> None:
     assert "PDF page — без извлекаемого текста" in row["explanation"]
 
 
+def test_extract_pdf_blocks_text_block_reviewer_wording(text_pdf: Path) -> None:
+    """G-07-03: text-block explanation must be framed for the human reviewer.
+
+    Locked substring «PDF блок» (Plan 07-01 §truth) is preserved. The full
+    wording shifts from model-POV «классификация недоступна (SVM требует
+    DOCX-формата)» to reviewer-action «требует ручной проверки» per
+    07-UAT.md G-07-03.
+    """
+    from src.inference.pdf_loader import extract_pdf_blocks
+
+    rows = extract_pdf_blocks(text_pdf)
+    assert len(rows) >= 1
+    first = rows[0]
+    assert first["status"] == "review"
+    # Locked substring — preserves Plan 07-01 §truth / UAT Test 4 invariant.
+    assert "PDF блок" in first["explanation"]
+    # New reviewer-facing substring — the G-07-03 fix.
+    assert "требует ручной проверки" in first["explanation"]
+
+
 def test_processing_artifacts_has_input_extension_field() -> None:
     from src.inference.application_service import ProcessingArtifacts
     field_names = {f.name for f in dataclasses.fields(ProcessingArtifacts)}
