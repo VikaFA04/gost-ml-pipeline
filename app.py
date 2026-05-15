@@ -422,7 +422,9 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
         st.warning("Сначала загрузите DOCX-документ.")
         return
 
-    if selected_model_key == "baseline_unavailable":
+    if selected_model_key == "baseline_unavailable" and Path(uploaded_file.name).suffix.lower() != ".pdf":
+        # G-07-01: PDF input bypasses the SVM (Plan 07-02 D-02), so a missing
+        # baseline .joblib must not block PDF audits. DOCX still short-circuits.
         st.error("Baseline-модель недоступна: в workspace нет сохраненного .joblib-артефакта.")
         return
 
