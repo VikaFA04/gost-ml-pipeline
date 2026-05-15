@@ -24,7 +24,7 @@ operational state and the original Этапы 1–9 are preserved in
 - [ ] **Phase 4: Regression gate** - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
 - [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PDF methodical-profile ingestion with diff (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
 - [x] **Phase 6: Streamlit UI redesign** *(completed 2026-05-15)* - Rebuild the UI around the audit flow and pass design review.
-- [ ] **Phase 7: PDF text-layer audit slice** - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
+- [x] **Phase 7: PDF text-layer audit slice** *(completed 2026-05-15)* - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
 - [ ] **Phase 8: Milestone acceptance** - End-to-end MVP acceptance + success-metric verification.
 
 ## Phase Details
@@ -141,11 +141,13 @@ Plans:
   2. Audit report for a PDF input uses the same CSV schema as DOCX; `applied_fixes` is always empty and no PDF is written.
   3. UI uploader supports `.pdf` alongside `.docx` and clearly labels PDF as audit-only.
   4. README + UI copy state the text-layer + read-only + no-OCR limits; no autofix code path runs on PDF input.
-**Plans:** 3 plans
+**Plans:** 5 plans (3 base + 2 gap-closure)
 Plans:
-- [ ] 07-01-PLAN.md — Wave 0 RED (TDD): tests/inference/ scaffolding + 9 RED tests for pdf_loader / ProcessingArtifacts.input_extension / README §Limits; update tests/test_preflight.py + tests/test_app_upload_contract.py + tests/test_render_block_section.py (delete dead NotImplementedError test, flip upload-type assertions, add PdfNoTextLayer test)
-- [ ] 07-02-PLAN.md — Wave 1 GREEN backend: src/inference/pdf_loader.py (check_text_layer + extract_pdf_blocks + PdfNoTextLayer); document_loader.py delete NotImplementedError block; application_service.py ProcessingArtifacts.input_extension field + _process_pdf branch (Pitfalls 3+5 resolved)
-- [ ] 07-03-PLAN.md — Wave 2 GREEN UI + docs: app.py 4 sites (SUPPORTED_UPLOAD_TYPES, preflight branch swap, render_report badge + DOCX gate, sidebar uploader label + caption); README.md §Limits paragraph (audit-only / text layer / no OCR / no corrected PDF); manual UAT checkpoint
+- [x] 07-01-PLAN.md — Wave 0 RED (TDD): tests/inference/ scaffolding + 13 RED tests for pdf_loader / ProcessingArtifacts.input_extension + sentinels / README §Limits + 2 RED tests for render_report PDF surface; update tests/test_preflight.py + tests/test_app_upload_contract.py + tests/test_render_block_section.py (delete dead NotImplementedError test, flip upload-type assertions, add PdfNoTextLayer test)
+- [x] 07-02-PLAN.md — Wave 1 GREEN backend: src/inference/pdf_loader.py (check_text_layer + extract_pdf_blocks + PdfNoTextLayer); document_loader.py delete NotImplementedError block; application_service.py ProcessingArtifacts.input_extension field + _process_pdf branch with predictions/extracted_csv sentinels (Pitfalls 3+5 resolved)
+- [x] 07-03-PLAN.md — Wave 2 GREEN UI + docs: app.py 5 sites (SUPPORTED_UPLOAD_TYPES, preflight branch swap, except-tuple swap, render_report badge + DOCX gate, sidebar uploader label + caption); README.md §Limits paragraph (audit-only / text layer / no OCR / no corrected PDF); manual UAT checkpoint
+- [x] 07-04-PLAN.md — Wave 3 GAP G-07-01: run_processing widens baseline_unavailable guard to skip for .pdf uploads (PDF path bypasses SVM per 07-02); RED-then-GREEN regression test in tests/test_run_processing_pdf_bypass.py; CLAUDE.md self-improvement rule for pre-pipeline UI gates on supported-format expansion
+- [x] 07-05-PLAN.md — Wave 4 GAPS G-07-02 + G-07-03: main-pane empty-state copy mirrors sidebar uploader («Загрузите документ (DOCX или PDF), чтобы начать аудит»); extract_pdf_blocks text-block reason reframed to reviewer-POV («PDF блок — текстовый слой, требует ручной проверки»); RED tests in tests/test_app_ui.py + tests/inference/test_pdf_loader.py
 **UI hint**: yes
 
 ### Phase 8: Milestone acceptance
@@ -218,3 +220,13 @@ Plans:
 
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
+
+### Phase 9: Classical model zoo — расширенное сравнение классических моделей (LR, SVM, ComplementNB, RandomForest, HistGBM+TruncatedSVD) с унифицированным predict_proba (CalibratedClassifierCV для SVM) на текущем pipeline TF-IDF + structural features. Dataset: annotations_train.csv (15.7k), full train без sampling. Новая CLI команда compare_classical → артефакты в results/reports/ (JSON+CSV+TXT + per-class F1 appendix). Метрики основной таблицы: accuracy, weighted_f1, macro_f1, train_time_sec, inference_time_ms_per_block, model_size_mb, preprocessing_variant. TDD-driven.
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 8
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 9 to break down)

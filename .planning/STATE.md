@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 07 UI-SPEC approved
-last_updated: "2026-05-15T08:11:22.298Z"
-last_activity: 2026-05-15
+status: ready_to_plan
+stopped_at: Phase 07 complete — all 5 plans + UAT + security + Nyquist validation signed off
+last_updated: "2026-05-15T13:50:00.000Z"
+last_activity: 2026-05-15 -- Phase 07 complete (5/5 plans; 38/38 tests pass; 24/24 threats secured; Nyquist-compliant)
 progress:
   total_phases: 8
-  completed_phases: 6
-  total_plans: 31
-  completed_plans: 28
-  percent: 90
+  completed_phases: 4
+  total_plans: 33
+  completed_plans: 33
+  percent: 100
 ---
 
 # Project State
@@ -22,22 +22,22 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase 07 — pdf-text-layer-audit-slice (next)
+**Current focus:** next phase TBD — Phase 7 (PDF text-layer audit slice) closed 2026-05-15
 
 ## Current Position
 
-Phase: 7
+Phase: 8 (per ROADMAP top-level; Phase 9 directory also exists outside the checklist — sequence to be clarified)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-05-15
+Last activity: 2026-05-15 -- Phase 07 closed: 5/5 plans, 38/38 tests, 24/24 threats, Nyquist-compliant
 
-Progress: [██████████] 100% — Phase 6 complete (6/6 plans, CR-01+CR-02 resolved, HUMAN-UAT partial); next: /gsd-discuss-phase 7
+Progress: [██████████] 100% — Phase 7 complete (5/5 plans including gap-closure 07-04 + 07-05; UAT 7/7 pass; SECURITY 24/24 threats closed; VALIDATION Nyquist-compliant); next: clarify Phase 8 vs Phase 9 sequencing, then /gsd-discuss-phase
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 33 (current milestone)
+- Total plans completed: 38 (current milestone)
 - Average duration: —
 - Total execution time: —
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100% — Phase 6 complete (6/6 plans,
 | 04 | 5 | - | - |
 | 05 | 5 | - | - |
 | 06 | 6 | - | - |
+| 07 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -72,6 +73,10 @@ Progress: [██████████] 100% — Phase 6 complete (6/6 plans,
 | Phase 06-streamlit-ui-redesign P04 | 1500s | 1 task  | 1 file |
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 9 added: Classical model zoo — расширенное сравнение классических моделей (LR, SVM, ComplementNB, RandomForest, HistGBM+TruncatedSVD) с унифицированным predict_proba (CalibratedClassifierCV для SVM)
 
 ### Decisions
 
@@ -138,10 +143,11 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: --stopped-at
-Stopped at: Phase 07 UI-SPEC approved
+Last session: 2026-05-15 -- Phase 07 closed
+Stopped at: Phase 07 complete — 5/5 plans, 38/38 tests, 24/24 threats, Nyquist-compliant; ready to clarify Phase 8 vs Phase 9 sequencing
 Resume file: --resume-file
 
-**Planned Phase:** 07 (pdf-text-layer-audit-slice) — 3 plans — 2026-05-15T08:11:22.278Z
+**Completed Phase 07:** (pdf-text-layer-audit-slice) — 5 plans (3 base + 2 gap-closure 07-04 / 07-05) — closed 2026-05-15
 **Phase 06 next step:** Project-owner runs `streamlit run app.py` and walks `.planning/phases/06-streamlit-ui-redesign/06-DESIGN-REVIEW.md`; on `approved` / `approved-with-followups`, executor resumes to write 06-05-SUMMARY.md and close the phase.
 **Phase 04 next step:** verifier (orchestrator-spawned) runs against PHASE/PLAN/SUMMARY artefacts.
+**Phase 8 vs Phase 9 sequencing:** Phase 8 (Milestone acceptance) is in the top-level ROADMAP checklist but has no directory on disk. Phase 9 (classical-model-zoo) has a directory + ROADMAP detail section but is NOT in the top-level checklist. Decide which phase advances next before running /gsd-discuss-phase or /gsd-plan-phase.
