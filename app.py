@@ -303,7 +303,7 @@ def render_block_section(title: str, df: pd.DataFrame, expanded_by_default: bool
                 st.write(str(row.get("explanation") or "Внутренняя ошибка правила. См. журнал запуска."))
 
 
-def render_report(result: ProcessingArtifacts) -> None:
+def render_report(result: ProcessingArtifacts, filename: str | None = None) -> None:
     """Render the linear main-pane report (06-UI-SPEC §Section headings 1-6).
 
     Sections:
@@ -316,11 +316,19 @@ def render_report(result: ProcessingArtifacts) -> None:
          + run-log JSON (D-04)
     """
     # 1. Report header.
-    filename = Path(result.input_path).name
+    if filename is None:
+        filename = Path(result.input_path).name
     profile_name = result.summary.get("profile_name", "—")
     profile_id = result.summary.get("profile_id") or Path(result.profile_path).stem
     st.subheader(f"Отчёт по документу: {filename}")
     st.caption(f"Профиль: {profile_name} ({profile_id})")
+    if result.input_extension == ".pdf":
+        # 07-CONTEXT.md D-04 §2 + 07-UI-SPEC §"Copywriting Contract" — locked badge text.
+        # Reuses existing .badge.badge-warn class (no new CSS — CLAUDE.md «минимум кода»).
+        st.markdown(
+            '<span class="badge badge-warn">PDF — режим аудита, без исправлений</span>',
+            unsafe_allow_html=True,
+        )
 
     # 2. Summary counters.
     render_summary_counters(result.summary)
@@ -360,7 +368,11 @@ def render_report(result: ProcessingArtifacts) -> None:
         mime="application/json",
         key="download_summary_json",
     )
-    if result.output_docx is not None and result.output_docx.exists():
+    if (
+        result.input_extension != ".pdf"
+        and result.output_docx is not None
+        and result.output_docx.exists()
+    ):
         render_artifact_download_card(
             title="Исправленный DOCX",
             description="Редактируемый DOCX, созданный после безопасных исправлений.",
