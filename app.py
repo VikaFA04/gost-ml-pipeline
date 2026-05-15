@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -14,11 +16,52 @@ from src.inference.application_service import (
     process_document,
     save_uploaded_bytes,
 )
+from src.inference.run_log import RunLog
 from src.rules.methodical_extractor import build_methodical_profile, extract_text_from_file, save_methodical_profile
 
 SUPPORTED_UPLOAD_TYPES = ["docx"]
 SUPPORTED_METHODICAL_UPLOAD_TYPES = ["pdf", "docx", "txt", "md"]
 CUSTOM_PROFILES_DIR = Path("results/generated_profiles")
+
+# STATUS_CHIP: maps the 5 Phase 6 block statuses to (icon, Russian-label, badge-css-class).
+# NOTE per 06-PATTERNS.md §"CRITICAL FINDING: report_df schema": `blocked_unsafe_autofix`
+# is a separate boolean column in report_df, not a `status` value. The key here is used
+# only for display when that boolean is True.
+STATUS_CHIP: dict[str, tuple[str, str, str]] = {
+    "no_change":              ("●",  "Без изменений",                                "badge-ok"),
+    "changed":                ("✏️", "Изменено",                                     "badge-change"),
+    "review":                 ("⚠️", "Требует проверки",                             "badge-warn"),
+    "error":                  ("✗",  "Ошибка",                                       "badge-error"),
+    "blocked_unsafe_autofix": ("🛑", "Небезопасное автоисправление заблокировано",   "badge-muted"),
+}
+
+
+def modal_reason_is_valid(reason: str) -> bool:
+    """D-004 / T-05-01: reason must be ≥ 8 non-whitespace chars after strip."""
+    return len(reason.strip()) >= 8
+
+
+def preflight_translate_error(exc: Exception) -> str:
+    """Translate a backend exception into a fixed Russian user-message.
+
+    Returns ONLY one of 5 fixed strings — never str(exc) (PII boundary per
+    06-UI-SPEC §Error state copy + 06-RESEARCH.md §5).
+    """
+    if isinstance(exc, (FileNotFoundError, zipfile.BadZipFile)):
+        return (
+            "Файл не читается. Проверьте, что это валидный DOCX (.docx, ZIP-архив). "
+            "Откройте файл в Word и пересохраните, если нужно."
+        )
+    if isinstance(exc, NotImplementedError):
+        return "PDF аудит ещё не поддерживается в этой версии."
+    if isinstance(exc, ValueError):
+        msg = str(exc)
+        if "extractable non-empty blocks" in msg:
+            return "В документе нет извлекаемых непустых блоков. Проверьте, что документ содержит текст."
+        if "Unsupported input format" in msg or "Only DOCX is currently supported" in msg:
+            return "Расширение файла `.docx`, но содержимое не соответствует DOCX-формату."
+        return "Не удалось обработать документ. См. журнал запуска."
+    return "Не удалось обработать документ. См. журнал запуска."
 
 st.set_page_config(page_title="ГОСТ Formatter", page_icon="📄", layout="wide")
 
@@ -748,7 +791,12 @@ def render_results(result: ProcessingArtifacts) -> None:
 
 
 def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, selected_profile_path: str) -> None:
-    """Execute the backend processing pipeline and store the last result."""
+    """Execute the backend processing pipeline and store the last result.
+
+    Wires `RunLog` (06-01) for the 4 pipeline stages and translates backend
+    exceptions through `preflight_translate_error` so no traceback / no
+    document text reaches the UI surface (D-04 PII boundary).
+    """
     if uploaded_file is None:
         st.warning("Сначала загрузите DOCX-документ.")
         return
@@ -758,6 +806,8 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
         return
 
     input_path = save_uploaded_bytes(uploaded_file.getvalue(), suffix=Path(uploaded_file.name).suffix)
+    run_log = RunLog(uploaded_file.name)
+    run_log.record("document-read", "ok")
 
     try:
         result = process_document(
@@ -766,15 +816,37 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
             mode=selected_mode,
             profile_path=selected_profile_path,
         )
-    except NotImplementedError as exc:
-        st.error(str(exc))
+    except (FileNotFoundError, NotImplementedError, ValueError, zipfile.BadZipFile) as exc:
+        user_msg = preflight_translate_error(exc)
+        run_log.record(
+            "document-read",
+            "error",
+            error_class=type(exc).__name__,
+            error_message=user_msg,
+        )
+        st.error(user_msg)
+        st.session_state["last_run_log"] = run_log
+        st.session_state["last_uploaded_name"] = uploaded_file.name
         return
     except Exception as exc:
-        st.exception(exc)
+        run_log.record(
+            "rule-apply",
+            "error",
+            error_class=type(exc).__name__,
+            error_message="Не удалось обработать документ.",
+        )
+        st.error("Не удалось обработать документ: " + type(exc).__name__)
+        st.session_state["last_run_log"] = run_log
+        st.session_state["last_uploaded_name"] = uploaded_file.name
         return
+
+    run_log.record("classification", "ok")
+    run_log.record("rule-apply", "ok")
+    run_log.record("save", "ok")
 
     st.session_state["last_result"] = result
     st.session_state["last_uploaded_name"] = uploaded_file.name
+    st.session_state["last_run_log"] = run_log
 
 
 def main() -> None:
