@@ -12,6 +12,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+# D-04 PII boundary: filename + technical metadata IN; document content OUT.
+# These keys are rejected at record() to convert silent contract drift into a
+# loud failure (WR-04). Mirrors the field-level test in tests/test_run_log.py.
+_FORBIDDEN_EXTRA_KEYS: frozenset[str] = frozenset(
+    {"text", "paragraph", "block_content", "traceback"}
+)
+
 
 class RunLog:
     """Single-writer stage log. One instance per audit run.
@@ -25,9 +32,9 @@ class RunLog:
                        NEVER str(exc) when exc may contain document text
     Plus optional whitelisted extras: block_id (int), profile_id (str).
 
-    Callers MUST NOT pass `text`, `paragraph`, `block_content`, or `traceback`
-    as extras. The class does not actively reject these keys — the boundary
-    is enforced at the call site (see app.py run_processing / methodical_modal).
+    `record()` rejects PII keys (`text`, `paragraph`, `block_content`,
+    `traceback`) at the boundary with `ValueError` — D-04 enforcement is
+    no longer an out-of-band «call site MUST remember» invariant.
     """
 
     def __init__(self, input_filename: str) -> None:
@@ -47,6 +54,13 @@ class RunLog:
         error_message: str | None = None,
         **extras: Any,
     ) -> None:
+        forbidden = _FORBIDDEN_EXTRA_KEYS & extras.keys()
+        if forbidden:
+            raise ValueError(
+                f"RunLog.record forbids PII extras: {sorted(forbidden)} "
+                "(D-04 PII boundary: filename + technical metadata IN; "
+                "document content OUT)."
+            )
         entry: dict[str, Any] = {
             "stage": stage,
             "ts": datetime.now(timezone.utc).isoformat(),
