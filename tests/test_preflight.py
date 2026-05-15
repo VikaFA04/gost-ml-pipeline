@@ -50,19 +50,6 @@ def test_preflight_translate_bad_zip() -> None:
     assert "Файл не читается" in result
 
 
-def test_preflight_translate_not_implemented_pdf() -> None:
-    from app import preflight_translate_error
-
-    result = preflight_translate_error(
-        NotImplementedError("PDF input is not supported in the current pipeline.")
-    )
-    # Russian message must mention PDF and must NOT include the raw exception
-    # text (which is English and would leak through to the UI).
-    assert "PDF" in result
-    assert "Traceback" not in result
-    assert "not supported in the current pipeline" not in result
-
-
 def test_preflight_translate_unknown_error_does_not_leak_message() -> None:
     from app import preflight_translate_error
 
@@ -71,3 +58,16 @@ def test_preflight_translate_unknown_error_does_not_leak_message() -> None:
     # offending exception text through to the UI surface (PII boundary).
     assert "secret PII" not in result
     assert "paragraph 5" not in result
+
+
+def test_preflight_translate_pdf_no_text_layer() -> None:
+    from app import preflight_translate_error
+    from src.inference.pdf_loader import PdfNoTextLayer
+
+    result = preflight_translate_error(PdfNoTextLayer("ratio=0.0"))
+    # Locked substrings per 07-CONTEXT.md D-03 — both MUST appear verbatim.
+    assert "PDF без извлекаемого текстового слоя" in result
+    assert "OCR не поддерживается" in result
+    # PII boundary — no fitz internals, no Traceback, no raw ratio leakage.
+    assert "Traceback" not in result
+    assert "ratio=0.0" not in result

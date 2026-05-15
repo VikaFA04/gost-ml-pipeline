@@ -97,5 +97,5 @@ def test_modal_reason_is_valid_strips_before_count() -> None:
 
 
 def test_app_upload_contract_unchanged() -> None:
-    """Regression guard during Wave 2 sidebar redesign — UI-01 docx-only contract."""
-    assert app.SUPPORTED_UPLOAD_TYPES == ["docx"]
+    """Phase 7 D-04 §3 contract: uploader accepts DOCX and PDF (PDF audit-only)."""
+    assert app.SUPPORTED_UPLOAD_TYPES == ["docx", "pdf"]
