@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 6 complete (6/6 plans, CR-01+CR-02 fixed, HUMAN-UAT partial — 6 items pending live walk, item-7 override-accepted per Wave 5 sign-off)
-last_updated: "2026-05-15T07:50:00.000Z"
-last_activity: 2026-05-15 -- Phase 06 complete; ready to plan Phase 7
+status: planning
+stopped_at: Phase 7 context gathered
+last_updated: "2026-05-15T07:08:44.441Z"
+last_activity: 2026-05-15
 progress:
   total_phases: 8
   completed_phases: 6
@@ -138,9 +138,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-14T22:30:00Z
-Stopped at: Phase 6 Wave 5 (06-05) Tasks 1-2 complete — app.py cleanup + 06-DESIGN-REVIEW.md staged; Task 3 awaiting human design-review checkpoint
-Resume file: .planning/phases/06-streamlit-ui-redesign/06-05-PLAN.md (Task 3 only)
+Last session: --stopped-at
+Stopped at: Phase 7 context gathered
+Resume file: --resume-file
 
 **Planned Phase:** 6 (streamlit-ui-redesign) — 6 plans — 2026-05-14T18:55:49.175Z
 **Phase 06 next step:** Project-owner runs `streamlit run app.py` and walks `.planning/phases/06-streamlit-ui-redesign/06-DESIGN-REVIEW.md`; on `approved` / `approved-with-followups`, executor resumes to write 06-05-SUMMARY.md and close the phase.
