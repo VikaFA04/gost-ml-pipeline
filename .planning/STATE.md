@@ -22,16 +22,16 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** next phase TBD — Phase 7 (PDF text-layer audit slice) closed 2026-05-15
+**Current focus:** Phase 9 — Classical model zoo (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD comparison, feeds Phase 8 ML quality gate)
 
 ## Current Position
 
-Phase: 8 (per ROADMAP top-level; Phase 9 directory also exists outside the checklist — sequence to be clarified)
+Phase: 9 (Classical model zoo — depends on Phase 7; sequence: 7 → 9 → 8 per 2026-05-15 ROADMAP correction)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-05-15 -- Phase 07 closed: 5/5 plans, 38/38 tests, 24/24 threats, Nyquist-compliant
+Last activity: 2026-05-15 -- Phase 07 closed: 5/5 plans, 38/38 tests, 24/24 threats, Nyquist-compliant; ROADMAP sequence corrected (Phase 9 now precedes Phase 8)
 
-Progress: [██████████] 100% — Phase 7 complete (5/5 plans including gap-closure 07-04 + 07-05; UAT 7/7 pass; SECURITY 24/24 threats closed; VALIDATION Nyquist-compliant); next: clarify Phase 8 vs Phase 9 sequencing, then /gsd-discuss-phase
+Progress: [██████████] 100% — Phase 7 complete (5/5 plans including gap-closure 07-04 + 07-05; UAT 7/7 pass; SECURITY 24/24 threats closed; VALIDATION Nyquist-compliant); next: /gsd-discuss-phase 9
 
 ## Performance Metrics
 
@@ -143,11 +143,11 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-05-15 -- Phase 07 closed
-Stopped at: Phase 07 complete — 5/5 plans, 38/38 tests, 24/24 threats, Nyquist-compliant; ready to clarify Phase 8 vs Phase 9 sequencing
+Last session: 2026-05-15 -- Phase 07 closed; ROADMAP sequence corrected
+Stopped at: Phase 07 complete (5/5 plans, all gates green); ROADMAP corrected to 7 → 9 → 8; next is Phase 9 discuss
 Resume file: --resume-file
 
 **Completed Phase 07:** (pdf-text-layer-audit-slice) — 5 plans (3 base + 2 gap-closure 07-04 / 07-05) — closed 2026-05-15
 **Phase 06 next step:** Project-owner runs `streamlit run app.py` and walks `.planning/phases/06-streamlit-ui-redesign/06-DESIGN-REVIEW.md`; on `approved` / `approved-with-followups`, executor resumes to write 06-05-SUMMARY.md and close the phase.
 **Phase 04 next step:** verifier (orchestrator-spawned) runs against PHASE/PLAN/SUMMARY artefacts.
-**Phase 8 vs Phase 9 sequencing:** Phase 8 (Milestone acceptance) is in the top-level ROADMAP checklist but has no directory on disk. Phase 9 (classical-model-zoo) has a directory + ROADMAP detail section but is NOT in the top-level checklist. Decide which phase advances next before running /gsd-discuss-phase or /gsd-plan-phase.
+**Phase sequence (corrected 2026-05-15):** 1 → 2 → 3 → 4 → 5 → 6 → 7 → 9 → 8. Phase 9 (Classical model zoo) was inserted out-of-band post-Phase-7; its prior `Depends on: Phase 8` entry was a documentation artefact (now corrected). Phase 9 feeds Phase 8's ML quality gate (`weighted_f1 ≥ 0.94`, `macro_f1 ≥ 0.9414`).

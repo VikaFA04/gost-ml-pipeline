@@ -19,12 +19,13 @@ operational state and the original Этапы 1–9 are preserved in
 - Decimal phases (2.1, 2.2): Urgent insertions if needed (marked INSERTED).
 
 - [x] **Phase 1: Engine guardrails & cohesion audit** *(completed 2026-05-12)* - Stop destructive autofix from styled paragraphs and verify the rule-engine dependency graph.
-- [ ] **Phase 2: Bibliography & list semantics** - Recognise bibliography lists; single shared `numId`; conservative list autofix.
+- [x] **Phase 2: Bibliography & list semantics** *(completed 2026-05-12)* - Recognise bibliography lists; single shared `numId`; conservative list autofix.
 - [x] **Phase 3: Heading signature & DOCX generator** *(completed 2026-05-13)* - Extend heading signature and harden the DOCX writer for template-specific styles.
-- [ ] **Phase 4: Regression gate** - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
-- [ ] **Phase 5: Rule profiles & methodical-profile ingestion** - Multiple selectable profiles + PDF methodical-profile ingestion with diff (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
+- [x] **Phase 4: Regression gate** *(completed 2026-05-14)* - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
+- [x] **Phase 5: Rule profiles & methodical-profile ingestion** *(completed 2026-05-14)* - Multiple selectable profiles + PDF methodical-profile ingestion with diff (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
 - [x] **Phase 6: Streamlit UI redesign** *(completed 2026-05-15)* - Rebuild the UI around the audit flow and pass design review.
 - [x] **Phase 7: PDF text-layer audit slice** *(completed 2026-05-15)* - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
+- [ ] **Phase 9: Classical model zoo** - Extended classical-model comparison (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) with unified `predict_proba` on the current TF-IDF + structural-features pipeline; new `compare_classical` CLI; feeds Phase 8 ML quality gate. *(Inserted post-Phase-7; depends on Phase 7, blocks Phase 8.)*
 - [ ] **Phase 8: Milestone acceptance** - End-to-end MVP acceptance + success-metric verification.
 
 ## Phase Details
@@ -150,9 +151,19 @@ Plans:
 - [x] 07-05-PLAN.md — Wave 4 GAPS G-07-02 + G-07-03: main-pane empty-state copy mirrors sidebar uploader («Загрузите документ (DOCX или PDF), чтобы начать аудит»); extract_pdf_blocks text-block reason reframed to reviewer-POV («PDF блок — текстовый слой, требует ручной проверки»); RED tests in tests/test_app_ui.py + tests/inference/test_pdf_loader.py
 **UI hint**: yes
 
+### Phase 9: Classical model zoo
+**Goal**: Расширенное сравнение классических моделей (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) с унифицированным `predict_proba` (CalibratedClassifierCV для SVM) на текущем pipeline TF-IDF + structural features. Dataset: `annotations_train.csv` (15.7k), full train без sampling. Новая CLI команда `compare_classical` → артефакты в `results/reports/` (JSON+CSV+TXT + per-class F1 appendix). Метрики основной таблицы: accuracy, weighted_f1, macro_f1, train_time_sec, inference_time_ms_per_block, model_size_mb, preprocessing_variant. TDD-driven. Phase 9 was inserted post-Phase-7; its results feed the Phase 8 ML quality gate (`weighted_f1 ≥ 0.94`, `macro_f1 ≥ 0.9414`).
+**Depends on**: Phase 7
+**Requirements**: TBD
+**Success Criteria** (what must be TRUE):
+  TBD — run `/gsd-discuss-phase 9` to lock the criteria before planning.
+**Plans:** 0 plans (run `/gsd-plan-phase 9` to break down)
+Plans:
+- [ ] TBD
+
 ### Phase 8: Milestone acceptance
 **Goal**: The two-part success metric is verified end-to-end: critical-bug count = 0, UI design review passed.
-**Depends on**: Phase 7
+**Depends on**: Phase 9
 **Requirements**: REQ-mvp-acceptance
 **Success Criteria** (what must be TRUE):
   1. End-to-end acceptance run on a representative DOCX corpus: extraction → features → SVM prediction → rule audit → CSV report → safe corrected DOCX where applicable → Streamlit UI mirrors all CLI outputs.
@@ -165,19 +176,22 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
+Phases execute in this order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 9 → 8.
 Phases 2 and 3 are both gated by Phase 1 and may be planned in either order
-once Phase 1 is complete; Phase 4 requires both.
+once Phase 1 is complete; Phase 4 requires both. Phase 9 was inserted
+post-Phase-7 to feed Phase 8's ML quality gate; Phase 8 is the final
+milestone-acceptance gate and depends on Phase 9.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Engine guardrails & cohesion audit | 4/4 | Complete | 2026-05-12 |
 | 2. Bibliography & list semantics | 4/4 | Complete | 2026-05-12 |
 | 3. Heading signature & DOCX generator | 4/4 | Complete | 2026-05-13 |
-| 4. Regression gate | 5/5 | In progress | - |
-| 5. Rule profiles & methodical-profile ingestion | 0/TBD | Not started | - |
-| 6. Streamlit UI redesign | 0/6 | Not started | - |
-| 7. PDF text-layer audit slice | 0/TBD | Not started | - |
+| 4. Regression gate | 5/5 | Complete | 2026-05-14 |
+| 5. Rule profiles & methodical-profile ingestion | 5/5 | Complete | 2026-05-14 |
+| 6. Streamlit UI redesign | 6/6 | Complete | 2026-05-15 |
+| 7. PDF text-layer audit slice | 5/5 | Complete | 2026-05-15 |
+| 9. Classical model zoo | 0/TBD | Not started | - |
 | 8. Milestone acceptance | 0/TBD | Not started | - |
 
 ## Historical Context
@@ -220,13 +234,3 @@ Plans:
 
 Plans:
 - [ ] TBD (promote with /gsd-review-backlog when ready)
-
-### Phase 9: Classical model zoo — расширенное сравнение классических моделей (LR, SVM, ComplementNB, RandomForest, HistGBM+TruncatedSVD) с унифицированным predict_proba (CalibratedClassifierCV для SVM) на текущем pipeline TF-IDF + structural features. Dataset: annotations_train.csv (15.7k), full train без sampling. Новая CLI команда compare_classical → артефакты в results/reports/ (JSON+CSV+TXT + per-class F1 appendix). Метрики основной таблицы: accuracy, weighted_f1, macro_f1, train_time_sec, inference_time_ms_per_block, model_size_mb, preprocessing_variant. TDD-driven.
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 8
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd-plan-phase 9 to break down)
