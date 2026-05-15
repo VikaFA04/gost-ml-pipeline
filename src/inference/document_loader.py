@@ -27,9 +27,4 @@ def validate_document_input(path: str | Path) -> DocumentInput:
     if extension not in SUPPORTED_EXTENSIONS:
         raise ValueError(f"Unsupported input format '{extension}'. Supported formats: .docx, .pdf")
 
-    if extension == ".pdf":
-        raise NotImplementedError(
-            "PDF input is not supported in this MVP because no clean text-layer PDF parser is currently wired in the codebase and OCR is forbidden."
-        )
-
     return DocumentInput(path=document_path, extension=extension)

@@ -19,7 +19,8 @@ from src.inference.artifact_registry import (
     find_latest_transformer_artifacts,
 )
 from src.inference.baseline_inferencer import run_baseline_inference
-from src.inference.document_loader import validate_document_input
+from src.inference.document_loader import DocumentInput, validate_document_input
+from src.inference.pdf_loader import PdfNoTextLayer, check_text_layer, extract_pdf_blocks
 from src.inference.transformer_inferencer import load_transformer_artifacts, run_transformer_inference
 from src.io.block_extractor import extract_blocks_from_docx
 from src.rules.profile_loader import PROFILES_DIR, list_available_profiles
@@ -42,6 +43,7 @@ class ProcessingArtifacts:
     mode: str
     profile_path: Path
     input_path: Path
+    input_extension: str          # ".docx" or ".pdf" — gates render_report badge + DOCX download (07-UI-SPEC D-04)
     extracted_csv: Path
     predictions_csv: Path
     report_csv: Path
@@ -154,17 +156,92 @@ def _run_model_inference(
     raise ValueError(f"Unsupported model choice: {model_choice}")
 
 
+def _process_pdf(
+    document_input: DocumentInput,
+    profile_path: str | Path,
+) -> ProcessingArtifacts:
+    """PDF audit-only branch (REQ-pdf-text-only, D-02 SVM bypass).
+
+    Per 07-CONTEXT.md D-03: text-layer ratio < 0.50 raises PdfNoTextLayer,
+    which app.run_processing catches and routes to preflight_translate_error.
+    Per D-02: SVM + rule engine bypassed entirely; every block is
+    status="review". Per D-PDF-SCOPE: output_docx is always None.
+    Per OQ-1 (07-RESEARCH.md): NO separate predictions CSV is emitted —
+    predictions_csv field is set to the report_csv path as a sentinel
+    (single existing artefact, four-artefact shape preserved without
+    emitting an empty file).
+    """
+    ratio = check_text_layer(document_input.path)
+    if ratio < 0.50:
+        raise PdfNoTextLayer("PDF text-layer ratio below 0.50 threshold")
+
+    timestamp = _timestamp()
+    stem = document_input.path.stem
+    report_csv = REPORTS_DIR / f"{stem}_audit_{timestamp}.csv"
+
+    rows = extract_pdf_blocks(document_input.path)
+    report_df = pd.DataFrame(rows)
+    # Ensure DOCX-compatible 17-column schema — missing columns -> None/empty.
+    for col in (
+        "label", "action", "profile_id", "profile_name",
+        "confidence_score", "low_confidence", "manual_review_required",
+        "blocked_unsafe_autofix", "unsafe_auto_fix_reason",
+        "violated_rules", "suggested_rule_ids", "suggested_fix",
+        "changed_fields", "uncertain_fields", "reason", "recommendation",
+    ):
+        if col not in report_df.columns:
+            report_df[col] = None
+    report_df.to_csv(report_csv, index=False, encoding="utf-8-sig")
+
+    review_count = int((report_df["status"] == "review").sum())
+    summary: dict[str, Any] = {
+        "model_type": "pdf_audit",
+        "mode": "audit",
+        "profile_name": None,
+        "profile_id": None,
+        "blocks_total": len(report_df),
+        "review": review_count,
+        "no_change": 0,
+        "changed": 0,
+        "error": 0,
+        "blocked_unsafe_autofix": 0,
+        "output_docx": None,
+    }
+    report_json, summary_json, summary_txt = _save_run_sidecars(
+        timestamp=timestamp, report_df=report_df, summary=summary
+    )
+
+    return ProcessingArtifacts(
+        model_type="pdf_audit",
+        mode="audit",
+        profile_path=Path(profile_path),
+        input_path=document_input.path,
+        input_extension=".pdf",
+        extracted_csv=report_csv,    # OQ-1: no separate extracted artefact for PDF
+        predictions_csv=report_csv,  # OQ-1: no separate predictions artefact — sentinel
+        report_csv=report_csv,
+        report_json=report_json,
+        summary_json=summary_json,
+        summary_txt=summary_txt,
+        output_docx=None,
+        predictions_df=pd.DataFrame(),
+        report_df=report_df,
+        summary=summary,
+    )
+
+
 def process_document(
     input_path: str | Path,
     model_choice: str,
     mode: str,
     profile_path: str | Path,
 ) -> ProcessingArtifacts:
-    """Run the complete DOCX processing flow."""
+    """Run the complete processing flow (DOCX audit/fix or PDF audit-only)."""
     ensure_runtime_directories()
     document_input = validate_document_input(input_path)
-    if document_input.extension != ".docx":
-        raise ValueError("Only DOCX is currently supported for end-to-end processing in this MVP.")
+
+    if document_input.extension == ".pdf":
+        return _process_pdf(document_input=document_input, profile_path=profile_path)
 
     blocks_df = extract_blocks_from_docx(document_input.path)
     if blocks_df.empty:
@@ -203,6 +280,7 @@ def process_document(
         mode=mode,
         profile_path=Path(profile_path),
         input_path=document_input.path,
+        input_extension=".docx",
         extracted_csv=extracted_csv,
         predictions_csv=predictions_csv,
         report_csv=report_csv,
