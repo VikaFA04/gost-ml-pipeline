@@ -87,7 +87,7 @@ def extract_pdf_blocks(path: str | Path) -> list[dict]:
                         "text": text[:_TEXT_CAP],
                         "status": "review",
                         "applied_fixes": "",
-                        "explanation": "PDF блок — классификация недоступна (SVM требует DOCX-формата)",
+                        "explanation": "PDF блок — текстовый слой, требует ручной проверки",
                     }
                 )
     finally:
