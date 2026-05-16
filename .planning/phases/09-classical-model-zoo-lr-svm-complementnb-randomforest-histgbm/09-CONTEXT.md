@@ -1,8 +1,9 @@
 # Phase 9: Classical model zoo — Context
 
 **Gathered:** 2026-05-15
+**Amended:** 2026-05-16 (post-research OQ-1..OQ-4 resolutions appended at the end of <decisions>)
 **Status:** Ready for planning
-**Locked-by:** /gsd-discuss-phase 9 session 2026-05-15
+**Locked-by:** /gsd-discuss-phase 9 session 2026-05-15 + post-research resolution session 2026-05-16
 
 <domain>
 ## Phase Boundary
@@ -86,6 +87,28 @@ The output feeds Phase 8's ML quality gate (Phase 8 SC-2: `weighted_f1 ≥ 0.94 
   2. **Artifact-schema lint** — `results.csv` has exactly the 8 columns in D-C-02 order. `results.json` has top-level keys `{models, environment, timestamps, dataset_hashes, cli_args}`. `per_class_f1.md` is non-empty and starts with a heading. `summary.txt` exists.
   3. **Per-model metric floor** — every row in `results.csv` has `weighted_f1 > 0.5` (sanity gate against silent training failures). The `linear_svm` row has `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.9414` (matches Phase 8 SC-2 floor).
   4. **Per-class F1 invariant** — `per_class_f1.md` contains every `label_core` class present in `dataset/annotations_test.csv` for every model that was run. Catches silent class drops (e.g., ComplementNB could miss rare classes if TF-IDF-only signal is too sparse).
+
+### E — Open Questions resolved post-research (amended 2026-05-16)
+
+09-RESEARCH.md surfaced 4 open questions that the original discuss-phase did not address. Resolutions:
+
+- **D-E-01 (OQ-1 — BLOCKING):** Zoo `linear_svm` row uses `build_preprocess()` for cross-model apples-to-apples comparison. Additionally, a second SVM row is emitted under model name `linear_svm_production` that uses the PRODUCTION pipeline (`src/train.py::build_pipeline` with `TextPatternFeatures` included). The headline `results.csv` now has SIX rows (5 zoo classifiers + 1 production-pipeline SVM):
+  - `logistic_regression` (preprocessing_variant=`tfidf_struct`)
+  - `linear_svm` (preprocessing_variant=`tfidf_struct`) — apples-to-apples zoo row
+  - `linear_svm_production` (preprocessing_variant=`tfidf_struct_textpatterns`) — production identity row
+  - `complement_nb` (preprocessing_variant=`tfidf_only`)
+  - `random_forest` (preprocessing_variant=`tfidf_struct`)
+  - `histgbm_svd256` (preprocessing_variant=`tfidf_struct_svd256`)
+
+  Phase 8 SC-2 acceptance grep-asserts the `linear_svm_production` row (NOT `linear_svm`) hits `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.9414`. The zoo `linear_svm` row is informational — it documents the cost of dropping `TextPatternFeatures` from the apples-to-apples baseline.
+
+  This amends D-D-02 implicitly: the production-identity grep target is renamed from `linear_svm` to `linear_svm_production`. CSV column order (D-C-02) is unchanged.
+
+- **D-E-02 (OQ-2):** Per-model exception handling = **best-effort with non-zero exit**. If a single model raises during `fit()` or `predict()`, capture the exception class + message into `results.json[models][i].error` (PII-safe: store `type(exc).__name__` and a short user-facing message, NOT the full traceback or `str(exc)` if `str(exc)` could leak path/byte-offset data). Continue scoring the remaining models. CLI exits with status code 1 at the end if any model failed. This keeps Phase 8 SC-2 verifiable even if a non-production zoo model fails (e.g., HistGBM OOM on small CI runner).
+
+- **D-E-03 (OQ-3):** RandomForest `n_jobs=-1` (parallel fit). Deterministic with `random_state=RANDOM_STATE=42` per D-A-02. Cuts RF train time from ~25s to ~6s. The non-determinism risk (thread-scheduling order) does not change predictions when the seed is fixed.
+
+- **D-E-04 (OQ-4):** `per_class_f1.md` format = one `## <model_name>` H2 heading per model, followed by a markdown table with columns `class | precision | recall | f1 | support`. Simpler to write, simpler to test (the per-class invariant gate from D-D-04 case (d) can use a regex/contains check per model section).
 
 ### Claude's Discretion
 
