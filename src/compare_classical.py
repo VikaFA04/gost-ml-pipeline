@@ -244,13 +244,16 @@ def _build_pipelines(seed: int, cv_folds: int = 5) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def run_compare_classical(cli_args: argparse.Namespace) -> int:
-    # 1. Resolve output_dir
+    # 1. Resolve output_dir.
+    # .resolve() normalises path traversal (T-09-W2-01 mitigation per 09-02 threat_model):
+    # any `../` sequences in --output-dir collapse to an absolute path, eliminating
+    # symlink/traversal attack surface on the gitignored results/ directory.
     output_dir = (
-        Path(cli_args.output_dir)
+        Path(cli_args.output_dir).resolve()
         if cli_args.output_dir
-        else REPORTS_DIR / f"classical_zoo_{_now_ts()}"
+        else (REPORTS_DIR / f"classical_zoo_{_now_ts()}").resolve()
     )
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # 2. Load data
     train_df = _load_dataset(TRAIN_CSV)
