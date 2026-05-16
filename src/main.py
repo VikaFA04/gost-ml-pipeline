@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +30,7 @@ from src.rules.methodical_extractor import (
 )
 from src.rules.profile_diff import compute_profile_diff, write_diff_sidecar
 from src.rules.profile_loader import PROFILES_DIR, load_profile
+from src.compare_classical import run_compare_classical
 from src.predict_blocks import load_blocks_csv, predict_blocks
 from src.train import run_training
 
@@ -546,6 +548,37 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    compare_classical_parser = subparsers.add_parser(
+        "compare-classical",
+        help="Сравнить 6 классических моделей (LR/SVM/SVM-prod/NB/RF/HGB) на held-out test set",
+    )
+    compare_classical_parser.add_argument(
+        "--models",
+        default="lr,svm,svm_production,nb,rf,hgb",
+        help=(
+            "Comma-separated model aliases (default: all 6). "
+            "Aliases: lr=logistic_regression, svm=linear_svm, "
+            "svm_production=linear_svm_production, nb=complement_nb, "
+            "rf=random_forest, hgb=histgbm_svd256"
+        ),
+    )
+    compare_classical_parser.add_argument(
+        "--output-dir",
+        required=False,
+        help="Output directory for artifacts (default: results/reports/classical_zoo_<ts>/)",
+    )
+    compare_classical_parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed (default: 42)",
+    )
+    compare_classical_parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Subsample train to 1000 rows for CI smoke (not gated by Phase 8 SC-2)",
+    )
+
     return parser
 
 
@@ -625,6 +658,10 @@ def main() -> None:
             reason=args.reason,
         )
         return
+
+    if args.command == "compare-classical":
+        exit_code = run_compare_classical(args)
+        sys.exit(exit_code)
 
     raise ValueError(f"Неизвестная команда: {args.command}")
 
