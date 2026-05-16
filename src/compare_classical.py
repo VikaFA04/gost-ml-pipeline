@@ -149,7 +149,7 @@ def _build_tfidf_svd_preprocess() -> ColumnTransformer:
 # Pipeline zoo builder
 # ---------------------------------------------------------------------------
 
-def _build_pipelines(seed: int) -> list[dict]:
+def _build_pipelines(seed: int, cv_folds: int = 5) -> list[dict]:
     from sklearn.linear_model import LogisticRegression
     from src.train import build_pipeline  # production pipeline (TextPatternFeatures)
 
@@ -166,7 +166,7 @@ def _build_pipelines(seed: int) -> list[dict]:
         ("classifier", CalibratedClassifierCV(
             LinearSVC(C=SVM_C, class_weight=SVM_CLASS_WEIGHT,
                       max_iter=SVM_MAX_ITER, random_state=seed),
-            method="sigmoid", cv=5)),
+            method="sigmoid", cv=cv_folds)),
     ])
 
     # 3. linear_svm_production — uses build_pipeline() from src/train.py (D-E-01)
@@ -176,7 +176,7 @@ def _build_pipelines(seed: int) -> list[dict]:
         ("classifier", CalibratedClassifierCV(
             LinearSVC(C=SVM_C, class_weight=SVM_CLASS_WEIGHT,
                       max_iter=SVM_MAX_ITER, random_state=seed),
-            method="sigmoid", cv=5)),
+            method="sigmoid", cv=cv_folds)),
     ])
 
     # 4. complement_nb (tfidf_only per D-B-02)
@@ -256,13 +256,28 @@ def run_compare_classical(cli_args: argparse.Namespace) -> int:
     train_df = _load_dataset(TRAIN_CSV)
     test_df = _load_dataset(TEST_CSV)
     if cli_args.quick:
-        train_df = train_df.sample(
-            n=min(1000, len(train_df)), random_state=cli_args.seed
-        )
+        # Stratified sample: take at most 1000 rows, but ensure ≥5 per class for cv=5.
+        # First take proportional 1000-row sample, then top up any class below 5.
+        base_sample = train_df.sample(n=min(1000, len(train_df)), random_state=cli_args.seed)
+        per_class = base_sample[TARGET_COL].value_counts()
+        shortage = per_class[per_class < 5]
+        if not shortage.empty:
+            extra_rows = []
+            for cls, count in shortage.items():
+                needed = 5 - count
+                pool = train_df[train_df[TARGET_COL] == cls].drop(
+                    index=base_sample.index, errors="ignore"
+                )
+                extra_rows.append(pool.head(needed))
+            train_df = pd.concat([base_sample] + extra_rows, ignore_index=True)
+        else:
+            train_df = base_sample
+
     X_train = train_df[FEATURE_COLUMNS].copy()
     y_train = train_df[TARGET_COL].copy()
     X_test = test_df[FEATURE_COLUMNS].copy()
     y_test = test_df[TARGET_COL].copy()
+    cv_folds = 5
 
     # 3. Filter to requested models
     ALIAS_MAP = {
@@ -277,7 +292,7 @@ def run_compare_classical(cli_args: argparse.Namespace) -> int:
         ALIAS_MAP.get(m.strip(), m.strip())
         for m in cli_args.models.split(",")
     }
-    specs = [s for s in _build_pipelines(cli_args.seed) if s["name"] in requested]
+    specs = [s for s in _build_pipelines(cli_args.seed, cv_folds=cv_folds) if s["name"] in requested]
 
     # 4. Compute dataset hashes (SHA-256)
     def _sha256(path: Path | str) -> str:
