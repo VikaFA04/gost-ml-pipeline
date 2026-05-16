@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 09 context captured — 16 decisions locked (D-A-01..D-D-04); ready for /gsd-plan-phase 9
-last_updated: "2026-05-16T08:00:00.000Z"
-last_activity: 2026-05-16 -- Phase 09 discuss-phase complete; CONTEXT.md committed
+stopped_at: Phase 09 complete (3/3 plans; raw-ML zoo gate green; manual UAT approved); next is Phase 8 milestone-acceptance discuss
+last_updated: "2026-05-16T08:35:00.000Z"
+last_activity: 2026-05-16 -- Phase 09 complete (3/3 plans; compare-classical CLI; 6-row results.csv; linear_svm_production raw-ML floor 0.94/0.86 cleared; D-E-05 dual-source acceptance design)
 progress:
-  total_phases: 8
-  completed_phases: 4
-  total_plans: 33
-  completed_plans: 33
+  total_phases: 11
+  completed_phases: 8
+  total_plans: 36
+  completed_plans: 36
   percent: 100
 ---
 
@@ -22,22 +22,22 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase 9 — Classical model zoo (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD comparison, feeds Phase 8 ML quality gate)
+**Current focus:** Phase 8 — Milestone acceptance (end-to-end MVP acceptance + success-metric verification; depends on Phase 9, which closed 2026-05-16)
 
 ## Current Position
 
-Phase: 9 (Classical model zoo — depends on Phase 7; sequence: 7 → 9 → 8 per 2026-05-15 ROADMAP correction)
+Phase: 8 (Milestone acceptance — next per ROADMAP execution order 7 → 9 → 8; Phase 8 has no directory yet, will be created by /gsd-discuss-phase 8)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-05-15 -- Phase 07 closed: 5/5 plans, 38/38 tests, 24/24 threats, Nyquist-compliant; ROADMAP sequence corrected (Phase 9 now precedes Phase 8)
+Last activity: 2026-05-16 -- Phase 09 closed (3/3 plans; compare-classical CLI shipped; raw-ML zoo SC-2 gate cleared; D-E-05 dual-source acceptance design)
 
-Progress: [██████████] 100% — Phase 7 complete (5/5 plans including gap-closure 07-04 + 07-05; UAT 7/7 pass; SECURITY 24/24 threats closed; VALIDATION Nyquist-compliant); next: /gsd-discuss-phase 9
+Progress: [██████████] 100% — Phase 9 complete (3/3 plans; UAT 8/8 points approved on full corpus; D-E-05 macro_f1 floor relaxed 0.9414→0.86 raw-ML basis; 0.9414 after-rules floor preserved for Phase 8 production-pipeline gate); next: /gsd-discuss-phase 8 (the milestone acceptance gate — final phase before milestone close).
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 38 (current milestone)
+- Total plans completed: 41 (current milestone)
 - Average duration: —
 - Total execution time: —
 
@@ -53,6 +53,7 @@ Progress: [██████████] 100% — Phase 7 complete (5/5 plans 
 | 05 | 5 | - | - |
 | 06 | 6 | - | - |
 | 07 | 5 | - | - |
+| 09 | 3 | - | - |
 
 **Recent Trend:**
 

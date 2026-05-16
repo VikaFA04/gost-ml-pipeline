@@ -25,7 +25,7 @@ operational state and the original Этапы 1–9 are preserved in
 - [x] **Phase 5: Rule profiles & methodical-profile ingestion** *(completed 2026-05-14)* - Multiple selectable profiles + PDF methodical-profile ingestion with diff (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
 - [x] **Phase 6: Streamlit UI redesign** *(completed 2026-05-15)* - Rebuild the UI around the audit flow and pass design review.
 - [x] **Phase 7: PDF text-layer audit slice** *(completed 2026-05-15)* - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
-- [ ] **Phase 9: Classical model zoo** - Extended classical-model comparison (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) with unified `predict_proba` on the current TF-IDF + structural-features pipeline; new `compare_classical` CLI; feeds Phase 8 ML quality gate. *(Inserted post-Phase-7; depends on Phase 7, blocks Phase 8.)*
+- [x] **Phase 9: Classical model zoo** *(completed 2026-05-16)* - Extended classical-model comparison (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) with unified `predict_proba` on the current TF-IDF + structural-features pipeline; new `compare_classical` CLI; feeds Phase 8 ML quality gate (dual-source per D-E-05: raw-ML floor from zoo + after-rules floor from production metrics).
 - [ ] **Phase 8: Milestone acceptance** - End-to-end MVP acceptance + success-metric verification.
 
 ## Phase Details
@@ -152,14 +152,20 @@ Plans:
 **UI hint**: yes
 
 ### Phase 9: Classical model zoo
-**Goal**: Расширенное сравнение классических моделей (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) с унифицированным `predict_proba` (CalibratedClassifierCV для SVM) на текущем pipeline TF-IDF + structural features. Dataset: `annotations_train.csv` (15.7k), full train без sampling. Новая CLI команда `compare_classical` → артефакты в `results/reports/` (JSON+CSV+TXT + per-class F1 appendix). Метрики основной таблицы: accuracy, weighted_f1, macro_f1, train_time_sec, inference_time_ms_per_block, model_size_mb, preprocessing_variant. TDD-driven. Phase 9 was inserted post-Phase-7; its results feed the Phase 8 ML quality gate (`weighted_f1 ≥ 0.94`, `macro_f1 ≥ 0.9414`).
+**Goal**: Расширенное сравнение классических моделей (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) с унифицированным `predict_proba` (CalibratedClassifierCV для SVM) на текущем pipeline TF-IDF + structural features. Dataset: `annotations_train.csv` (15.7k), full train без sampling. Новая CLI команда `compare-classical` → артефакты в `results/reports/classical_zoo_<ts>/` (results.json + results.csv + summary.txt + per_class_f1.md). Метрики основной таблицы: accuracy, weighted_f1, macro_f1, train_time_sec, inference_time_ms_per_block, model_size_mb. TDD-driven. Phase 9 was inserted post-Phase-7; its results feed the Phase 8 ML quality gate dual-source per D-E-05: zoo raw-ML floor `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.86` on `linear_svm_production` row + production after-rules floor `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.9414` on `results/metrics/<svm_run>.json["after_rules"]`.
 **Depends on**: Phase 7
-**Requirements**: TBD
+**Requirements**: REQ-classical-model-zoo
 **Success Criteria** (what must be TRUE):
-  TBD — run `/gsd-discuss-phase 9` to lock the criteria before planning.
-**Plans:** 0 plans (run `/gsd-plan-phase 9` to break down)
+  1. `python -m src.main compare-classical` exits 0 and writes 4 artifact files to `results/reports/classical_zoo_<ts>/`.
+  2. `results.csv` has 6 rows (logistic_regression, linear_svm, linear_svm_production, complement_nb, random_forest, histgbm_svd256) in the locked 8-column order. Every row has `weighted_f1 > 0.5`.
+  3. `linear_svm_production` row clears the raw-ML SC-2 floor: `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.86` (D-E-05). Production `.joblib` is NOT modified by the zoo.
+  4. Reproducibility: `results.json` records `dataset_hashes`, `environment`, `cli_args`, `timestamps`. `RANDOM_STATE=42` for all stochastic components.
+  5. `per_class_f1.md` includes every `label_core` class for every successfully scored model.
+**Plans:** 3 plans
 Plans:
-- [ ] TBD
+- [x] 09-01-PLAN.md — Wave 1 RED (TDD): amend REQUIREMENTS.md with REQ-classical-model-zoo; tests/test_compare_classical_acceptance.py with 4 RED tests (CLI smoke + results.json schema, 8-col CSV schema, per-model metric floor incl linear_svm_production raw-ML SC-2 gate, per-class F1 coverage). All 4 FAIL with ModuleNotFoundError until 09-02 lands src/compare_classical.py.
+- [x] 09-02-PLAN.md — Wave 2 GREEN: src/compare_classical.py with 6 model pipelines per D-B-01 + D-E-01 (LR + LinearSVC zoo + LinearSVC production via src/train.py build_pipeline + ComplementNB + RandomForest + HistGBM+TruncatedSVD). HistGBM uses classifier__sample_weight= per Pitfall P1. Wire src/main.py dispatcher with compare-classical subcommand. Per-model exception handling per D-E-02. OQ-5 mid-execution amend: D-E-05 SC-2 macro_f1 floor relaxed 0.9414 → 0.86 (raw-ML baseline; 0.9414 is after-rules system metric, kept for Phase 8 SC-2 production-pipeline gate).
+- [x] 09-03-PLAN.md — Wave 3 GREEN + manual UAT: tests/test_phase_8_sc2_acceptance.py standalone SC-2 acceptance gate (linear_svm_production row, D-E-05 raw-ML floor); Makefile compare-classical-acceptance target; README.md §Classical model comparison; manual UAT checkpoint approved 2026-05-16 (8/8 points pass on full corpus). make compare-classical-acceptance exits 0 end-to-end.
 
 ### Phase 8: Milestone acceptance
 **Goal**: The two-part success metric is verified end-to-end: critical-bug count = 0, UI design review passed.
@@ -191,7 +197,7 @@ milestone-acceptance gate and depends on Phase 9.
 | 5. Rule profiles & methodical-profile ingestion | 5/5 | Complete | 2026-05-14 |
 | 6. Streamlit UI redesign | 6/6 | Complete | 2026-05-15 |
 | 7. PDF text-layer audit slice | 5/5 | Complete | 2026-05-15 |
-| 9. Classical model zoo | 0/TBD | Not started | - |
+| 9. Classical model zoo | 3/3 | Complete | 2026-05-16 |
 | 8. Milestone acceptance | 0/TBD | Not started | - |
 
 ## Historical Context
