@@ -18,23 +18,109 @@ from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    precision_recall_fscore_support,
+)
 from sklearn.naive_bayes import ComplementNB
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.svm import LinearSVC
 from sklearn.utils.class_weight import compute_sample_weight
 
-from src.compare_models import build_preprocess, calc_metrics, load_dataset, now_ts
-from src.train import build_pipeline
 from src.config import (
     TRAIN_CSV, TEST_CSV, REPORTS_DIR, TEXT_COL, TARGET_COL, FEATURE_COLUMNS,
+    CAT_COLS, NUM_COLS,
     TFIDF_MAX_FEATURES, TFIDF_NGRAM_RANGE, TFIDF_MIN_DF, TFIDF_SUBLINEAR_TF,
     SVM_C, SVM_CLASS_WEIGHT, SVM_MAX_ITER, RANDOM_STATE,
 )
 
 
+# ---------------------------------------------------------------------------
+# Local helpers (inlined from compare_models to avoid matplotlib dependency)
+# ---------------------------------------------------------------------------
+
+def _now_ts() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _load_dataset(path: str | Path) -> pd.DataFrame:
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"Не найден файл датасета: {path}")
+    df = pd.read_csv(path)
+    required_columns = set(FEATURE_COLUMNS + [TARGET_COL])
+    missing = required_columns - set(df.columns)
+    if missing:
+        raise ValueError(
+            f"В файле {path.name} отсутствуют обязательные колонки: {sorted(missing)}"
+        )
+    df = df.copy()
+    df[TEXT_COL] = df[TEXT_COL].fillna("").astype(str)
+    for col in CAT_COLS:
+        df[col] = df[col].fillna("missing").astype(str)
+    for col in NUM_COLS:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df[df[TARGET_COL].notna()].copy()
+    if df.empty:
+        raise ValueError(f"После фильтрации в файле {path.name} не осталось строк.")
+    return df
+
+
+def _calc_metrics(y_true, y_pred) -> dict:
+    precision_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="macro", zero_division=0
+    )
+    precision_weighted, recall_weighted, f1_weighted, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="weighted", zero_division=0
+    )
+    return {
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision_macro": precision_macro,
+        "recall_macro": recall_macro,
+        "f1_macro": f1_macro,
+        "precision_weighted": precision_weighted,
+        "recall_weighted": recall_weighted,
+        "f1_weighted": f1_weighted,
+        "classification_report": classification_report(
+            y_true, y_pred, output_dict=True, zero_division=0
+        ),
+        "classification_report_text": classification_report(
+            y_true, y_pred, digits=4, zero_division=0
+        ),
+    }
+
+
+def _build_preprocess() -> ColumnTransformer:
+    """TF-IDF + structural features preprocessor (mirrors compare_models.build_preprocess)."""
+    text_transformer = TfidfVectorizer(
+        max_features=TFIDF_MAX_FEATURES, ngram_range=TFIDF_NGRAM_RANGE,
+        min_df=TFIDF_MIN_DF, sublinear_tf=TFIDF_SUBLINEAR_TF, lowercase=True,
+    )
+    cat_transformer = Pipeline([
+        ("imputer", SimpleImputer(strategy="constant", fill_value="missing")),
+        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+    ])
+    num_transformer = Pipeline([
+        ("imputer", SimpleImputer(strategy="constant", fill_value=0.0)),
+    ])
+    return ColumnTransformer(
+        transformers=[
+            ("text", text_transformer, TEXT_COL),
+            ("cat", cat_transformer, CAT_COLS),
+            ("num", num_transformer, NUM_COLS),
+        ],
+        remainder="drop",
+    )
+
+
+# ---------------------------------------------------------------------------
+# HistGBM-specific preprocessor (TF-IDF -> SVD256)
+# ---------------------------------------------------------------------------
+
 def _build_tfidf_svd_preprocess() -> ColumnTransformer:
-    from sklearn.impute import SimpleImputer
-    from sklearn.preprocessing import OneHotEncoder
     tfidf_svd = Pipeline([
         ("tfidf", TfidfVectorizer(
             max_features=TFIDF_MAX_FEATURES, ngram_range=TFIDF_NGRAM_RANGE,
@@ -59,19 +145,24 @@ def _build_tfidf_svd_preprocess() -> ColumnTransformer:
     )
 
 
+# ---------------------------------------------------------------------------
+# Pipeline zoo builder
+# ---------------------------------------------------------------------------
+
 def _build_pipelines(seed: int) -> list[dict]:
     from sklearn.linear_model import LogisticRegression
+    from src.train import build_pipeline  # production pipeline (TextPatternFeatures)
 
     # 1. logistic_regression
     lr_pipeline = Pipeline([
-        ("preprocess", build_preprocess()),
+        ("preprocess", _build_preprocess()),
         ("classifier", LogisticRegression(
             max_iter=3000, class_weight="balanced", random_state=seed)),
     ])
 
     # 2. linear_svm (zoo apples-to-apples)
     linear_svm_pipeline = Pipeline([
-        ("preprocess", build_preprocess()),
+        ("preprocess", _build_preprocess()),
         ("classifier", CalibratedClassifierCV(
             LinearSVC(C=SVM_C, class_weight=SVM_CLASS_WEIGHT,
                       max_iter=SVM_MAX_ITER, random_state=seed),
@@ -101,7 +192,7 @@ def _build_pipelines(seed: int) -> list[dict]:
 
     # 5. random_forest (tfidf_struct per D-E-03, n_jobs=-1)
     random_forest_pipeline = Pipeline([
-        ("preprocess", build_preprocess()),
+        ("preprocess", _build_preprocess()),
         ("classifier", RandomForestClassifier(
             class_weight="balanced", n_jobs=-1, random_state=seed)),
     ])
@@ -148,18 +239,22 @@ def _build_pipelines(seed: int) -> list[dict]:
     ]
 
 
+# ---------------------------------------------------------------------------
+# Main entrypoint
+# ---------------------------------------------------------------------------
+
 def run_compare_classical(cli_args: argparse.Namespace) -> int:
     # 1. Resolve output_dir
     output_dir = (
         Path(cli_args.output_dir)
         if cli_args.output_dir
-        else REPORTS_DIR / f"classical_zoo_{now_ts()}"
+        else REPORTS_DIR / f"classical_zoo_{_now_ts()}"
     )
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     # 2. Load data
-    train_df = load_dataset(TRAIN_CSV)
-    test_df = load_dataset(TEST_CSV)
+    train_df = _load_dataset(TRAIN_CSV)
+    test_df = _load_dataset(TEST_CSV)
     if cli_args.quick:
         train_df = train_df.sample(
             n=min(1000, len(train_df)), random_state=cli_args.seed
@@ -211,7 +306,7 @@ def run_compare_classical(cli_args: argparse.Namespace) -> int:
             y_pred = spec["pipeline"].predict(X_test)
             inference_time_ms = (time.perf_counter() - t0_inf) * 1000 / len(X_test)
 
-            metrics = calc_metrics(y_test, y_pred)
+            metrics = _calc_metrics(y_test, y_pred)
             model_size_mb = len(pickle.dumps(spec["pipeline"])) / (1024 * 1024)
 
             model_record = {
