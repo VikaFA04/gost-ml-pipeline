@@ -1,8 +1,9 @@
 # Phase 8: Milestone acceptance — Context
 
 **Gathered:** 2026-05-16
+**Amended:** 2026-05-16 (post-research OQ-1..OQ-5 + Phase 6 sign-off gap resolutions appended as D-E-01..D-E-07)
 **Status:** Ready for planning
-**Locked-by:** /gsd-discuss-phase 8 session 2026-05-16
+**Locked-by:** /gsd-discuss-phase 8 session 2026-05-16 + post-research resolution session 2026-05-16
 
 <domain>
 ## Phase Boundary
@@ -67,6 +68,36 @@ SC-2 is **dual-source** per Phase 9 D-E-05:
 - **D-D-02:** Phase 8 also writes `CHANGELOG.md` at repo root. Aggregates Phase 1-9 deliverables by phase, mirroring ROADMAP completed phases. Format: Keep-a-Changelog 1.1.0 with sections `## [v1.0] — YYYY-MM-DD` + per-phase subsections (e.g., `### Phase 1: Engine guardrails & cohesion audit` + bullet list of plan deliverables). No "Added/Changed/Removed" Keep-a-Changelog buckets (the per-phase organisation IS the changelog).
 - **D-D-03:** Phase 8 closes with `git tag -a v1.0 -m "Milestone v1.0 — milestone acceptance passed YYYY-MM-DD"` on the commit that lands 08-VERDICT.md + CHANGELOG.md. The tag is annotated (NOT a lightweight tag) so `git describe` works.
 - **D-D-04:** NO `pyproject.toml` version bump — repository has no `pyproject.toml`, no `setup.py`, no `VERSION` file. v1.0 lives ONLY in the git tag + CHANGELOG.md + 08-VERDICT.md + ROADMAP milestone frontmatter (milestone: v1.0, milestone_name: milestone — already set). PyPI packaging is deferred to a v1.0-release follow-up phase if/when public distribution is on the table.
+
+### E — Open Questions resolved post-research (amended 2026-05-16)
+
+08-RESEARCH.md surfaced 5 open questions + 1 prior-phase gap that the original discuss-phase did not address. Resolutions:
+
+- **D-E-01 (OQ-1 — SC-4 assertion mechanism):** Direct file-read assertions, NOT a non-existent `gsd-sdk query audit.uat-aggregate`. `tests/test_milestone_acceptance_sc4.py` reads each phase's `*-UAT.md` frontmatter (asserts `status: complete`) AND greps for any `severity: blocker` or `severity: high` lines (asserts zero matches). Separately reads `06-DESIGN-REVIEW.md` and asserts the verdict line per D-E-02 below. Phase 9 has no formal `09-UAT.md` (UAT was inline in 09-03 Task 3 checkpoint per 09-03-SUMMARY.md); SC-4 test reads `09-03-SUMMARY.md` for the UAT 8/8 record AND grep-asserts zero `severity: blocker|high` lines across the file. This amends D-C-02: the locked field names `open_critical_count == 0` + `open_high_count == 0` are now interpreted as the grep-counted-zero result on `severity: (blocker|high)` lines. No new GSD-tooling work introduced; no new CJS handlers.
+
+- **D-E-02 (Phase 6 design-review sign-off gap):** Synthesise from `06-05-SUMMARY.md`. Phase 6 closed cleanly with the SUMMARY recording the design-review outcome as "approved-with-followups". `08-DESIGN-REVIEW-ROLLUP.md` documents this in a Phase 6 retroactive-sign-off subsection citing the SUMMARY's recorded verdict. No backfill commit on `06-DESIGN-REVIEW.md` (would touch a closed phase's artifact and risk scope creep). No fresh live design-review pass (D-C-01 consolidation decision preserved).
+
+- **D-E-03 (OQ-2 — `make milestone-acceptance` sub-target order):** SC-3 → SC-1 → SC-2 → SC-4. Cheapest fail-fast first per researcher recommendation:
+  - SC-3 (`make regression-gate`) is the cheapest existing target — runs in ~1380s but is purely diff-rate computation on a 3-pair Option D subset.
+  - SC-1 next — full-corpus DOCX run is the most expensive operation (~20-60 min on slow tier); running second means an SC-3 failure short-circuits before SC-1 burns the budget.
+  - SC-2 third — depends on Phase 9 zoo run + production training metrics file already on disk.
+  - SC-4 last — pure file-read assertions, fastest (<1 min); placement at the end means signoff happens after the heavy work passes.
+
+- **D-E-04 (OQ-4 — SC-2 after-rules sub-test strategy):** Conservative — read latest `results/metrics/evaluation_*.json` produced by an earlier `python -m src.main train` invocation. If no such file exists, sub-test skips with an informative `pytest.skip("Run 'python -m src.main train' first; SC-2 after-rules half requires production training metrics. See D-E-04.")`. Aggressive option (sub-test invokes `train` itself before asserting) rejected: training is slow + the milestone-acceptance harness should not retrain production models as a side-effect.
+
+- **D-E-05 (OQ-3 — `08-VERDICT.md` template):** No template exists in `$HOME/.claude/get-shit-done/templates/`. Planner creates the template inline as part of Plan 08-Wave-N (the close wave). Minimal shape: frontmatter (phase: 08, milestone: v1.0, status: signed|unsigned, signoff_date: ISO8601) + 5 H2 sections (one per SC) + sign-off footer + open-followups appendix listing 999.x backlog. Planner may extract this as a reusable template at `$HOME/.claude/get-shit-done/templates/VERDICT.md` IF a future milestone repeats the pattern — out of scope for v1.0.
+
+- **D-E-06 (OQ-5 — CHANGELOG.md phase ordering within v1.0 block):** Newest-first (Keep-a-Changelog 1.1.0 canonical). Inside `## [v1.0] — YYYY-MM-DD`, subsections by phase in reverse chronological order of phase-close date: Phase 9 (2026-05-16) → Phase 7 (2026-05-15) → Phase 6 (2026-05-15) → Phase 5 (2026-05-14) → Phase 4 (2026-05-14) → Phase 3 (2026-05-13) → Phase 2 (2026-05-12) → Phase 1 (2026-05-12). Phase 8 (this phase) appears as the milestone-close gate at the top, NOT as a separate phase entry — its deliverables ARE the VERDICT + CHANGELOG itself.
+
+- **D-E-07 (pytest.mark.slow registration):** Add a 3-line `pytest.ini` at repo root (NOT pyproject.toml — D-D-04 preserves "no pyproject.toml"; NOT setup.cfg). Content:
+  ```
+  [pytest]
+  markers =
+      slow: marks tests as slow (deselect with '-m "not slow"')
+  ```
+  Phase 8 Wave 1 creates this file. Existing `@pytest.mark.slow` decorators on `test_per_model_metric_floor` (Plan 09-01) start being recognised; PytestUnknownMarkWarning disappears.
+
+- **D-E-08 (SC-1 invocation correction — research finding):** D-A-02 said the SC-1 sub-target invokes `python -m src.main audit-docx --apply-safe` on every fixture. Research clarified that `audit-docx` does NOT have `--apply-safe` (that flag is on `format-docx`). The right Python abstraction is `src.inference.application_service.process_document(input_path, model_choice, mode, profile_path)` — wires extract → predict → audit → safe-format in one call. SC-1 sub-test calls `process_document` directly via Python (not subprocess), iterates over fixtures, asserts per-fixture artifacts exist + non-empty status fields. This amends D-A-02 sub-target 1 contract: SC-1 is a pytest test that calls the Python API, not a Make shell loop over CLI invocations.
 
 ### Claude's Discretion
 
