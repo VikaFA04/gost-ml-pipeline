@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 08 context captured (15 decisions D-A-01..D-D-04 + Streamlit smoke addition); ready for /gsd-plan-phase 8
-last_updated: "2026-05-16T10:45:00.000Z"
-last_activity: 2026-05-16 -- Phase 08 discuss-phase complete; CONTEXT.md committed (milestone-acceptance harness via make milestone-acceptance, two-tier corpus, design-review consolidation, VERDICT + git tag v1.0 + CHANGELOG)
+status: milestone-closed
+stopped_at: Milestone v1.0 CLOSED — Phase 08 complete (3/3 plans; UAT 5/5 approved 2026-05-16; git tag v1.0 created)
+last_updated: "2026-05-16T11:15:00.000Z"
+last_activity: 2026-05-16 -- Milestone v1.0 closed. All 8 milestone phases (1-7+9+8) signed off. VERDICT + ROLLUP + CHANGELOG on disk; git tag v1.0 annotated.
 progress:
-  total_phases: 11
-  completed_phases: 8
-  total_plans: 36
-  completed_plans: 36
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 39
+  completed_plans: 39
   percent: 100
 ---
 
@@ -22,16 +22,17 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Trustworthy GOST normcontrol audit of a DOCX — every status
 explainable, no silent rewrites, safe-only autocorrection.
-**Current focus:** Phase 8 — Milestone acceptance (end-to-end MVP acceptance + success-metric verification; depends on Phase 9, which closed 2026-05-16)
+**Current focus:** Milestone v1.0 CLOSED 2026-05-16. No active phase. Future milestone v1.1 entry points: 999.1 (ui-tabbed-layout-restoration) + 999.2 (docx-formatting-bugs-list-indent-formula-vars).
 
 ## Current Position
 
-Phase: 8 (Milestone acceptance — next per ROADMAP execution order 7 → 9 → 8; Phase 8 has no directory yet, will be created by /gsd-discuss-phase 8)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-05-16 -- Phase 09 closed (3/3 plans; compare-classical CLI shipped; raw-ML zoo SC-2 gate cleared; D-E-05 dual-source acceptance design)
+Milestone: v1.0 — CLOSED 2026-05-16
+Phase: None active. (8/8 milestone phases complete + 2 backlog items 999.1 / 999.2 deferred to v1.1.)
+Plan: None active
+Status: Milestone v1.0 closed; git tag v1.0 annotated on the close commit
+Last activity: 2026-05-16 -- Phase 08 closed; milestone v1.0 signed off (UAT 5/5 + all 5 SC PASS in 08-VERDICT.md).
 
-Progress: [██████████] 100% — Phase 9 complete (3/3 plans; UAT 8/8 points approved on full corpus; D-E-05 macro_f1 floor relaxed 0.9414→0.86 raw-ML basis; 0.9414 after-rules floor preserved for Phase 8 production-pipeline gate); next: /gsd-discuss-phase 8 (the milestone acceptance gate — final phase before milestone close).
+Progress: [██████████] 100% — Milestone v1.0 closed. All 8 phases signed off: Phase 1 (engine guardrails) → Phase 2 (bibliography) → Phase 3 (heading signature) → Phase 4 (regression gate) → Phase 5 (rule profiles) → Phase 6 (Streamlit UI) → Phase 7 (PDF audit slice) → Phase 9 (classical model zoo, inserted post-Phase-7) → Phase 8 (milestone acceptance). v1.1 backlog: 999.1 + 999.2.
 
 ## Performance Metrics
 

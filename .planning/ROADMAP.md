@@ -26,7 +26,7 @@ operational state and the original Этапы 1–9 are preserved in
 - [x] **Phase 6: Streamlit UI redesign** *(completed 2026-05-15)* - Rebuild the UI around the audit flow and pass design review.
 - [x] **Phase 7: PDF text-layer audit slice** *(completed 2026-05-15)* - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
 - [x] **Phase 9: Classical model zoo** *(completed 2026-05-16)* - Extended classical-model comparison (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) with unified `predict_proba` on the current TF-IDF + structural-features pipeline; new `compare_classical` CLI; feeds Phase 8 ML quality gate (dual-source per D-E-05: raw-ML floor from zoo + after-rules floor from production metrics).
-- [ ] **Phase 8: Milestone acceptance** - End-to-end MVP acceptance + success-metric verification.
+- [x] **Phase 8: Milestone acceptance** *(completed 2026-05-16)* - End-to-end MVP acceptance + success-metric verification. Milestone v1.0 signed off; `git tag v1.0` created.
 
 ## Phase Details
 
@@ -176,7 +176,11 @@ Plans:
   2. ML quality gate held: `weighted_f1 ≥ 0.94`, `macro_f1` not below 0.9414; 100% of blocks have explainable status; 100% of detected unsafe fixes blocked.
   3. Negative-corpus regression gate passes (Phase 4 baseline held or improved).
   4. UI design review sign-off recorded; critical-bug list (from FORMAT_FIX_PLAN open items + HEADING_AND_NORMCONTROL Block A/B + graphify follow-up) is empty.
-**Plans**: TBD
+**Plans:** 3 plans (completed 2026-05-16)
+Plans:
+- [x] 08-01-PLAN.md — Wave 1 RED + scaffolding: pytest.ini for @pytest.mark.slow registration (D-E-07); 5 RED test files for SC-1..SC-4 + Streamlit headless smoke. All collect cleanly; pre-implementation gates RED/SKIP as designed.
+- [x] 08-02-PLAN.md — Wave 2 GREEN: Makefile gains milestone-acceptance-sc1..sc4 + milestone-acceptance (D-E-03 chain SC-3 → SC-1 → SC-2 → SC-4) + milestone-smoke (fast CI tier per D-A-04). Existing regression-gate + compare-classical-acceptance UNMODIFIED.
+- [x] 08-03-PLAN.md — Wave 3 GREEN + UAT: 08-DESIGN-REVIEW-ROLLUP.md (Phase 6 retroactive sign-off synthesised from 06-05-SUMMARY per D-E-02 + Phase 7 7/7 + Phase 9 8/8 + 999.x deferred); 08-VERDICT.md (5 SC PASS, signed 2026-05-16); CHANGELOG.md at repo root (Keep-a-Changelog 1.1.0; [v1.0] newest-first per D-E-06). Project-owner UAT 5/5 approved 2026-05-16; `git tag -a v1.0` created.
 **UI hint**: yes
 
 ## Progress
@@ -198,7 +202,7 @@ milestone-acceptance gate and depends on Phase 9.
 | 6. Streamlit UI redesign | 6/6 | Complete | 2026-05-15 |
 | 7. PDF text-layer audit slice | 5/5 | Complete | 2026-05-15 |
 | 9. Classical model zoo | 3/3 | Complete | 2026-05-16 |
-| 8. Milestone acceptance | 0/TBD | Not started | - |
+| 8. Milestone acceptance | 3/3 | Complete | 2026-05-16 |
 
 ## Historical Context
 
