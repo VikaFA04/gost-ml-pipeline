@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 09 complete (3/3 plans; raw-ML zoo gate green; manual UAT approved); next is Phase 8 milestone-acceptance discuss
-last_updated: "2026-05-16T08:35:00.000Z"
-last_activity: 2026-05-16 -- Phase 09 complete (3/3 plans; compare-classical CLI; 6-row results.csv; linear_svm_production raw-ML floor 0.94/0.86 cleared; D-E-05 dual-source acceptance design)
+stopped_at: Phase 08 context captured (15 decisions D-A-01..D-D-04 + Streamlit smoke addition); ready for /gsd-plan-phase 8
+last_updated: "2026-05-16T10:45:00.000Z"
+last_activity: 2026-05-16 -- Phase 08 discuss-phase complete; CONTEXT.md committed (milestone-acceptance harness via make milestone-acceptance, two-tier corpus, design-review consolidation, VERDICT + git tag v1.0 + CHANGELOG)
 progress:
   total_phases: 11
   completed_phases: 8
