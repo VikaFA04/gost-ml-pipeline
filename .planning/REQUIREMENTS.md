@@ -149,6 +149,18 @@ baseline diff-rate.
       FORMAT_FIX_PLAN Этап 1 + progressive limit support already in repo);
       output is a per-pair CSV plus a summary JSON. (Already partly implemented
       per recent commits — bring under the regression-test gate for FIX-tracks.)
+- [ ] **REQ-classical-model-zoo** *(Phase 9)* — `compare-classical` CLI
+      subcommand scores 6 classifier pipelines (LR, LinearSVC zoo,
+      LinearSVC production, ComplementNB, RandomForest, HistGBM+SVD256)
+      on the locked held-out `annotations_test.csv`. Produces 4 artifacts
+      per run: `results.csv` (8 locked columns, D-C-02 order, 6 rows),
+      `results.json` (top-level keys: models/environment/timestamps/
+      dataset_hashes/cli_args), `summary.txt`, `per_class_f1.md`.
+      Acceptance: (1) every row `weighted_f1 > 0.5`; (2) `linear_svm_production`
+      row `weighted_f1 >= 0.94 AND macro_f1 >= 0.9414` (Phase 8 SC-2 floor,
+      source: Этап 1 baseline with TextPatternFeatures); (3) `per_class_f1.md`
+      contains every `label_core` class for every scored model; (4) CLI
+      `--quick` smoke runs end-to-end without exception in < 60 s.
 - [ ] **REQ-mvp-acceptance** — End-to-end acceptance roll-up: the system
       accepts DOCX, extracts blocks, builds features, predicts, runs the rule
       audit, emits CSV report, blocks unsafe autofix, produces corrected DOCX
