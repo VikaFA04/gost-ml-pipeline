@@ -21,3 +21,9 @@ regression-gate:
 		tests/test_format_regression_audit.py \
 		tests/test_profile_quality_acceptance.py \
 		tests/test_methodical_extractor.py
+
+.PHONY: compare-classical-acceptance
+compare-classical-acceptance:
+	$(PYTHON) -m src.main compare-classical \
+		--output-dir results/reports/classical_zoo_$$(date +%Y%m%d_%H%M%S)/
+	$(PYTHON) -m pytest tests/test_phase_8_sc2_acceptance.py -v
