@@ -138,8 +138,8 @@ def _build_tfidf_svd_preprocess() -> ColumnTransformer:
     return ColumnTransformer(
         transformers=[
             ("text", tfidf_svd, TEXT_COL),
-            ("cat", cat_transformer, ["kind", "alignment", "style"]),
-            ("num", num_transformer, ["bold_ratio"]),
+            ("cat", cat_transformer, CAT_COLS),
+            ("num", num_transformer, NUM_COLS),
         ],
         remainder="drop",
     )
@@ -451,11 +451,13 @@ def _write_summary_txt(path: Path, model_records: list[dict], cli_args) -> None:
             if rec["name"] == "linear_svm_production":
                 wf1 = m["weighted_f1"]
                 mf1 = m["macro_f1"]
-                sc2_ok = wf1 >= 0.94 and mf1 >= 0.9414
+                # D-E-05: zoo raw-ML floor (0.94/0.86), NOT after-rules system floor (0.94/0.9414).
+                # See 09-CONTEXT.md §"E — Open Questions resolved post-research" for source-of-truth split.
+                sc2_ok = wf1 >= 0.94 and mf1 >= 0.86
                 verdict = "PASS" if sc2_ok else "FAIL"
                 lines.append(
                     f"  Phase 8 SC-2 verdict: {verdict} "
-                    f"(weighted_f1={wf1:.4f} >= 0.94, macro_f1={mf1:.4f} >= 0.9414)"
+                    f"(weighted_f1={wf1:.4f} >= 0.94, macro_f1={mf1:.4f} >= 0.86)"
                 )
             if rec["name"] == "linear_svm":
                 lines.append(

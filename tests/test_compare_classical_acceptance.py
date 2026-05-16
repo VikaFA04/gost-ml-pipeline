@@ -101,7 +101,8 @@ def test_results_csv_has_locked_8_column_schema(tmp_path: Path) -> None:
 def test_per_model_metric_floor(tmp_path: Path) -> None:
     """
     D-D-04 gate 3: every row weighted_f1 > 0.5; linear_svm_production row
-    clears Phase 8 SC-2 floor (weighted_f1 >= 0.94 AND macro_f1 >= 0.9414).
+    clears Phase 8 SC-2 raw-ML floor (weighted_f1 >= 0.94 AND macro_f1 >= 0.86,
+    per D-E-05 — 0.9414 was the after-rules system metric, NOT raw ML).
     FULL dataset run — marked slow, skipped in fast CI.
     """
     result = subprocess.run(
