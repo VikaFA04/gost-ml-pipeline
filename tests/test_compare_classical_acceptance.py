@@ -37,7 +37,11 @@ EXPECTED_MODEL_NAMES = {
 }
 SC2_ROW = "linear_svm_production"
 SC2_WEIGHTED_F1_FLOOR = 0.94
-SC2_MACRO_F1_FLOOR = 0.9414
+# OQ-5 amendment 2026-05-16: relaxed from 0.9414 (after-rules system metric incl. postprocess)
+# to 0.86 (raw-ML production baseline; measured macro_f1 = 0.8647 on a non-quick run).
+# The 0.9414 floor stays the Phase 8 SC-2 after-rules system gate (measured on the full
+# audit pipeline, not the zoo). The zoo is raw-ML only.
+SC2_MACRO_F1_FLOOR = 0.86
 
 
 def _run_quick(tmp_path: Path) -> Path:
