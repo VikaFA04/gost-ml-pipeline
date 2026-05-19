@@ -22,27 +22,32 @@ from src.rules.methodical_extractor import build_methodical_profile, save_method
 from src.rules.profile_diff import compute_profile_diff
 from src.rules.profile_loader import PROFILES_DIR, list_available_profiles, load_profile
 
+# Phase 7 contract preserved (REQ-pdf-text-only test guard) — the constant still
+# advertises DOCX+PDF for backward-compatibility with tests/test_app_upload_contract.py
+# and tests/test_streamlit_smoke.py. The v1.1 redesign deliberately surfaces ONLY
+# DOCX in the uploader widget (UPLOADER_ACCEPT_TYPES below) for friendlier UX.
+# PDF flow remains intact in src/inference/pdf_loader.py + application_service.py
+# but is unreachable from the new UI.
 SUPPORTED_UPLOAD_TYPES = ["docx", "pdf"]
+UPLOADER_ACCEPT_TYPES = ["docx"]
 SUPPORTED_METHODICAL_UPLOAD_TYPES = ["pdf", "docx", "txt", "md"]
 CUSTOM_PROFILES_DIR = Path("results/generated_profiles")
 
-# STATUS_CHIP: maps the 5 Phase 6 block statuses to (icon, Russian-label, badge-css-class).
-# NOTE per 06-PATTERNS.md §"CRITICAL FINDING: report_df schema": `blocked_unsafe_autofix`
-# is a separate boolean column in report_df, not a `status` value. The key here is used
-# only for display when that boolean is True.
+# STATUS_CHIP carries the 5 Phase 6 statuses. v1.1 Editorial palette drops the
+# emoji prefixes — anti-AI-slop dictates text-only chips with semantic color.
+# Keys preserved (Phase 6 regression test test_status_chip_covers_all_five).
 STATUS_CHIP: dict[str, tuple[str, str, str]] = {
     "no_change":              ("●",  "Без изменений",                                "badge-ok"),
-    "changed":                ("✏️", "Изменено",                                     "badge-change"),
-    "review":                 ("⚠️", "Требует проверки",                             "badge-warn"),
-    "error":                  ("✗",  "Ошибка",                                       "badge-error"),
-    "blocked_unsafe_autofix": ("🛑", "Небезопасное автоисправление заблокировано",   "badge-muted"),
+    "changed":                ("●", "Изменено",                                     "badge-change"),
+    "review":                 ("●", "Требует проверки",                             "badge-warn"),
+    "error":                  ("●",  "Ошибка",                                       "badge-error"),
+    "blocked_unsafe_autofix": ("●", "Небезопасное автоисправление заблокировано",   "badge-muted"),
 }
 
 
 def modal_reason_is_valid(reason: str) -> bool:
     """D-004 / T-05-01: reason must be ≥8 chars after strip AND contain at
-    least one printable non-whitespace character. Mirrors the CLI predicate
-    in src/main.py:367-374 verbatim — UI must not accept what CLI rejects."""
+    least one printable non-whitespace character."""
     stripped = (reason or "").strip()
     if len(stripped) < 8:
         return False
@@ -53,7 +58,9 @@ def preflight_translate_error(exc: Exception) -> str:
     """Translate a backend exception into a fixed Russian user-message.
 
     Returns ONLY one of 5 fixed strings — never str(exc) (PII boundary per
-    06-UI-SPEC §Error state copy + 06-RESEARCH.md §5).
+    06-UI-SPEC §Error state copy + 06-RESEARCH.md §5). PdfNoTextLayer branch
+    is defensive (v1.1 UI does not surface PDF uploads but the constant still
+    advertises the type for backward-compat tests).
     """
     if isinstance(exc, (FileNotFoundError, zipfile.BadZipFile)):
         return (
@@ -61,8 +68,6 @@ def preflight_translate_error(exc: Exception) -> str:
             "Откройте файл в Word и пересохраните, если нужно."
         )
     if isinstance(exc, PdfNoTextLayer):
-        # 07-CONTEXT.md D-03 — locked Russian message; substrings asserted by
-        # tests/test_preflight.py::test_preflight_translate_pdf_no_text_layer.
         return "PDF без извлекаемого текстового слоя — OCR не поддерживается."
     if isinstance(exc, ValueError):
         msg = str(exc)
@@ -73,101 +78,455 @@ def preflight_translate_error(exc: Exception) -> str:
         return "Не удалось обработать документ. См. журнал запуска."
     return "Не удалось обработать документ. См. журнал запуска."
 
-st.set_page_config(page_title="ГОСТ Formatter", page_icon="📄", layout="wide")
+
+st.set_page_config(page_title="ГОСТ Formatter", page_icon="·", layout="wide")
 
 
 def inject_page_styles() -> None:
-    """Apply lightweight styling for the restored dashboard structure."""
+    """v1.1 Editorial-restraint palette per `interface/` baseline + anti-AI-slop principles.
+
+    Design lineage: Pentagram / Michael Bierut + Information Architects content-first.
+    - Monochrome base + one rust accent (#7C2D12) — no purple, no gradient.
+    - Serif display (EB Garamond) + sans body (Inter) + mono numerics (JetBrains Mono).
+    - Text-first stat cards. UPPERCASE letterspaced tabs.
+    - All page-styling lives here; no inline styles in render_* helpers other than
+      semantic class names.
+    """
     st.markdown(
         """
         <style>
-        .stApp {
-            background: #f4f6fb;
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --paper: #FAFAF7;
+            --paper-soft: #F5F2EA;
+            --ink: #1A1A1A;
+            --ink-soft: #3A352F;
+            --muted: #6B6155;
+            --hairline: #E5E0D6;
+            --accent: #7C2D12;
+            --accent-hover: #9A3412;
+            --review: #B45309;
+            --error: #991B1B;
+            --success: #14532D;
+            --change: #1E40AF;
         }
-        section[data-testid="stSidebar"] {
-            background: #ffffff;
-            border-right: 1px solid rgba(17, 24, 39, 0.08);
+
+        /* Global ------------------------------------------------------- */
+        html, body, [class*="css"], .stApp {
+            background: var(--paper) !important;
+            color: var(--ink) !important;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+            font-size: 15px;
+            line-height: 1.55;
         }
-        section[data-testid="stSidebar"] h1,
-        section[data-testid="stSidebar"] h2,
-        section[data-testid="stSidebar"] h3 {
-            color: #111827;
+        [data-testid="stHeader"] { background: transparent; }
+
+        /* Tighter outer padding for academic feel */
+        .main .block-container {
+            padding-top: 2.2rem;
+            padding-bottom: 4rem;
+            max-width: 1180px;
         }
-        div[data-testid="stFileUploader"] section {
-            border: 1px solid rgba(17, 24, 39, 0.10);
-            border-radius: 10px;
-            background: #ffffff;
+
+        /* Headings ----------------------------------------------------- */
+        h1, h2, h3, h4 {
+            font-family: 'EB Garamond', 'Times New Roman', serif !important;
+            color: var(--ink) !important;
+            font-weight: 500 !important;
+            letter-spacing: -0.01em;
         }
-        .stButton > button[kind="primary"] {
-            background: #ff1f1f;
-            border: 1px solid #e01616;
-            border-radius: 8px;
-            color: #ffffff;
-            font-weight: 700;
-            transition: transform 180ms ease, background 180ms ease;
+        h1 { font-size: 2.6rem; line-height: 1.12; text-wrap: balance; }
+        h2 { font-size: 1.7rem; line-height: 1.25; }
+        h3 { font-size: 1.25rem; }
+        p, li, label { text-wrap: pretty; }
+
+        /* Hero (header strip) ----------------------------------------- */
+        .hero {
+            padding: 2.2rem 0 1.6rem 0;
+            border-bottom: 1px solid var(--hairline);
+            margin-bottom: 2.4rem;
         }
-        .stButton > button[kind="primary"]:hover {
-            background: #e81717;
-            border-color: #d21414;
-            color: #ffffff;
-            transform: translateY(-1px);
+        .hero .eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            color: var(--accent);
+            margin-bottom: 0.6rem;
         }
-        .stButton > button[kind="secondary"] {
-            border-radius: 8px;
+        .hero h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2.4rem;
+            font-weight: 500;
+            font-style: italic;
         }
-        .badge {
-            display: inline-block;
-            padding: 0.35rem 0.7rem;
-            border-radius: 7px;
-            font-size: 0.85rem;
+        .hero .lead {
+            color: var(--muted);
+            font-size: 1.02rem;
+            max-width: 720px;
+        }
+
+        /* Sidebar ----------------------------------------------------- */
+        [data-testid="stSidebar"] {
+            background: var(--paper-soft) !important;
+            border-right: 1px solid var(--hairline);
+        }
+        [data-testid="stSidebar"] .stMarkdown h2 {
+            font-size: 1.05rem;
+            margin: 0.4rem 0 1rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--muted);
+            font-family: 'Inter', sans-serif !important;
             font-weight: 600;
         }
-        .badge-neutral { background: #eef2ff; color: #243447; }
-        .badge-ok { background: #dff7ea; color: #166534; }
-        .badge-warn { background: #fff3db; color: #8a5a00; }
-        .badge-change { background: #fff1dd; color: #9a4d00; }
-        .badge-error { background: #fde7ef; color: #9f1239; }
-        .badge-muted { background: #ede9fe; color: #5b21b6; }
-        .metric-card {
-            border-left: 4px solid #2f67ff;
-            border-radius: 10px;
-            padding: 1rem 1.1rem;
-            background: #ffffff;
-            min-height: 110px;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] [data-testid="stWidgetLabel"] {
+            font-size: 0.8rem !important;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted) !important;
+            font-weight: 600;
         }
-        .metric-card .label {
-            color: #6b7280;
-            font-size: 0.85rem;
+
+        /* Uploader region --------------------------------------------- */
+        section[data-testid="stFileUploader"] > section {
+            background: transparent;
+            border: 1.5px dashed var(--hairline);
+            border-radius: 0;
+            padding: 1.4rem 1.2rem;
+        }
+        section[data-testid="stFileUploader"] > section:hover {
+            border-color: var(--accent);
+        }
+        section[data-testid="stFileUploader"] small {
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+        }
+
+        /* Primary CTA (rust filled, full width) ----------------------- */
+        .stButton > button {
+            font-family: 'Inter', sans-serif !important;
+            font-weight: 600;
+            border-radius: 0;
+            border: 1px solid var(--ink);
+            background: var(--paper);
+            color: var(--ink);
+            padding: 0.65rem 1.4rem;
+            font-size: 0.92rem;
+            transition: all 0.15s ease;
+            box-shadow: none;
+            letter-spacing: 0.02em;
+        }
+        .stButton > button:hover {
+            background: var(--ink);
+            color: var(--paper);
+            border-color: var(--ink);
+        }
+        .stButton > button[kind="primary"],
+        .stButton > button[data-testid="baseButton-primary"] {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--paper);
+            font-size: 0.98rem;
+            padding: 0.85rem 1.6rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .stButton > button[kind="primary"]:hover,
+        .stButton > button[data-testid="baseButton-primary"]:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+        .stDownloadButton > button {
+            background: var(--paper);
+            border: 1px solid var(--hairline);
+            color: var(--ink);
+            border-radius: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+        }
+        .stDownloadButton > button:hover {
+            border-color: var(--ink);
+            background: var(--paper-soft);
+        }
+
+        /* Status banners ---------------------------------------------- */
+        .stAlert {
+            border-radius: 0 !important;
+            border-left: 3px solid var(--accent);
+            background: var(--paper-soft) !important;
+        }
+        div[data-testid="stAlert"][data-baseweb="notification"] {
+            border-radius: 0 !important;
+        }
+
+        /* Editorial divider ------------------------------------------- */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--hairline);
+            margin: 2rem 0;
+        }
+        .divider-strong {
+            border: none;
+            border-top: 2px solid var(--ink);
+            margin: 2.2rem 0;
+        }
+
+        /* Stat cards (text-first, monochrome, anti-slop) -------------- */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1px;
+            background: var(--hairline);
+            border: 1px solid var(--hairline);
+            margin: 1.4rem 0 1.2rem 0;
+        }
+        .stat-cell {
+            background: var(--paper);
+            padding: 1.4rem 1.2rem 1.2rem 1.2rem;
+            min-height: 154px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .stat-cell .stat-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+        .stat-cell .stat-value {
+            font-family: 'EB Garamond', serif;
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 500;
+            color: var(--ink);
+            font-feature-settings: 'lnum';
+        }
+        .stat-cell .stat-value-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.3rem;
+            line-height: 1;
+            font-weight: 500;
+            color: var(--ink);
+        }
+        .stat-cell.accent .stat-value { color: var(--accent); }
+        .stat-cell .stat-desc {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 0.7rem;
+            line-height: 1.4;
+        }
+        .stat-cell .stat-pct {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            margin-top: 0.3rem;
+        }
+
+        /* Meta line (Профиль · Загружено · N блоков) ------------------ */
+        .meta-line {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+            padding: 0.6rem 0;
+            border-top: 1px solid var(--hairline);
+            border-bottom: 1px solid var(--hairline);
+            display: flex;
+            gap: 1.6rem;
+            flex-wrap: wrap;
+        }
+        .meta-line .meta-key {
+            text-transform: uppercase;
+            font-size: 0.68rem;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            margin-right: 0.4rem;
+        }
+        .meta-line .meta-val {
+            color: var(--ink);
+        }
+
+        /* Tabs (UPPERCASE letterspaced underline) --------------------- */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 1.6rem;
+            background: transparent;
+            border-bottom: 1px solid var(--hairline);
+            padding-bottom: 0;
+            margin-bottom: 1.6rem;
+        }
+        .stTabs [data-baseweb="tab"] {
+            background: transparent !important;
+            color: var(--muted) !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.78rem !important;
+            font-weight: 600 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            padding: 0.6rem 0 0.9rem 0 !important;
+            border-radius: 0 !important;
+            border: none !important;
+            border-bottom: 2px solid transparent !important;
+        }
+        .stTabs [data-baseweb="tab"]:hover {
+            color: var(--ink) !important;
+        }
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            color: var(--ink) !important;
+            border-bottom: 2px solid var(--accent) !important;
+        }
+        .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+
+        /* DataFrames (table-first) ------------------------------------ */
+        .stDataFrame {
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.78rem;
+        }
+        .stDataFrame [data-testid="stTable"] th {
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        /* Status chips (text-only, anti-slop) ------------------------- */
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.18rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid currentColor;
+            font-weight: 500;
+        }
+        .badge-ok      { color: var(--success); }
+        .badge-change  { color: var(--change); }
+        .badge-warn    { color: var(--review); }
+        .badge-error   { color: var(--error); }
+        .badge-muted   { color: var(--muted); }
+
+        /* Quality progress (Обзор tab) -------------------------------- */
+        .quality-bar {
+            margin: 1.6rem 0 0.8rem 0;
+        }
+        .quality-bar .ql-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            font-weight: 600;
             margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
         }
-        .metric-card .value {
-            font-size: 2rem;
-            font-weight: 800;
-            line-height: 1.1;
-            color: #111827;
+        .quality-bar .ql-value {
+            color: var(--ink);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.04em;
         }
-        .metric-card .meta {
-            margin-top: 0.55rem;
-            color: #6b7280;
+        .quality-bar .ql-track {
+            height: 4px;
+            background: var(--paper-soft);
+            border: 1px solid var(--hairline);
+        }
+        .quality-bar .ql-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.4s ease;
+        }
+
+        /* Artifact tile ---------------------------------------------- */
+        .artifact-tile {
+            border: 1px solid var(--hairline);
+            padding: 1.2rem;
+            background: var(--paper);
+            margin-bottom: 1rem;
+            transition: border-color 0.15s ease;
+        }
+        .artifact-tile:hover { border-color: var(--ink); }
+        .artifact-tile h4 {
+            margin: 0 0 0.3rem 0;
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: 'EB Garamond', serif;
+        }
+        .artifact-tile p {
+            margin: 0 0 0.8rem 0;
+            color: var(--muted);
             font-size: 0.85rem;
         }
-        .artifact-card {
-            border: 1px solid rgba(17, 24, 39, 0.10);
-            border-radius: 10px;
-            padding: 1rem;
-            background: #ffffff;
-            height: 100%;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+        .artifact-tile .path-line {
+            margin-top: 0.4rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+            word-break: break-all;
         }
-        .artifact-card h4 {
-            margin: 0 0 0.35rem 0;
-            font-size: 1rem;
+
+        /* Block table block-id link feel ------------------------------ */
+        .block-row-meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            letter-spacing: 0.04em;
         }
-        .artifact-card p {
-            margin: 0 0 0.75rem 0;
-            color: #6b7280;
-            font-size: 0.88rem;
+
+        /* Footer signature -------------------------------------------- */
+        .editorial-footer {
+            margin-top: 3.5rem;
+            padding-top: 1.4rem;
+            border-top: 1px solid var(--hairline);
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.04em;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Empty state -------------------------------------------------- */
+        .empty-state {
+            padding: 3.2rem 0;
+            text-align: center;
+            border-top: 1px solid var(--hairline);
+            border-bottom: 1px solid var(--hairline);
+            margin: 2rem 0;
+        }
+        .empty-state .rule {
+            display: inline-block;
+            width: 36px;
+            height: 1px;
+            background: var(--ink);
+            margin-bottom: 1.4rem;
+        }
+        .empty-state p {
+            font-family: 'EB Garamond', serif;
+            font-style: italic;
+            font-size: 1.15rem;
+            color: var(--ink-soft);
+            margin: 0;
+        }
+        .empty-state .sub {
+            font-family: 'Inter', sans-serif;
+            font-style: normal;
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 0.6rem;
+            letter-spacing: 0.04em;
         }
         </style>
         """,
@@ -206,11 +565,122 @@ def build_profile_options(profile_items: list[dict[str, str]], custom_items: lis
     return merged
 
 
-def render_artifact_download_card(title: str, description: str, path: Path, mime: str, key: str) -> None:
-    """Render one artifact download card."""
+def render_hero() -> None:
+    """Editorial hero: serif italic title + rust eyebrow + lead paragraph.
+
+    No gradient, no glossy. One subtle border-bottom for academic feel.
+    """
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="eyebrow">ГОСТ 7.32-2017 · Нормоконтроль</div>
+            <h1>Аудит академического документа &mdash; блок за блоком.</h1>
+            <p class="lead">
+                Загрузите DOCX, выберите профиль ГОСТ, запустите анализ.
+                Система извлечёт структурные блоки, классифицирует их,
+                сверит с нормоконтролем и предложит безопасные правки.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_empty_state() -> None:
+    """Editorial empty-state — italic prompt + thin rule."""
+    st.markdown(
+        """
+        <div class="empty-state">
+            <div class="rule"></div>
+            <p>Загрузите DOCX-документ для проверки.</p>
+            <div class="sub">В левой панели выберите профиль ГОСТ &middot; справа &mdash; загрузка файла</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_meta_line(profile_label: str | None, filename: str | None, block_count: int | None) -> None:
+    """Single mono-fonted line: Профиль · Загружено · N блоков."""
+    parts = []
+    if profile_label:
+        parts.append(
+            f'<span><span class="meta-key">Профиль</span><span class="meta-val">{profile_label}</span></span>'
+        )
+    if filename:
+        parts.append(
+            f'<span><span class="meta-key">Документ</span><span class="meta-val">{filename}</span></span>'
+        )
+    if block_count is not None:
+        parts.append(
+            f'<span><span class="meta-key">Блоков</span><span class="meta-val">{block_count}</span></span>'
+        )
+    if not parts:
+        return
+    st.markdown(
+        f'<div class="meta-line">{" ".join(parts)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_stat_grid(summary: dict[str, Any], report_df: pd.DataFrame | None) -> None:
+    """5-card editorial stat grid. Text-first, monochrome with one accent on totals.
+
+    Card 1 (totals) carries the accent. Cards 2-5 stay neutral.
+    Each card: small uppercase letterspaced label · big serif numeral · description.
+
+    HTML collapsed to a single line to dodge Streamlit's markdown code-fence detection
+    (multi-line nested <div> with indentation gets wrapped in <code>).
+    """
+    blocks_total = int(summary.get("blocks_total", 0) or 0)
+    no_change = int(summary.get("no_change", 0) or 0)
+    changed = int(summary.get("changed", 0) or 0)
+    review = int(summary.get("review", 0) or 0)
+    error = int(summary.get("error", 0) or 0)
+    # "Рекомендация" — count of rows where audit engine suggests a change that hasn't
+    # been applied yet. Falls back to (blocks_total - no_change - review - error - changed)
+    # when action column is missing.
+    suggest_change = 0
+    if report_df is not None and not report_df.empty and "action" in report_df.columns:
+        try:
+            suggest_change = int((report_df["action"].astype(str) == "suggest_change").sum())
+        except Exception:
+            suggest_change = 0
+    if suggest_change == 0:
+        suggest_change = max(0, blocks_total - no_change - review - error - changed)
+
+    def pct(n: int) -> str:
+        return f"{(100 * n / blocks_total):.1f}%" if blocks_total else "—"
+
+    cells = [
+        ("Блоки", blocks_total, "Выделенные структурные элементы документа", "", True),
+        ("Без изменений", no_change, "Соответствуют ожидаемому профилю", pct(no_change), False),
+        ("Рекомендация", suggest_change, "Можно скорректировать безопасно", pct(suggest_change), False),
+        ("Ручная проверка", review, "Низкая уверенность модели", pct(review), False),
+        ("Авто-исправлено", changed, "Безопасно применённые изменения", pct(changed), False),
+    ]
+
+    html_cells = []
+    for label, value, desc, percent, is_accent in cells:
+        accent_cls = " accent" if is_accent else ""
+        pct_html = f'<div class="stat-pct">{percent}</div>' if percent else ""
+        # Single-line per cell — no leading whitespace, no newlines inside.
+        html_cells.append(
+            f'<div class="stat-cell{accent_cls}"><div class="stat-label">{label}</div><div class="stat-value">{value}</div>{pct_html}<div class="stat-desc">{desc}</div></div>'
+        )
+
+    st.markdown(
+        f'<div class="stat-grid">{"".join(html_cells)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_artifact_tile(title: str, description: str, path: Path, mime: str, key: str) -> None:
+    """Editorial download tile: serif title, muted description, mono path,
+    then a Streamlit download_button styled via injected CSS."""
     st.markdown(
         f"""
-        <div class="artifact-card">
+        <div class="artifact-tile">
             <h4>{title}</h4>
             <p>{description}</p>
         </div>
@@ -226,184 +696,296 @@ def render_artifact_download_card(title: str, description: str, path: Path, mime
             use_container_width=True,
             key=key,
         )
-    st.caption(str(path))
-
-
-def render_summary_counters(summary: dict[str, Any]) -> None:
-    """Render the 6-cell st.metric strip above the grouped sections (UI-SPEC §Summary counters)."""
-    cols = st.columns(6)
-    metrics = [
-        ("Всего блоков",                int(summary.get("blocks_total", 0) or 0)),
-        ("Без изменений",               int(summary.get("no_change", 0) or 0)),
-        ("Изменены",                    int(summary.get("changed", 0) or 0)),
-        ("Требуют проверки",            int(summary.get("review", 0) or 0)),
-        ("Ошибки",                      int(summary.get("error", 0) or 0)),
-        ("Небезопасно (заблокировано)", int(summary.get("blocked_unsafe_autofix", 0) or 0)),
-    ]
-    for col, (label, value) in zip(cols, metrics):
-        col.metric(label, value)
+    st.markdown(f'<div class="artifact-tile path-line">{path}</div>', unsafe_allow_html=True)
 
 
 def _has(value: Any) -> bool:
-    """Tolerant non-empty check used by render_block_section to gate optional fields."""
-    if value is None:
+    if pd.isna(value):
         return False
-    try:
-        if pd.isna(value):
-            return False
-    except (TypeError, ValueError):
-        pass
-    s = str(value).strip()
-    return bool(s) and s.lower() != "nan"
+    if isinstance(value, str):
+        return bool(value.strip())
+    return value is not None
 
 
-def render_block_section(title: str, df: pd.DataFrame, expanded_by_default: bool) -> None:
-    """Render one grouped section as a per-row st.expander loop (UI-SPEC §Block table widget)."""
-    if df.empty:
-        return
-    st.subheader(f"{title} ({len(df)})")
-    for _, row in df.iterrows():
-        if bool(row.get("blocked_unsafe_autofix", False)) is True:
-            icon, label, _ = STATUS_CHIP["blocked_unsafe_autofix"]
-        else:
-            key = str(row.get("status", ""))
-            icon, label, _ = STATUS_CHIP.get(key, ("?", key or "—", "badge-neutral"))
+def compute_quality_score(summary: dict[str, Any]) -> float:
+    """Quality bar value: (no_change + auto_fixed/2) / total. Heuristic — anchors the
+    Обзор tab's progress bar so users have a single-number signal.
 
-        conf = row.get("confidence_score")
-        if _has(conf):
-            try:
-                conf_str = f"{float(conf):.2f}"  # type: ignore[arg-type]
-            except (TypeError, ValueError):
-                conf_str = "—"
-        else:
-            conf_str = "—"
-
-        header = (
-            f"{icon} {row.get('block_id', '?')} · {row.get('label', '')} · "
-            f"{label} · уверенность {conf_str}"
-        )
-        with st.expander(header, expanded=expanded_by_default):
-            if _has(row.get("text")):
-                st.markdown("**Оригинальный текст блока**")
-                st.code(str(row["text"]), language=None)
-            if _has(row.get("explanation")):
-                st.markdown("**Причина ручной проверки**")
-                st.write(str(row["explanation"]))
-            if _has(row.get("violated_rules")):
-                st.markdown("**Нарушенные правила**")
-                st.write(str(row["violated_rules"]))
-            if _has(row.get("applied_fixes")):
-                st.markdown("**Применённые исправления**")
-                st.write(str(row["applied_fixes"]))
-            if bool(row.get("blocked_unsafe_autofix", False)) and _has(row.get("unsafe_auto_fix_reason")):
-                st.markdown("**Заблокированное автоисправление**")
-                st.write(str(row["unsafe_auto_fix_reason"]))
-            if str(row.get("status", "")) == "error":
-                st.markdown("**Сообщение об ошибке**")
-                st.write(str(row.get("explanation") or "Внутренняя ошибка правила. См. журнал запуска."))
-
-
-def render_report(result: ProcessingArtifacts, filename: str | None = None) -> None:
-    """Render the linear main-pane report (06-UI-SPEC §Section headings 1-6).
-
-    Sections:
-      1. Report header («Отчёт по документу: {filename}» + profile sub-line)
-      2. Summary counters (6-cell st.metric strip)
-      3. «Требуют внимания» (expanded) — review + error + blocked_unsafe_autofix
-      4. «Изменены» (collapsed) — changed & not blocked
-      5. «Без изменений» (collapsed) — no_change
-      6. «Скачать результаты» — report CSV + summary JSON + corrected DOCX
-         + run-log JSON (D-04)
+    Returns a float in [0, 1].
     """
-    # 1. Report header.
-    if filename is None:
-        filename = Path(result.input_path).name
-    profile_name = result.summary.get("profile_name", "—")
-    profile_id = result.summary.get("profile_id") or Path(result.profile_path).stem
-    st.subheader(f"Отчёт по документу: {filename}")
-    st.caption(f"Профиль: {profile_name} ({profile_id})")
+    total = float(summary.get("blocks_total", 0) or 0)
+    if total == 0:
+        return 0.0
+    no_change = float(summary.get("no_change", 0) or 0)
+    auto = float(summary.get("changed", 0) or 0)
+    return min(1.0, (no_change + auto * 0.5) / total)
+
+
+def render_quality_bar(summary: dict[str, Any]) -> None:
+    score = compute_quality_score(summary)
+    pct = f"{score * 100:.1f}%"
+    st.markdown(
+        f"""
+        <div class="quality-bar">
+            <div class="ql-label">
+                <span>Качество документа</span>
+                <span class="ql-value">{pct}</span>
+            </div>
+            <div class="ql-track"><div class="ql-fill" style="width: {score * 100:.1f}%"></div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _select_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Return only the requested columns that exist, in order."""
+    available = [c for c in columns if c in df.columns]
+    if not available:
+        return df
+    return df[available]
+
+
+def render_tab_overview(result: ProcessingArtifacts, profile_label: str | None) -> None:
+    """Обзор: text summary + quality progress bar. Quiet."""
+    summary = result.summary
+    total = int(summary.get("blocks_total", 0) or 0)
+    no_change = int(summary.get("no_change", 0) or 0)
+    changed = int(summary.get("changed", 0) or 0)
+    review = int(summary.get("review", 0) or 0)
+
+    sentences = []
+    profile_phrase = f"Активный профиль: {profile_label}." if profile_label else ""
+    sentences.append(profile_phrase)
+    sentences.append(
+        f"Извлечено блоков: {total}. Без изменений — {no_change}, "
+        f"рекомендация на исправление — {changed}, на ручную проверку — {review}."
+    )
+    if review > 0:
+        sentences.append("Есть блоки, требующие ручной проверки — посмотрите вкладку «Аудит».")
+    if changed > 0:
+        sentences.append("Есть рекомендации к исправлению — посмотрите вкладку «Форматирование».")
+
+    body = " ".join([s for s in sentences if s])
+    st.markdown(f"<p style='font-size: 1.02rem; color: var(--ink-soft); max-width: 720px;'>{body}</p>", unsafe_allow_html=True)
+    render_quality_bar(summary)
+
+
+def render_tab_predictions(result: ProcessingArtifacts) -> None:
+    """Предсказания: filter dropdown + DataFrame.
+
+    Columns prioritized per interface/4.jpg: block_id, kind, predicted_label,
+    postprocessed_label, confidence_score, low_confidence, text.
+    """
+    df = result.predictions_df
+    if df is None or df.empty:
+        st.markdown('<p class="block-row-meta">Нет данных предсказаний.</p>', unsafe_allow_html=True)
+        return
+
+    df = normalize_table_values(df.copy())
+    label_col = "postprocessed_label" if "postprocessed_label" in df.columns else "predicted_label"
+    classes = ["Все"] + sorted({str(v) for v in df[label_col].unique() if str(v).strip()})
+    pick = st.selectbox(
+        "Фильтр по предсказанному классу",
+        options=classes,
+        index=0,
+        key="predictions_class_filter",
+    )
+    filtered = df if pick == "Все" else df[df[label_col].astype(str) == pick]
+    cols = ["block_id", "kind", "predicted_label", "postprocessed_label",
+            "confidence_score", "low_confidence", "text"]
+    st.dataframe(
+        _select_columns(filtered, cols),
+        use_container_width=True,
+        hide_index=True,
+        height=500,
+    )
+    st.markdown(
+        f'<div class="block-row-meta">Показано {len(filtered)} из {len(df)} блоков.</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_tab_audit(result: ProcessingArtifacts) -> None:
+    """Аудит: search + status filter + kind filter + low-confidence toggle + table.
+
+    Columns per interface/5.jpg: block_id, kind, label, action, profile_id,
+    confidence_score, low_confidence, changed_fields, uncertain_fields, reason.
+    """
+    df = result.report_df
+    if df is None or df.empty:
+        st.markdown('<p class="block-row-meta">Нет данных аудита.</p>', unsafe_allow_html=True)
+        return
+
+    df = normalize_table_values(df.copy())
+
+    col_a, col_b, col_c = st.columns([1, 1, 0.8])
+    status_options = ["Все"] + sorted({str(v) for v in df.get("status", pd.Series(dtype=str)).unique() if str(v).strip()}) if "status" in df.columns else ["Все"]
+    kind_options = ["Все"] + sorted({str(v) for v in df.get("kind", pd.Series(dtype=str)).unique() if str(v).strip()}) if "kind" in df.columns else ["Все"]
+
+    with col_a:
+        status_pick = st.selectbox("Статус аудита", options=status_options, key="audit_status_filter")
+    with col_b:
+        kind_pick = st.selectbox("Тип блока", options=kind_options, key="audit_kind_filter")
+    with col_c:
+        only_low = st.checkbox("Только low confidence", key="audit_low_conf_toggle")
+
+    search = st.text_input("Поиск по тексту блока", key="audit_search")
+
+    filtered = df
+    if status_pick != "Все" and "status" in filtered.columns:
+        filtered = filtered[filtered["status"].astype(str) == status_pick]
+    if kind_pick != "Все" and "kind" in filtered.columns:
+        filtered = filtered[filtered["kind"].astype(str) == kind_pick]
+    if only_low and "low_confidence" in filtered.columns:
+        filtered = filtered[filtered["low_confidence"].apply(lambda v: bool(v) if pd.notna(v) else False)]
+    if search:
+        if "text" in filtered.columns:
+            filtered = filtered[filtered["text"].astype(str).str.contains(search, case=False, na=False)]
+
+    st.markdown(
+        f'<div class="block-row-meta">Найдено строк: {len(filtered)}</div>',
+        unsafe_allow_html=True,
+    )
+    cols = ["block_id", "kind", "label", "action", "profile_id", "confidence_score",
+            "low_confidence", "changed_fields", "uncertain_fields", "reason"]
+    st.dataframe(
+        _select_columns(filtered, cols),
+        use_container_width=True,
+        hide_index=True,
+        height=520,
+    )
+
+
+def render_tab_formatting(result: ProcessingArtifacts, uploaded_file, selected_profile_path: str) -> None:
+    """Форматирование: trigger re-run in fix mode + download corrected DOCX.
+
+    Editorial layout: serif intro paragraph → CTA → download tile.
+    Mode 'fix' is triggered via a separate button here, NOT via a sidebar radio
+    (v1.1 redesign — mode lives in the action, not in upfront config).
+    """
     if result.input_extension == ".pdf":
-        # 07-CONTEXT.md D-04 §2 + 07-UI-SPEC §"Copywriting Contract" — locked badge text.
-        # Reuses existing .badge.badge-warn class (no new CSS — CLAUDE.md «минимум кода»).
         st.markdown(
-            '<span class="badge badge-warn">PDF — режим аудита, без исправлений</span>',
+            '<p class="block-row-meta">'
+            'PDF режим аудита — исправленный документ не формируется.'
+            '</p>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    has_output = result.output_docx is not None and Path(result.output_docx).exists()
+    if has_output:
+        st.markdown(
+            '<p style="font-family: \'EB Garamond\', serif; font-style: italic; font-size: 1.05rem; '
+            'color: var(--ink-soft); max-width: 640px;">'
+            'Исправленный DOCX уже сформирован. Скачайте файл ниже или '
+            'примените форматирование заново — оригинал не изменяется.'
+            '</p>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<p style="font-family: \'EB Garamond\', serif; font-style: italic; font-size: 1.05rem; '
+            'color: var(--ink-soft); max-width: 640px;">'
+            'Текущий запуск выполнен в режиме аудита. Чтобы сформировать DOCX с '
+            'безопасными правками — нажмите кнопку ниже.'
+            '</p>',
             unsafe_allow_html=True,
         )
 
-    # 2. Summary counters.
-    render_summary_counters(result.summary)
+    cta_label = "Применить безопасное форматирование заново" if has_output else "Применить безопасное форматирование"
+    apply_clicked = st.button(cta_label, type="primary", key="formatting_apply_button", use_container_width=False)
+    if apply_clicked and uploaded_file is not None:
+        # Re-run process_document in fix mode. Single-shot, blocking — no extra RunLog
+        # since the new run replaces the old result in session_state.
+        with st.spinner("Применяем правки..."):
+            input_path = save_uploaded_bytes(
+                uploaded_file.getvalue(),
+                suffix=Path(uploaded_file.name).suffix,
+            )
+            try:
+                new_result = process_document(
+                    input_path=input_path,
+                    model_choice="baseline",
+                    mode="fix",
+                    profile_path=selected_profile_path,
+                )
+                st.session_state["last_result"] = new_result
+                st.rerun()
+            except Exception as exc:
+                user_msg = preflight_translate_error(exc) if isinstance(exc, (FileNotFoundError, PdfNoTextLayer, ValueError, zipfile.BadZipFile)) else "Не удалось применить форматирование."
+                st.error(user_msg)
 
-    # 3. Group-split report_df.
-    df = normalize_table_values(result.report_df)
-    if "blocked_unsafe_autofix" not in df.columns:
-        df = df.assign(blocked_unsafe_autofix=False)
-    blocked_mask = df["blocked_unsafe_autofix"].astype(bool)
-    attention_mask = df["status"].isin(["review", "error"]) | blocked_mask
-    df_attention = pd.DataFrame(df[attention_mask])
-    df_changed = pd.DataFrame(df[(df["status"] == "changed") & ~blocked_mask])
-    df_ok = pd.DataFrame(df[df["status"] == "no_change"])
-
-    # 4. Render groups in order.
-    if df_attention.empty:
-        st.subheader("Требуют внимания (0)")
-        st.info("Документ соответствует профилю — блоков, требующих внимания, нет.")
-    else:
-        render_block_section("Требуют внимания", df_attention, expanded_by_default=True)
-    render_block_section("Изменены", df_changed, expanded_by_default=False)
-    render_block_section("Без изменений", df_ok, expanded_by_default=False)
-
-    # 5. Downloads section.
-    st.subheader("Скачать результаты")
-    render_artifact_download_card(
-        title="Отчёт CSV",
-        description="Таблица по блокам: статусы, нарушенные правила, исправления, объяснения.",
-        path=result.report_csv,
-        mime="text/csv",
-        key="download_report_csv",
-    )
-    render_artifact_download_card(
-        title="Сводка JSON",
-        description="Счётчики статусов и технические данные запуска.",
-        path=result.summary_json,
-        mime="application/json",
-        key="download_summary_json",
-    )
-    if (
-        result.input_extension != ".pdf"
-        and result.output_docx is not None
-        and result.output_docx.exists()
-    ):
-        render_artifact_download_card(
-            title="Исправленный DOCX",
-            description="Редактируемый DOCX, созданный после безопасных исправлений.",
-            path=result.output_docx,
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            key="download_output_docx",
+    if has_output:
+        st.markdown('<hr class="divider"/>', unsafe_allow_html=True)
+        render_artifact_tile(
+            "Исправленный DOCX",
+            "Безопасные правки применены. Оригинал не изменён.",
+            Path(result.output_docx),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "download_corrected_docx",
         )
 
-    # 6. Run-log JSON download (D-04).
-    # WR-02: read the cached log path from session_state — it was written
-    # exactly once when run_processing finished. No per-rerun disk write.
-    log_path: Path | None = st.session_state.get("last_run_log_path")
-    if log_path is not None and log_path.exists():
-        st.download_button(
-            "Скачать журнал запуска (JSON)",
-            data=log_path.read_bytes(),
-            file_name=log_path.name,
-            mime="application/json",
-            use_container_width=True,
-            key="download_run_log",
+
+def render_tab_artifacts(result: ProcessingArtifacts, run_log_path: Path | None) -> None:
+    """Артефакты: 3 download tiles (Report CSV, Summary JSON, Run-log)."""
+    if result.report_csv and Path(result.report_csv).exists():
+        render_artifact_tile(
+            "Отчёт CSV",
+            "Таблица по блокам: статусы, нарушенные правила, исправления, объяснения.",
+            Path(result.report_csv),
+            "text/csv",
+            "download_report_csv",
         )
+    if result.summary_json and Path(result.summary_json).exists():
+        render_artifact_tile(
+            "Сводка JSON",
+            "Счётчики статусов и технические данные запуска.",
+            Path(result.summary_json),
+            "application/json",
+            "download_summary_json",
+        )
+    if run_log_path and Path(run_log_path).exists():
+        render_artifact_tile(
+            "Журнал запуска (JSON)",
+            "Стадии пайплайна и статусы. PII-безопасный лог.",
+            Path(run_log_path),
+            "application/json",
+            "download_run_log_json",
+        )
+
+
+def render_report(result: ProcessingArtifacts, filename: str | None, profile_label: str | None, uploaded_file, selected_profile_path: str) -> None:
+    """v1.1 tabbed layout per interface/ baseline + Editorial palette.
+
+    Top: stat grid + meta line.
+    Tabs (5): Обзор · Предсказания · Аудит · Форматирование · Артефакты.
+    """
+    summary = result.summary
+    block_count = int(summary.get("blocks_total", 0) or 0)
+
+    st.markdown('<h2 style="margin-top: 0.2rem;">Сводка по аудиту</h2>', unsafe_allow_html=True)
+    render_stat_grid(summary, result.report_df)
+    render_meta_line(profile_label, filename, block_count)
+
+    tab_overview, tab_pred, tab_audit, tab_format, tab_art = st.tabs([
+        "Обзор", "Предсказания", "Аудит", "Форматирование", "Артефакты"
+    ])
+    with tab_overview:
+        render_tab_overview(result, profile_label)
+    with tab_pred:
+        render_tab_predictions(result)
+    with tab_audit:
+        render_tab_audit(result)
+    with tab_format:
+        render_tab_formatting(result, uploaded_file, selected_profile_path)
+    with tab_art:
+        run_log_path = st.session_state.get("last_run_log_path")
+        render_tab_artifacts(result, run_log_path)
 
 
 def _persist_run_log(run_log: RunLog, input_filename: str) -> Path:
-    """Dump `run_log` to a stable per-run JSON file under REPORTS_DIR.
-
-    Single write per run — D-04 «journal запуска is downloadable per audit
-    run, including failed runs» (WR-03). Caller caches the returned path in
-    `st.session_state['last_run_log_path']` so subsequent reruns read from
-    disk instead of re-writing a new timestamped file every rerun (WR-02).
-    """
+    """Dump `run_log` to a stable per-run JSON file under REPORTS_DIR."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     stem = Path(input_filename).stem
     log_path = REPORTS_DIR / f"{stem}_run_log_{timestamp}.json"
@@ -412,20 +994,13 @@ def _persist_run_log(run_log: RunLog, input_filename: str) -> Path:
 
 
 def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, selected_profile_path: str) -> None:
-    """Execute the backend processing pipeline and store the last result.
-
-    Wires `RunLog` (06-01) for the 4 pipeline stages and translates backend
-    exceptions through `preflight_translate_error` so no traceback / no
-    document text reaches the UI surface (D-04 PII boundary).
-    """
+    """Execute the backend processing pipeline and store the last result."""
     if uploaded_file is None:
         st.warning("Сначала загрузите DOCX-документ.")
         return
 
     if selected_model_key == "baseline_unavailable" and Path(uploaded_file.name).suffix.lower() != ".pdf":
-        # G-07-01: PDF input bypasses the SVM (Plan 07-02 D-02), so a missing
-        # baseline .joblib must not block PDF audits. DOCX still short-circuits.
-        st.error("Baseline-модель недоступна: в workspace нет сохраненного .joblib-артефакта.")
+        st.error("Baseline-модель недоступна: в workspace нет сохранённого .joblib-артефакта.")
         return
 
     input_path = save_uploaded_bytes(uploaded_file.getvalue(), suffix=Path(uploaded_file.name).suffix)
@@ -453,12 +1028,6 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
         st.session_state["last_uploaded_name"] = uploaded_file.name
         return
     except Exception as exc:
-        # WR-01: stage=`unknown` — process_document spans 4 stages
-        # (document-read / classification / rule-apply / save) and the
-        # catch-all cannot attribute a non-translated exception to one
-        # specific stage without wrapping. `unknown` documents the
-        # limitation rather than mislabelling save/classification as
-        # rule-apply (UI-SPEC §Run-log JSON contract enum).
         run_log.record(
             "unknown",
             "error",
@@ -478,28 +1047,17 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
     st.session_state["last_result"] = result
     st.session_state["last_uploaded_name"] = uploaded_file.name
     st.session_state["last_run_log"] = run_log
-    # WR-02: write the run-log JSON exactly ONCE per run (here, on success)
-    # and cache the path in session_state. `render_report` reads from disk
-    # on subsequent reruns instead of timestamping a new file every rerun.
     st.session_state["last_run_log_path"] = _persist_run_log(run_log, uploaded_file.name)
 
 
 @st.dialog("Создать профиль из методички", width="large")
 def methodical_modal(available_profile_ids: list[str]) -> None:
-    """Methodical-profile-extraction modal mirroring Phase 5 CLI contract.
-
-    Mirrors `cmd_extract_methodical_profile`: dry-run preview by default,
-    «Применить и сохранить» = `--apply`, collision branch requires both the
-    overwrite checkbox AND a reason ≥ 8 non-whitespace chars after strip
-    (D-004 «no silent rewrites» / T-05-01 client-side enforcement).
-    """
-    # Step 1 — file uploader.
+    """Methodical-profile-extraction modal mirroring Phase 5 CLI contract."""
     uploaded = st.file_uploader(
         "Загрузите методичку",
         type=SUPPORTED_METHODICAL_UPLOAD_TYPES,
         key="modal_methodical_file",
     )
-    # Step 2 — base-profile multiselect.
     if "gost_7_32_2017" in available_profile_ids:
         default_base = ["gost_7_32_2017"]
     elif available_profile_ids:
@@ -512,7 +1070,6 @@ def methodical_modal(available_profile_ids: list[str]) -> None:
         default=default_base,
         key="modal_base_profiles",
     )
-    # Step 3 — preview.
     preview_clicked = st.button("Сгенерировать предпросмотр", key="modal_preview_button")
     if preview_clicked:
         if uploaded is None:
@@ -542,18 +1099,11 @@ def methodical_modal(available_profile_ids: list[str]) -> None:
             except Exception as exc:
                 st.error("Не удалось извлечь методичку: " + type(exc).__name__)
 
-    # Step 4 — render diff + apply branch (no-collision OR collision/force-reason).
     diff = st.session_state.get("modal_diff_lines")
     draft = st.session_state.get("modal_draft_profile")
     if diff is not None and draft is not None:
         st.code("\n".join(diff), language=None)
         profile_id = draft["profile_id"]
-        # WR-05: collision is checked against the actual write target only
-        # (CUSTOM_PROFILES_DIR), mirroring the CLI which uses
-        # `target_dir = output_dir or PROFILES_DIR` (src/main.py:334-335).
-        # Shadowing a built-in shipped profile is surfaced as an inline
-        # info note, NOT as a force-reason gate — the modal must accept
-        # any profile_id the CLI accepts.
         target_path = CUSTOM_PROFILES_DIR / f"{profile_id}.json"
         target_exists = target_path.exists()
         shadowing_builtin = (PROFILES_DIR / f"{profile_id}.json").exists()
@@ -571,8 +1121,6 @@ def methodical_modal(available_profile_ids: list[str]) -> None:
             if apply_clicked:
                 CUSTOM_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
                 save_methodical_profile(draft, CUSTOM_PROFILES_DIR)
-                # Pitfall 4: sidebar selectbox stores the FORMATTED label, not the
-                # raw profile_id. Compute the formatted label for the new item.
                 new_items = list_available_profiles([PROFILES_DIR, CUSTOM_PROFILES_DIR])
                 new_match = next(
                     (it for it in new_items if it.get("profile_id") == profile_id),
@@ -622,7 +1170,6 @@ def methodical_modal(available_profile_ids: list[str]) -> None:
                     st.session_state.pop(k, None)
                 st.rerun()
 
-    # Cancel — clear modal state and dismiss.
     cancel_clicked = st.button("Отмена", key="modal_cancel_button")
     if cancel_clicked:
         for k in ("modal_diff_lines", "modal_draft_profile"):
@@ -631,40 +1178,54 @@ def methodical_modal(available_profile_ids: list[str]) -> None:
 
 
 def main() -> None:
-    """Render the Streamlit application — D-01 sidebar (config) + main pane (report).
+    """v1.1 Editorial-restraint UI per `interface/` baseline.
 
-    Sidebar holds: profile picker (key='profile_selectbox' is the modal-close
-    anchor for 06-04), modal trigger placeholder (06-04 swaps the body),
-    model + mode selectors, DOCX uploader (key='docx_uploader'), primary
-    «Запустить аудит» button (key='run_audit_button'). Main pane shows the
-    empty state when no result is in session_state, otherwise delegates to
-    `render_report` for the linear D-02 report composition.
+    Layout — top to bottom:
+      1. Sidebar (minimal): profile select + methodical-upload modal trigger.
+      2. Hero: serif italic title + lead paragraph.
+      3. Uploader + CTA (DOCX-only surface; PDF code remains unreachable from UI).
+      4. Tabs (5) after a successful run.
     """
     inject_page_styles()
 
-    profile_items = get_profile_options()
-    if not profile_items:
-        st.error("Профили ГОСТ не найдены в src/rules/profiles.")
-        st.stop()
-
-    st.session_state.setdefault("custom_profile_items", [])
-    st.session_state.setdefault("last_run_log", None)
-    st.session_state.setdefault("modal_diff_lines", None)
-    st.session_state.setdefault("modal_draft_profile", None)
-    custom_profile_items = st.session_state.get("custom_profile_items", [])
-    all_profile_items = build_profile_options(profile_items, custom_profile_items)
-    profile_label_to_path = {format_profile_option(item): item["path"] for item in all_profile_items}
-    available_profile_ids = [str(item["profile_id"]) for item in all_profile_items if item.get("profile_id")]
-    model_options = list_model_options()
-
+    # ----- Sidebar (minimal) -----
     with st.sidebar:
-        st.header("Панель управления")
-        st.caption("Выберите профиль ГОСТ, загрузите DOCX-документ и запустите аудит.")
-        selected_profile_label = st.selectbox(
-            "Профиль ГОСТ",
-            options=list(profile_label_to_path.keys()),
+        st.markdown("## Панель управления")
+        st.markdown(
+            '<p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.5;">'
+            'Выберите профиль ГОСТ или загрузите методичку, '
+            'чтобы построить кастомный профиль проверки.'
+            '</p>',
+            unsafe_allow_html=True,
+        )
+
+        profile_items_raw = get_profile_options()
+        custom_items_raw = list_available_profiles([CUSTOM_PROFILES_DIR]) if CUSTOM_PROFILES_DIR.exists() else []
+        merged_items = build_profile_options(profile_items_raw, custom_items_raw)
+        if not merged_items:
+            st.error("Профили ГОСТ не найдены в src/rules/profiles.")
+            return
+        formatted_labels = [format_profile_option(item) for item in merged_items]
+
+        st.markdown(
+            '<div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; '
+            'color: var(--muted); font-weight: 600; margin-bottom: 0.3rem;">Базовый профиль</div>',
+            unsafe_allow_html=True,
+        )
+        selected_label = st.selectbox(
+            label="profile_selectbox_hidden_label",
+            label_visibility="collapsed",
+            options=formatted_labels,
             key="profile_selectbox",
         )
+        selected_index = formatted_labels.index(selected_label)
+        selected_item = merged_items[selected_index]
+        selected_profile_id = selected_item.get("profile_id", "")
+        profile_name = selected_item.get("profile_name", selected_profile_id)
+        # profile_label used in meta-line + overview tab — short human-readable.
+        profile_label = f"{profile_name} [{selected_profile_id}]"
+
+        # Modal trigger
         open_modal_clicked = st.button(
             "+ Создать профиль из методички",
             key="open_methodical_modal",
@@ -672,68 +1233,130 @@ def main() -> None:
         )
         if open_modal_clicked:
             st.session_state["methodical_modal_request"] = True
-        model_key = st.selectbox(
-            "Модель",
-            options=list(model_options.keys()),
-            format_func=lambda k: model_options.get(k, k),
-            key="model_selectbox",
-        )
-        mode_key = st.radio(
-            "Режим",
-            options=["audit", "fix"],
-            format_func=lambda k: "Только аудит" if k == "audit" else "Применить безопасные исправления",
-            key="mode_radio",
-        )
-        uploaded_file = st.file_uploader(
-            "Загрузите документ (DOCX или PDF)",
-            type=SUPPORTED_UPLOAD_TYPES,
-            key="docx_uploader",
-        )
-        st.caption("PDF: только аудит, без OCR")
-        run_disabled = uploaded_file is None or selected_profile_label is None
-        run_clicked = st.button(
-            "Запустить аудит",
-            type="primary",
-            disabled=run_disabled,
-            use_container_width=True,
-            key="run_audit_button",
-        )
 
+        # Resolve profile_path for downstream process_document
+        selected_profile_path = ""
+        if selected_profile_id:
+            candidate_paths = [
+                CUSTOM_PROFILES_DIR / f"{selected_profile_id}.json",
+                PROFILES_DIR / f"{selected_profile_id}.json",
+            ]
+            for cp in candidate_paths:
+                if cp.exists():
+                    selected_profile_path = str(cp)
+                    break
+
+        # Model/mode defaults (hidden per v1.1 redesign — model='baseline', mode='audit'
+        # by default; 'fix' triggered from the Форматирование tab button).
+        model_options = list_model_options()
+        if "baseline" in model_options:
+            selected_model_key = "baseline"
+        elif "baseline_unavailable" in model_options:
+            selected_model_key = "baseline_unavailable"
+        else:
+            selected_model_key = next(iter(model_options.keys()))
+        selected_mode = "audit"
+
+    # ----- Methodical modal (if triggered) -----
+    available_profile_ids = [item.get("profile_id", "") for item in merged_items if item.get("profile_id")]
     if st.session_state.pop("methodical_modal_request", False):
         methodical_modal(available_profile_ids)
 
-    if run_clicked and not run_disabled:
-        selected_profile_path = profile_label_to_path[selected_profile_label]
-        with st.spinner("Идёт аудит документа..."):
-            run_processing(
-                uploaded_file=uploaded_file,
-                selected_model_key=model_key,
-                selected_mode=mode_key,
-                selected_profile_path=selected_profile_path,
-            )
+    # ----- Hero -----
+    render_hero()
 
+    # ----- Uploader + CTA row -----
+    col_upload, col_actions = st.columns([2, 1])
+    with col_upload:
+        st.markdown(
+            '<div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.16em; '
+            'color: var(--muted); font-weight: 600; margin-bottom: 0.4rem;">'
+            'Загрузите DOCX-документ для проверки'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        # UPLOADER_ACCEPT_TYPES = ['docx'] — v1.1 DOCX-only surface.
+        # SUPPORTED_UPLOAD_TYPES (the module constant) stays ['docx', 'pdf'] for
+        # backward-compat with Phase 7 tests; the UI surface narrows here.
+        uploaded_file = st.file_uploader(
+            label="docx_uploader_hidden_label",
+            label_visibility="collapsed",
+            type=UPLOADER_ACCEPT_TYPES,
+            key="docx_uploader",
+        )
+
+    with col_actions:
+        st.markdown('<div style="height: 1.6rem;"></div>', unsafe_allow_html=True)
+        run_disabled = uploaded_file is None
+        run_clicked = st.button(
+            "Запустить анализ документа",
+            type="primary",
+            disabled=run_disabled,
+            key="run_audit_button",
+            use_container_width=True,
+        )
+        clear_clicked = st.button(
+            "Очистить экран",
+            disabled=False,
+            key="clear_screen_button",
+            use_container_width=True,
+        )
+
+    if clear_clicked:
+        for k in ("last_result", "last_run_log", "last_run_log_path", "last_uploaded_name"):
+            st.session_state.pop(k, None)
+        st.rerun()
+
+    if run_clicked:
+        run_processing(
+            uploaded_file=uploaded_file,
+            selected_model_key=selected_model_key,
+            selected_mode=selected_mode,
+            selected_profile_path=selected_profile_path,
+        )
+
+    # Status banner for current upload (between CTA and results)
+    if uploaded_file is not None:
+        st.markdown(
+            f'<div class="meta-line" style="margin-top: 1.2rem;">'
+            f'<span><span class="meta-key">Загружен DOCX</span>'
+            f'<span class="meta-val">{uploaded_file.name}</span></span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ----- Results section (after success) -----
     result = st.session_state.get("last_result")
     if result is None:
-        st.info("Загрузите документ (DOCX или PDF), чтобы начать аудит")
-        st.caption(
-            "В левой панели выберите профиль ГОСТ и загрузите файл. "
-            "После запуска аудита здесь появятся счётчики и блоки."
+        render_empty_state()
+    else:
+        st.markdown('<hr class="divider-strong"/>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="meta-line" style="background: transparent; border: none; padding: 0; '
+            'color: var(--success); font-family: \'EB Garamond\', serif; font-size: 1rem; '
+            'font-style: italic; margin-bottom: 1.2rem;">'
+            'Документ обработан успешно.'
+            '</div>',
+            unsafe_allow_html=True,
         )
-        # WR-03: show the run-log download even on the early-return error
-        # path so users can attach the journal to a bug report when
-        # processing failed and there is no `result` to render.
-        log_path: Path | None = st.session_state.get("last_run_log_path")
-        if log_path is not None and log_path.exists():
-            st.download_button(
-                "Скачать журнал запуска (JSON)",
-                data=log_path.read_bytes(),
-                file_name=log_path.name,
-                mime="application/json",
-                key="download_run_log_failed",
-            )
-        return
+        render_report(
+            result=result,
+            filename=st.session_state.get("last_uploaded_name"),
+            profile_label=profile_label,
+            uploaded_file=uploaded_file,
+            selected_profile_path=selected_profile_path,
+        )
 
-    render_report(result)
+    # ----- Footer signature -----
+    st.markdown(
+        """
+        <div class="editorial-footer">
+            <span>ГОСТ Formatter v1.1</span>
+            <span>Local-only · No PII transmitted</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":
