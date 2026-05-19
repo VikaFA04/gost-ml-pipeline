@@ -223,14 +223,24 @@ Do not duplicate that content here.
 
 ## Backlog
 
-### Phase 999.1: ui-tabbed-layout-restoration (BACKLOG)
+### Phase 999.1: ui-tabbed-layout-restoration (EXECUTED 2026-05-19, NOT FULL GSD)
 
-**Goal:** [Captured for future planning] Restore the multi-tab navigation layout from the pre-Phase-6 Streamlit interface (screenshots in `interface/`). Current single-page layout collapses block-by-block review into one scroll surface and users find it harder to navigate. Decide whether to re-introduce tabs (per-block, per-section, per-status) or hybridise with the current audit-flow design.
-**Requirements:** TBD
-**Plans:** 0 plans
+**Goal:** Restore the multi-tab navigation layout from the pre-Phase-6 Streamlit interface (screenshots in `interface/`).
+**Status:** EXECUTED inline 2026-05-19 (commit `ebd68a1`) via `huashu-design` skill + `design-taste-frontend` (anti-AI-slop). No formal GSD discuss / plan / verify ceremony — direct rewrite based on user's screenshot baseline + Editorial-restraint design direction (Pentagram lineage, monochrome + rust accent, serif italic display, UPPERCASE letterspaced tabs).
+**Outcome:**
+- `app.py` rewritten (985+/362- lines)
+- 5-tab layout restored: Обзор · Предсказания · Аудит · Форматирование · Артефакты
+- 5 stat cards (text-first, monochrome, one rust accent on totals)
+- Hero, meta-line, quality progress bar, artifact tiles
+- Sidebar minimized (profile + methodical-modal trigger only; model + mode selectors hidden — defaults baseline/audit, fix-mode triggered from Форматирование tab)
+- DOCX-only UI surface; PDF flow (Phase 7) preserved in src/inference but unreachable from new UI
+- SUPPORTED_UPLOAD_TYPES constant preserved for test backward-compat
+- Visual UAT via Playwright (4.docx → 183 blocks, full tab walkthrough, 5/5 cards correct, table-first Аудит)
+**Requirements:** TBD (no formal REQ written; if future formalisation needed, run /gsd-discuss-phase 999.1 retroactively)
+**Plans:** 0 (executed inline)
 
 Plans:
-- [ ] TBD (promote with /gsd-review-backlog when ready)
+- [x] inline rewrite via huashu-design skill — commit ebd68a1 2026-05-19
 
 ### Phase 999.2: docx-formatting-bugs-list-indent-formula-vars (BACKLOG)
 
