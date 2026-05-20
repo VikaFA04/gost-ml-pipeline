@@ -883,6 +883,37 @@ def test_low_confidence_list_item_blocks_unsafe_autofix() -> None:
     assert result["applied_fixes"] == []
 
 
+def test_low_confidence_list_item_with_structural_triple_signal_is_autofixed() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("интерпретация результатов.")
+    paragraph.style = "List Paragraph"
+    apply_list_numbering(paragraph, "list")
+    paragraph.paragraph_format.left_indent = Cm(1.25)
+    paragraph.paragraph_format.first_line_indent = Cm(0.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "интерпретация результатов.",
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.73,
+            "low_confidence": True,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "left_indent_cm" in result["applied_fixes"]
+    assert "first_line_indent_cm" in result["applied_fixes"]
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
+
+
 def test_long_paragraph_is_not_auto_fixed_as_list() -> None:
     document = Document()
     text = "1. " + "длинный текст " * 50

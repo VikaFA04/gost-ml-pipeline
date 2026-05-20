@@ -918,8 +918,17 @@ def assess_list_auto_fix_safety(paragraph: Paragraph, row_data: dict[str, Any]) 
     has_list_style = _paragraph_has_list_style(paragraph)
     long_plain_paragraph = _is_long_plain_paragraph(text)
 
+    structural_triple_signal = (
+        has_numbering
+        and has_list_style
+        and not long_plain_paragraph
+        and paragraph_numbering_reference_is_valid(paragraph)
+    )
+
     unsafe_reasons: list[str] = []
-    if low_confidence or confidence_score is None or confidence_score < HIGH_CONFIDENCE_THRESHOLD:
+    if not structural_triple_signal and (
+        low_confidence or confidence_score is None or confidence_score < HIGH_CONFIDENCE_THRESHOLD
+    ):
         unsafe_reasons.append("list classification confidence is too low for auto-fix")
     if not list_type:
         unsafe_reasons.append("list_type is missing")
