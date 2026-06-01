@@ -62,6 +62,11 @@ _SEEDED_DOCS: set[int] = set()
 # Key: id(paragraph.part.document.part); Value: str(abstractNumId).
 _BIBLIOGRAPHY_ABSTRACTS: dict[int, str] = {}
 
+# Cache for per-list numIds. Key: (id(document.part), list_instance);
+# Value: numId. Each list_instance gets one numId carrying a startOverride=1
+# so a new list restarts at 1 instead of continuing the previous list.
+_LIST_NUM_IDS: dict[tuple[int, int], int] = {}
+
 
 def normalize_alignment(value) -> str | None:
     if value is None:
@@ -205,29 +210,99 @@ def _create_num_for_abstract(numbering_root, abstract_num_id: str) -> int:
     return num_id
 
 
-def apply_list_numbering(paragraph: Paragraph, list_type: Any) -> list[str]:
+def _create_num_with_start_override(
+    numbering_root,
+    abstract_num_id: str,
+    ilvl: int,
+    start: int = 1,
+) -> int:
+    """Emit a w:num pointing at ``abstract_num_id`` with a single w:lvlOverride
+    at ``ilvl`` whose startOverride is ``start``. Used to restart each list's
+    counter (start=1) independently of any earlier list sharing the abstract."""
+    num_id = _next_num_id(numbering_root)
+    num = OxmlElement("w:num")
+    num.set(qn("w:numId"), str(num_id))
+
+    abstract_ref = OxmlElement("w:abstractNumId")
+    abstract_ref.set(qn("w:val"), abstract_num_id)
+    num.append(abstract_ref)
+
+    override = OxmlElement("w:lvlOverride")
+    override.set(qn("w:ilvl"), str(ilvl))
+    start_override = OxmlElement("w:startOverride")
+    start_override.set(qn("w:val"), str(start))
+    override.append(start_override)
+    num.append(override)
+
+    numbering_root.append(num)
+    return num_id
+
+
+def _get_list_num_id(
+    paragraph: Paragraph,
+    list_instance: int,
+    list_type: Any,
+    list_level: int,
+) -> int:
+    """Allocate (once per document + list_instance) a restarting numId.
+
+    Every paragraph in the same list_instance shares the numId, so the list
+    numbers sequentially; a different instance gets a different numId carrying
+    startOverride=1, so the new list restarts at 1.
+    """
+    doc_key = _document_cache_key(paragraph)
+    key = (doc_key, int(list_instance))
+    cached = _LIST_NUM_IDS.get(key)
+    if cached is not None:
+        return int(cached)
+
+    numbering_root = paragraph.part.numbering_part.element
+    num_format = "decimal" if str(list_type) == "numbered" else "bullet"
+    abstract_num_id = _find_abstract_num_id_by_format(numbering_root, num_format)
+    num_id = _create_num_with_start_override(numbering_root, abstract_num_id, list_level, start=1)
+    _LIST_NUM_IDS[key] = num_id
+    return num_id
+
+
+def _set_paragraph_numpr(paragraph: Paragraph, num_id: int, ilvl: int) -> None:
+    p_pr = paragraph._p.get_or_add_pPr()
+    num_pr = p_pr.find(qn("w:numPr"))
+    if num_pr is None:
+        num_pr = OxmlElement("w:numPr")
+        p_pr.append(num_pr)
+    ilvl_el = num_pr.find(qn("w:ilvl"))
+    if ilvl_el is None:
+        ilvl_el = OxmlElement("w:ilvl")
+        num_pr.append(ilvl_el)
+    ilvl_el.set(qn("w:val"), str(ilvl))
+    num_id_el = num_pr.find(qn("w:numId"))
+    if num_id_el is None:
+        num_id_el = OxmlElement("w:numId")
+        num_pr.append(num_id_el)
+    num_id_el.set(qn("w:val"), str(num_id))
+
+
+def apply_list_numbering(
+    paragraph: Paragraph,
+    list_type: Any,
+    list_instance: int | None = None,
+    list_level: int = 0,
+) -> list[str]:
+    # Defect 2: when the block carries a list_instance, force a per-instance
+    # restarting numId — even if the source numbering is "valid" — so a new
+    # list never continues the previous list's counter.
+    if list_instance is not None:
+        num_id = _get_list_num_id(paragraph, list_instance, list_type, list_level)
+        _set_paragraph_numpr(paragraph, num_id, list_level)
+        return ["numbering"]
+
     if paragraph_numbering_reference_is_valid(paragraph):
         return []
     numbering_root = paragraph.part.numbering_part.element
     num_format = "decimal" if str(list_type) == "numbered" else "bullet"
     abstract_num_id = _find_abstract_num_id_by_format(numbering_root, num_format)
     num_id = _create_num_for_abstract(numbering_root, abstract_num_id)
-
-    p_pr = paragraph._p.get_or_add_pPr()
-    num_pr = p_pr.find(qn("w:numPr"))
-    if num_pr is None:
-        num_pr = OxmlElement("w:numPr")
-        p_pr.append(num_pr)
-    ilvl = num_pr.find(qn("w:ilvl"))
-    if ilvl is None:
-        ilvl = OxmlElement("w:ilvl")
-        num_pr.append(ilvl)
-    ilvl.set(qn("w:val"), "0")
-    num_id_element = num_pr.find(qn("w:numId"))
-    if num_id_element is None:
-        num_id_element = OxmlElement("w:numId")
-        num_pr.append(num_id_element)
-    num_id_element.set(qn("w:val"), str(num_id))
+    _set_paragraph_numpr(paragraph, num_id, 0)
     return ["numbering"]
 
 
@@ -235,6 +310,8 @@ def apply_list_format(
     paragraph: Paragraph,
     level_config: dict[str, Any],
     list_type: Any = None,
+    list_instance: int | None = None,
+    list_level: int = 0,
 ) -> list[str]:
     fmt = paragraph.paragraph_format
     applied = []
@@ -243,7 +320,7 @@ def apply_list_format(
     fmt.first_line_indent = Cm(float(level_config["first_line_indent_cm"]))
     fmt.tab_stops.add_tab_stop(Cm(float(level_config["tab_stop_cm"])))
     applied.extend(["left_indent_cm", "first_line_indent_cm", "tab_stop_cm"])
-    applied.extend(apply_list_numbering(paragraph, list_type))
+    applied.extend(apply_list_numbering(paragraph, list_type, list_instance, list_level))
     return sorted(set(applied))
 
 
@@ -1229,6 +1306,7 @@ def apply_rules_to_paragraph(
                 explanations.append(f"{rule['id']}: missing list level for safe formatting")
                 continue
             expected_value = rule["expected_value"]["levels"].get(str(level), rule["expected_value"]["levels"]["0"])
+            list_instance = _safe_int(row_data.get("list_instance"))
             current_list = get_current_list_profile(paragraph)
             if list_layout_is_inherited(paragraph, current_list):
                 continue
@@ -1248,14 +1326,14 @@ def apply_rules_to_paragraph(
                     current_style_name = ""
                 if not _paragraph_has_numbering(paragraph):
                     if apply_safe and rule["autocorrect"] and rule["action"] == "fix" and raw_text_has_list_hint:
-                        applied_fixes.extend(apply_list_numbering(paragraph, list_assessment["list_type"]))
+                        applied_fixes.extend(apply_list_numbering(paragraph, list_assessment["list_type"], list_instance, level))
                     continue
                 if not paragraph_numbering_reference_is_valid(paragraph):
                     violated_rules.append(rule["id"])
                     suggested_fixes.append("numbering")
                     explanations.append(f"{rule['id']}: broken list numbering reference")
                     if apply_safe and rule["autocorrect"] and rule["action"] == "fix":
-                        applied_fixes.extend(apply_list_numbering(paragraph, list_assessment["list_type"]))
+                        applied_fixes.extend(apply_list_numbering(paragraph, list_assessment["list_type"], list_instance, level))
                     else:
                         manual_review_required = True
                 continue
@@ -1280,7 +1358,7 @@ def apply_rules_to_paragraph(
                 if apply_safe and rule["autocorrect"] and rule["action"] == "fix" and (
                     list_assessment["safe_to_autofix"] or trusted_missing_layout
                 ):
-                    applied_fixes.extend(apply_list_format(paragraph, expected_value, list_assessment["list_type"]))
+                    applied_fixes.extend(apply_list_format(paragraph, expected_value, list_assessment["list_type"], list_instance, level))
                 else:
                     manual_review_required = True
                     if apply_safe and not list_assessment["safe_to_autofix"]:
@@ -1299,7 +1377,7 @@ def apply_rules_to_paragraph(
             suggested_fixes.extend(violated)
             explanations.append(f"{rule['id']}: incorrect list layout for level {level}")
             if apply_safe and rule["autocorrect"] and rule["action"] == "fix" and list_assessment["safe_to_autofix"]:
-                applied_fixes.extend(apply_list_format(paragraph, expected_value, list_assessment["list_type"]))
+                applied_fixes.extend(apply_list_format(paragraph, expected_value, list_assessment["list_type"], list_instance, level))
             elif apply_safe and violated:
                 blocked_unsafe_autofix = True
                 manual_review_required = True

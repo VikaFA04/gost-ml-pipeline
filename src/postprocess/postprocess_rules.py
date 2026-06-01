@@ -257,8 +257,25 @@ def apply_postprocess_rules(
             else:
                 index += 1
 
+        # List-instance tagging: each maximal run of consecutive list_item blocks
+        # is one list. A gap (any non-list_item block) starts a new instance. The
+        # rule layer allocates a fresh numId per instance so every list restarts
+        # at 1 instead of continuing the previous list's numbering.
+        list_instances: list[int | None] = [None] * len(labels)
+        current_instance = 0
+        prev_was_list = False
+        for position in range(len(labels)):
+            if labels[position] == "list_item":
+                if not prev_was_list:
+                    current_instance += 1
+                list_instances[position] = current_instance
+                prev_was_list = True
+            else:
+                prev_was_list = False
+
         group[out_col] = labels
         group["bibliography_section_index"] = pd.Series(section_indices, dtype=object).to_numpy()
+        group["list_instance"] = pd.Series(list_instances, dtype=object).to_numpy()
         result_parts.append(group)
 
     return pd.concat(result_parts, axis=0).sort_index()

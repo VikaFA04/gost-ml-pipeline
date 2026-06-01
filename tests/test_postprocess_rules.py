@@ -27,6 +27,23 @@ def test_structural_list_paragraph_overrides_body_text_prediction() -> None:
     assert result.loc[0, "postprocessed_label"] == "list_item"
 
 
+def test_list_instance_increments_per_separate_list_run() -> None:
+    rows = [
+        _row(1, "первый пункт списка задач", "list_item"),
+        _row(2, "второй пункт списка задач", "list_item"),
+        _row(3, "Обычный абзац между двумя списками.", "body_text"),
+        _row(4, "первый пункт второго списка", "list_item"),
+        _row(5, "второй пункт второго списка", "list_item"),
+    ]
+    df = pd.DataFrame(rows)
+
+    result = apply_postprocess_rules(df)
+
+    # Each maximal run of consecutive list_item blocks is its own list instance;
+    # non-list rows carry no instance. Downstream numbering restarts at 1 per instance.
+    assert list(result["list_instance"]) == [1, 1, None, 2, 2]
+
+
 def test_formula_like_list_paragraph_stays_body_text() -> None:
     row = _row(1, ",\t(1.1)", "body_text")
     row["style"] = "List Paragraph"
