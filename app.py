@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import json
+import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -8,199 +9,527 @@ import pandas as pd
 import streamlit as st
 
 from src.inference.application_service import (
+    REPORTS_DIR,
     ProcessingArtifacts,
     get_profile_options,
     list_model_options,
     process_document,
     save_uploaded_bytes,
 )
-from src.rules.methodical_extractor import build_methodical_profile, extract_text_from_file, save_methodical_profile
+from src.inference.pdf_loader import PdfNoTextLayer
+from src.inference.run_log import RunLog
+from src.rules.methodical_extractor import build_methodical_profile, save_methodical_profile
+from src.rules.profile_diff import compute_profile_diff
+from src.rules.profile_loader import PROFILES_DIR, list_available_profiles, load_profile
 
-SUPPORTED_UPLOAD_TYPES = ["docx"]
+# Phase 7 contract preserved (REQ-pdf-text-only test guard) — the constant still
+# advertises DOCX+PDF for backward-compatibility with tests/test_app_upload_contract.py
+# and tests/test_streamlit_smoke.py. The v1.1 redesign deliberately surfaces ONLY
+# DOCX in the uploader widget (UPLOADER_ACCEPT_TYPES below) for friendlier UX.
+# PDF flow remains intact in src/inference/pdf_loader.py + application_service.py
+# but is unreachable from the new UI.
+SUPPORTED_UPLOAD_TYPES = ["docx", "pdf"]
+UPLOADER_ACCEPT_TYPES = ["docx"]
 SUPPORTED_METHODICAL_UPLOAD_TYPES = ["pdf", "docx", "txt", "md"]
 CUSTOM_PROFILES_DIR = Path("results/generated_profiles")
 
-st.set_page_config(page_title="ГОСТ Formatter", page_icon="📄", layout="wide")
+# STATUS_CHIP carries the 5 Phase 6 statuses. v1.1 Editorial palette drops the
+# emoji prefixes — anti-AI-slop dictates text-only chips with semantic color.
+# Keys preserved (Phase 6 regression test test_status_chip_covers_all_five).
+STATUS_CHIP: dict[str, tuple[str, str, str]] = {
+    "no_change":              ("●",  "Без изменений",                                "badge-ok"),
+    "changed":                ("●", "Изменено",                                     "badge-change"),
+    "review":                 ("●", "Требует проверки",                             "badge-warn"),
+    "error":                  ("●",  "Ошибка",                                       "badge-error"),
+    "blocked_unsafe_autofix": ("●", "Небезопасное автоисправление заблокировано",   "badge-muted"),
+}
+
+
+def modal_reason_is_valid(reason: str) -> bool:
+    """D-004 / T-05-01: reason must be ≥8 chars after strip AND contain at
+    least one printable non-whitespace character."""
+    stripped = (reason or "").strip()
+    if len(stripped) < 8:
+        return False
+    return any(c.isprintable() and not c.isspace() for c in stripped)
+
+
+def preflight_translate_error(exc: Exception) -> str:
+    """Translate a backend exception into a fixed Russian user-message.
+
+    Returns ONLY one of 5 fixed strings — never str(exc) (PII boundary per
+    06-UI-SPEC §Error state copy + 06-RESEARCH.md §5). PdfNoTextLayer branch
+    is defensive (v1.1 UI does not surface PDF uploads but the constant still
+    advertises the type for backward-compat tests).
+    """
+    if isinstance(exc, (FileNotFoundError, zipfile.BadZipFile)):
+        return (
+            "Файл не читается. Проверьте, что это валидный DOCX (.docx, ZIP-архив). "
+            "Откройте файл в Word и пересохраните, если нужно."
+        )
+    if isinstance(exc, PdfNoTextLayer):
+        return "PDF без извлекаемого текстового слоя — OCR не поддерживается."
+    if isinstance(exc, ValueError):
+        msg = str(exc)
+        if "extractable non-empty blocks" in msg:
+            return "В документе нет извлекаемых непустых блоков. Проверьте, что документ содержит текст."
+        if "Unsupported input format" in msg or "Only DOCX is currently supported" in msg:
+            return "Расширение файла `.docx`, но содержимое не соответствует DOCX-формату."
+        return "Не удалось обработать документ. См. журнал запуска."
+    return "Не удалось обработать документ. См. журнал запуска."
+
+
+st.set_page_config(page_title="ГОСТ Formatter", page_icon="·", layout="wide")
 
 
 def inject_page_styles() -> None:
-    """Apply lightweight styling for the restored dashboard structure."""
+    """v1.1 Editorial-restraint palette per `interface/` baseline + anti-AI-slop principles.
+
+    Design lineage: Pentagram / Michael Bierut + Information Architects content-first.
+    - Monochrome base + one rust accent (#7C2D12) — no purple, no gradient.
+    - Serif display (EB Garamond) + sans body (Inter) + mono numerics (JetBrains Mono).
+    - Text-first stat cards. UPPERCASE letterspaced tabs.
+    - All page-styling lives here; no inline styles in render_* helpers other than
+      semantic class names.
+    """
     st.markdown(
         """
         <style>
-        .stApp {
-            background: #f4f6fb;
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --paper: #FAFAF7;
+            --paper-soft: #F5F2EA;
+            --ink: #1A1A1A;
+            --ink-soft: #3A352F;
+            --muted: #6B6155;
+            --hairline: #E5E0D6;
+            --accent: #7C2D12;
+            --accent-hover: #9A3412;
+            --review: #B45309;
+            --error: #991B1B;
+            --success: #14532D;
+            --change: #1E40AF;
         }
-        section[data-testid="stSidebar"] {
-            background: #ffffff;
-            border-right: 1px solid rgba(17, 24, 39, 0.08);
+
+        /* Global ------------------------------------------------------- */
+        html, body, [class*="css"], .stApp {
+            background: var(--paper) !important;
+            color: var(--ink) !important;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+            font-size: 15px;
+            line-height: 1.55;
         }
-        section[data-testid="stSidebar"] h1,
-        section[data-testid="stSidebar"] h2,
-        section[data-testid="stSidebar"] h3 {
-            color: #111827;
+        [data-testid="stHeader"] { background: transparent; }
+
+        /* Tighter outer padding for academic feel */
+        .main .block-container {
+            padding-top: 2.2rem;
+            padding-bottom: 4rem;
+            max-width: 1180px;
         }
-        div[data-testid="stFileUploader"] section {
-            border: 1px solid rgba(17, 24, 39, 0.10);
-            border-radius: 10px;
-            background: #ffffff;
+
+        /* Headings ----------------------------------------------------- */
+        h1, h2, h3, h4 {
+            font-family: 'EB Garamond', 'Times New Roman', serif !important;
+            color: var(--ink) !important;
+            font-weight: 500 !important;
+            letter-spacing: -0.01em;
         }
-        .stButton > button[kind="primary"] {
-            background: #ff1f1f;
-            border: 1px solid #e01616;
-            border-radius: 8px;
-            color: #ffffff;
-            font-weight: 700;
-            transition: transform 180ms ease, background 180ms ease;
-        }
-        .stButton > button[kind="primary"]:hover {
-            background: #e81717;
-            border-color: #d21414;
-            color: #ffffff;
-            transform: translateY(-1px);
-        }
-        .stButton > button[kind="secondary"] {
-            border-radius: 8px;
-        }
+        h1 { font-size: 2.6rem; line-height: 1.12; text-wrap: balance; }
+        h2 { font-size: 1.7rem; line-height: 1.25; }
+        h3 { font-size: 1.25rem; }
+        p, li, label { text-wrap: pretty; }
+
+        /* Hero (header strip) ----------------------------------------- */
         .hero {
-            padding: 1.6rem 1.85rem;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #10192f 0%, #1a2750 55%, #281f62 100%);
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
-            margin-bottom: 1rem;
+            padding: 2.2rem 0 1.6rem 0;
+            border-bottom: 1px solid var(--hairline);
+            margin-bottom: 2.4rem;
+        }
+        .hero .eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            color: var(--accent);
+            margin-bottom: 0.6rem;
         }
         .hero h1 {
-            margin: 0 0 0.35rem 0;
-            font-size: 1.85rem;
-            line-height: 1.15;
-            color: #ffffff;
+            margin: 0 0 0.5rem 0;
+            font-size: 2.4rem;
+            font-weight: 500;
+            font-style: italic;
         }
-        .hero p {
-            margin: 0;
-            color: rgba(255, 255, 255, 0.78);
-            font-size: 0.96rem;
-            max-width: 86ch;
+        .hero .lead {
+            color: var(--muted);
+            font-size: 1.02rem;
+            max-width: 720px;
         }
-        .hero-meta {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-top: 0.9rem;
+
+        /* Sidebar ----------------------------------------------------- */
+        [data-testid="stSidebar"] {
+            background: var(--paper-soft) !important;
+            border-right: 1px solid var(--hairline);
         }
-        .badge {
-            display: inline-block;
-            padding: 0.35rem 0.7rem;
-            border-radius: 7px;
-            font-size: 0.85rem;
+        [data-testid="stSidebar"] .stMarkdown h2 {
+            font-size: 1.05rem;
+            margin: 0.4rem 0 1rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--muted);
+            font-family: 'Inter', sans-serif !important;
             font-weight: 600;
         }
-        .badge-neutral { background: #eef2ff; color: #243447; }
-        .badge-ok { background: #dff7ea; color: #166534; }
-        .badge-warn { background: #fff3db; color: #8a5a00; }
-        .badge-change { background: #fff1dd; color: #9a4d00; }
-        .badge-error { background: #fde7ef; color: #9f1239; }
-        .badge-muted { background: #ede9fe; color: #5b21b6; }
-        .metric-card {
-            border-left: 4px solid #2f67ff;
-            border-radius: 10px;
-            padding: 1rem 1.1rem;
-            background: #ffffff;
-            min-height: 110px;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] [data-testid="stWidgetLabel"] {
+            font-size: 0.8rem !important;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted) !important;
+            font-weight: 600;
         }
-        .metric-card .label {
-            color: #6b7280;
-            font-size: 0.85rem;
-            margin-bottom: 0.5rem;
+
+        /* Uploader region --------------------------------------------- */
+        section[data-testid="stFileUploader"] > section {
+            background: transparent;
+            border: 1.5px dashed var(--hairline);
+            border-radius: 0;
+            padding: 1.4rem 1.2rem;
         }
-        .metric-card .value {
-            font-size: 2rem;
-            font-weight: 800;
-            line-height: 1.1;
-            color: #111827;
+        section[data-testid="stFileUploader"] > section:hover {
+            border-color: var(--accent);
         }
-        .metric-card .meta {
-            margin-top: 0.55rem;
-            color: #6b7280;
-            font-size: 0.85rem;
+        section[data-testid="stFileUploader"] small {
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
         }
-        .artifact-card {
-            border: 1px solid rgba(17, 24, 39, 0.10);
-            border-radius: 10px;
-            padding: 1rem;
-            background: #ffffff;
-            height: 100%;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
-        }
-        .artifact-card h4 {
-            margin: 0 0 0.35rem 0;
-            font-size: 1rem;
-        }
-        .artifact-card p {
-            margin: 0 0 0.75rem 0;
-            color: #6b7280;
-            font-size: 0.88rem;
-        }
-        .section-note {
-            color: #6b7280;
+
+        /* Primary CTA (rust filled, full width) ----------------------- */
+        .stButton > button {
+            font-family: 'Inter', sans-serif !important;
+            font-weight: 600;
+            border-radius: 0;
+            border: 1px solid var(--ink);
+            background: var(--paper);
+            color: var(--ink);
+            padding: 0.65rem 1.4rem;
             font-size: 0.92rem;
-            margin-bottom: 0.75rem;
+            transition: all 0.15s ease;
+            box-shadow: none;
+            letter-spacing: 0.02em;
         }
-        div[data-testid="stTabs"] button p {
-            font-weight: 700;
+        .stButton > button:hover {
+            background: var(--ink);
+            color: var(--paper);
+            border-color: var(--ink);
+        }
+        .stButton > button[kind="primary"],
+        .stButton > button[data-testid="baseButton-primary"] {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--paper);
+            font-size: 0.98rem;
+            padding: 0.85rem 1.6rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .stButton > button[kind="primary"]:hover,
+        .stButton > button[data-testid="baseButton-primary"]:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+        .stDownloadButton > button {
+            background: var(--paper);
+            border: 1px solid var(--hairline);
+            color: var(--ink);
+            border-radius: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+        }
+        .stDownloadButton > button:hover {
+            border-color: var(--ink);
+            background: var(--paper-soft);
+        }
+
+        /* Status banners ---------------------------------------------- */
+        .stAlert {
+            border-radius: 0 !important;
+            border-left: 3px solid var(--accent);
+            background: var(--paper-soft) !important;
+        }
+        div[data-testid="stAlert"][data-baseweb="notification"] {
+            border-radius: 0 !important;
+        }
+
+        /* Editorial divider ------------------------------------------- */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--hairline);
+            margin: 2rem 0;
+        }
+        .divider-strong {
+            border: none;
+            border-top: 2px solid var(--ink);
+            margin: 2.2rem 0;
+        }
+
+        /* Stat cards (text-first, monochrome, anti-slop) -------------- */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1px;
+            background: var(--hairline);
+            border: 1px solid var(--hairline);
+            margin: 1.4rem 0 1.2rem 0;
+        }
+        .stat-cell {
+            background: var(--paper);
+            padding: 1.4rem 1.2rem 1.2rem 1.2rem;
+            min-height: 154px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .stat-cell .stat-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+        .stat-cell .stat-value {
+            font-family: 'EB Garamond', serif;
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 500;
+            color: var(--ink);
+            font-feature-settings: 'lnum';
+        }
+        .stat-cell .stat-value-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.3rem;
+            line-height: 1;
+            font-weight: 500;
+            color: var(--ink);
+        }
+        .stat-cell.accent .stat-value { color: var(--accent); }
+        .stat-cell .stat-desc {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 0.7rem;
+            line-height: 1.4;
+        }
+        .stat-cell .stat-pct {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            margin-top: 0.3rem;
+        }
+
+        /* Meta line (Профиль · Загружено · N блоков) ------------------ */
+        .meta-line {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+            padding: 0.6rem 0;
+            border-top: 1px solid var(--hairline);
+            border-bottom: 1px solid var(--hairline);
+            display: flex;
+            gap: 1.6rem;
+            flex-wrap: wrap;
+        }
+        .meta-line .meta-key {
+            text-transform: uppercase;
+            font-size: 0.68rem;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            margin-right: 0.4rem;
+        }
+        .meta-line .meta-val {
+            color: var(--ink);
+        }
+
+        /* Tabs (UPPERCASE letterspaced underline) --------------------- */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 1.6rem;
+            background: transparent;
+            border-bottom: 1px solid var(--hairline);
+            padding-bottom: 0;
+            margin-bottom: 1.6rem;
+        }
+        .stTabs [data-baseweb="tab"] {
+            background: transparent !important;
+            color: var(--muted) !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.78rem !important;
+            font-weight: 600 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            padding: 0.6rem 0 0.9rem 0 !important;
+            border-radius: 0 !important;
+            border: none !important;
+            border-bottom: 2px solid transparent !important;
+        }
+        .stTabs [data-baseweb="tab"]:hover {
+            color: var(--ink) !important;
+        }
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            color: var(--ink) !important;
+            border-bottom: 2px solid var(--accent) !important;
+        }
+        .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+
+        /* DataFrames (table-first) ------------------------------------ */
+        .stDataFrame {
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.78rem;
+        }
+        .stDataFrame [data-testid="stTable"] th {
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        /* Status chips (text-only, anti-slop) ------------------------- */
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.18rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid currentColor;
+            font-weight: 500;
+        }
+        .badge-ok      { color: var(--success); }
+        .badge-change  { color: var(--change); }
+        .badge-warn    { color: var(--review); }
+        .badge-error   { color: var(--error); }
+        .badge-muted   { color: var(--muted); }
+
+        /* Quality progress (Обзор tab) -------------------------------- */
+        .quality-bar {
+            margin: 1.6rem 0 0.8rem 0;
+        }
+        .quality-bar .ql-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .quality-bar .ql-value {
+            color: var(--ink);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.04em;
+        }
+        .quality-bar .ql-track {
+            height: 4px;
+            background: var(--paper-soft);
+            border: 1px solid var(--hairline);
+        }
+        .quality-bar .ql-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.4s ease;
+        }
+
+        /* Artifact tile ---------------------------------------------- */
+        .artifact-tile {
+            border: 1px solid var(--hairline);
+            padding: 1.2rem;
+            background: var(--paper);
+            margin-bottom: 1rem;
+            transition: border-color 0.15s ease;
+        }
+        .artifact-tile:hover { border-color: var(--ink); }
+        .artifact-tile h4 {
+            margin: 0 0 0.3rem 0;
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: 'EB Garamond', serif;
+        }
+        .artifact-tile p {
+            margin: 0 0 0.8rem 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        .artifact-tile .path-line {
+            margin-top: 0.4rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+            word-break: break-all;
+        }
+
+        /* Block table block-id link feel ------------------------------ */
+        .block-row-meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+        }
+
+        /* Footer signature -------------------------------------------- */
+        .editorial-footer {
+            margin-top: 3.5rem;
+            padding-top: 1.4rem;
+            border-top: 1px solid var(--hairline);
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.04em;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Empty state -------------------------------------------------- */
+        .empty-state {
+            padding: 3.2rem 0;
+            text-align: center;
+            border-top: 1px solid var(--hairline);
+            border-bottom: 1px solid var(--hairline);
+            margin: 2rem 0;
+        }
+        .empty-state .rule {
+            display: inline-block;
+            width: 36px;
+            height: 1px;
+            background: var(--ink);
+            margin-bottom: 1.4rem;
+        }
+        .empty-state p {
+            font-family: 'EB Garamond', serif;
+            font-style: italic;
+            font-size: 1.15rem;
+            color: var(--ink-soft);
+            margin: 0;
+        }
+        .empty-state .sub {
+            font-family: 'Inter', sans-serif;
+            font-style: normal;
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 0.6rem;
+            letter-spacing: 0.04em;
         }
         </style>
         """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_hero() -> None:
-    """Render the top hero block."""
-    st.markdown(
-        """
-        <div class="hero">
-            <h1>ГОСТ Formatter — интеллектуальный нормоконтроль документов</h1>
-            <p>Выбери профиль ГОСТ и загрузи DOCX-документ. Система извлечет блоки,
-            классифицирует их, выполнит нормативный аудит и подготовит безопасные исправления.</p>
-            <div class="hero-meta">
-                <span class="badge badge-neutral">Профиль: ГОСТ 7.32-2017</span>
-                <span class="badge badge-neutral">DOCX</span>
-                <span class="badge badge-neutral">Аудит и безопасные правки</span>
-                <span class="badge badge-neutral">Объяснения по правилам</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_metric_card(label: str, value: int | str, meta: str) -> None:
-    """Render a summary card."""
-    st.markdown(
-        f"""
-        <div class="metric-card">
-            <div class="label">{label}</div>
-            <div class="value">{value}</div>
-            <div class="meta">{meta}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_status_badges(summary: dict[str, Any]) -> None:
-    """Render status counters as badges."""
-    st.markdown(
-        (
-            '<div class="hero-meta">'
-            f'<span class="badge badge-ok">Без изменений: {int(summary.get("no_change", 0))}</span>'
-            f'<span class="badge badge-warn">Проверить: {int(summary.get("review", 0))}</span>'
-            f'<span class="badge badge-change">Исправить: {int(summary.get("changed", 0))}</span>'
-            f'<span class="badge badge-error">Ошибки: {int(summary.get("error", 0))}</span>'
-            f'<span class="badge badge-muted">Заблокировано: {int(summary.get("blocked_unsafe_autofix", 0))}</span>'
-            "</div>"
-        ),
         unsafe_allow_html=True,
     )
 
@@ -236,230 +565,122 @@ def build_profile_options(profile_items: list[dict[str, str]], custom_items: lis
     return merged
 
 
-def build_methodical_profile_draft(uploaded_file, profile_name: str, base_profile_ids: list[str]) -> dict[str, Any]:
-    temp_input = save_uploaded_bytes(uploaded_file.getvalue(), suffix=Path(uploaded_file.name).suffix)
-    text = extract_text_from_file(temp_input)
-    profile = build_methodical_profile(
-        input_path=temp_input,
-        text=text,
-        base_profile_ids=base_profile_ids or None,
-        profile_name=profile_name or f"Методичка: {uploaded_file.name}",
+def render_hero() -> None:
+    """Editorial hero: serif italic title + rust eyebrow + lead paragraph.
+
+    No gradient, no glossy. One subtle border-bottom for academic feel.
+    """
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="eyebrow">ГОСТ 7.32-2017 · Нормоконтроль</div>
+            <h1>Аудит академического документа &mdash; блок за блоком.</h1>
+            <p class="lead">
+                Загрузите DOCX, выберите профиль ГОСТ, запустите анализ.
+                Система извлечёт структурные блоки, классифицирует их,
+                сверит с нормоконтролем и предложит безопасные правки.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    profile["extraction_meta"]["source_file_name"] = uploaded_file.name
-    return profile
 
 
-def persist_custom_profile(profile: dict[str, Any]) -> dict[str, str]:
-    CUSTOM_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = save_methodical_profile(profile=profile, output_dir=CUSTOM_PROFILES_DIR)
-    return {
-        "profile_id": output_path.stem,
-        "profile_name": str(profile.get("profile_name", output_path.stem)),
-        "profile_type": str(profile.get("profile_type", "methodical_guidelines")),
-        "source_type": str(profile.get("source_type", "user_uploaded")),
-        "path": str(output_path),
-    }
-
-
-def _set_session_methodical_draft(profile: dict[str, Any], source_name: str, source_type: str) -> None:
-    st.session_state["methodical_profile_draft"] = profile
-    st.session_state["methodical_profile_source_name"] = source_name
-    st.session_state["methodical_profile_source_type"] = source_type
-
-
-def _get_session_methodical_draft() -> dict[str, Any] | None:
-    draft = st.session_state.get("methodical_profile_draft")
-    return draft if isinstance(draft, dict) else None
-
-
-def _apply_methodical_form_edits(profile: dict[str, Any], form_data: dict[str, Any]) -> dict[str, Any]:
-    edited = json.loads(json.dumps(profile, ensure_ascii=False))
-    edited["profile_name"] = form_data["profile_name"].strip()
-    edited["base_profiles"] = form_data["base_profiles"]
-
-    document_rules = edited.setdefault("document_rules", {})
-    page_rules = document_rules.setdefault("page", {})
-    default_font = document_rules.setdefault("default_font", {})
-
-    page_rules["margin_left_cm"] = float(form_data["margin_left_cm"])
-    page_rules["margin_right_cm"] = float(form_data["margin_right_cm"])
-    page_rules["margin_top_cm"] = float(form_data["margin_top_cm"])
-    page_rules["margin_bottom_cm"] = float(form_data["margin_bottom_cm"])
-    default_font["font_name"] = form_data["font_name"].strip()
-    default_font["font_size_pt"] = float(form_data["font_size_pt"])
-    document_rules["default_line_spacing"] = float(form_data["default_line_spacing"])
-
-    labels = edited.setdefault("labels", {})
-    body_style = labels.setdefault("body_text", {}).setdefault("style_profile", {})
-    body_style["first_line_indent_cm"] = float(form_data["body_first_line_indent_cm"])
-    body_style["line_spacing"] = float(form_data["body_line_spacing"])
-
-    title_style = labels.setdefault("title_section", {}).setdefault("style_profile", {})
-    title_style["left_indent_cm"] = float(form_data["title_left_indent_cm"])
-    title_style["font_size_pt"] = float(form_data["title_font_size_pt"])
-    title_style["space_after_pt"] = float(form_data["title_space_after_pt"])
-    title_style["bold"] = bool(form_data["title_bold"])
-
-    list_style = labels.setdefault("list_item", {}).setdefault("style_profile", {})
-    list_style["left_indent_cm"] = float(form_data["list_left_indent_cm"])
-    list_style["line_spacing"] = float(form_data["list_line_spacing"])
-
-    figure_style = labels.setdefault("figure_caption", {}).setdefault("style_profile", {})
-    figure_style["font_size_pt"] = float(form_data["figure_font_size_pt"])
-    figure_style["alignment"] = form_data["figure_alignment"]
-
-    bibliography_title_style = labels.setdefault("bibliography_title", {}).setdefault("style_profile", {})
-    bibliography_title_style["font_size_pt"] = float(form_data["bibliography_title_font_size_pt"])
-    bibliography_title_style["left_indent_cm"] = float(form_data["bibliography_title_left_indent_cm"])
-
-    numbering_rules = edited.setdefault("numbering_rules", {})
-    numbering_rules["title_section"] = {
-        "enabled": bool(form_data["title_section_numbering_enabled"]),
-        "pattern": str(form_data["title_section_numbering_pattern"]).strip(),
-    }
-    numbering_rules["title_subsection"] = {
-        "enabled": bool(form_data["title_subsection_numbering_enabled"]),
-        "pattern": str(form_data["title_subsection_numbering_pattern"]).strip(),
-    }
-    numbering_rules["unnumbered_sections"] = [
-        line.strip()
-        for line in str(form_data["unnumbered_sections"]).splitlines()
-        if line.strip()
-    ]
-    bibliography_rules = edited.setdefault("bibliography_rules", {})
-    bibliography_rules["enabled"] = bool(form_data["bibliography_enabled"])
-    bibliography_rules["separate_profile_required"] = bool(form_data["bibliography_separate_profile_required"])
-    bibliography_rules.setdefault("general", {})["require_url_for_web_resource"] = bool(
-        form_data["bibliography_require_url"]
+def render_empty_state() -> None:
+    """Editorial empty-state — italic prompt + thin rule."""
+    st.markdown(
+        """
+        <div class="empty-state">
+            <div class="rule"></div>
+            <p>Загрузите DOCX-документ для проверки.</p>
+            <div class="sub">В левой панели выберите профиль ГОСТ &middot; справа &mdash; загрузка файла</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    entry_patterns = bibliography_rules.setdefault("entry_patterns", {})
-    for field_name, entry_key in [
-        ("bibliography_book_patterns", "book"),
-        ("bibliography_journal_patterns", "journal_article"),
-        ("bibliography_web_patterns", "web_resource"),
-        ("bibliography_standard_patterns", "standard"),
-        ("bibliography_law_patterns", "law"),
-        ("bibliography_thesis_patterns", "thesis"),
-    ]:
-        patterns = [
-            line.strip()
-            for line in str(form_data.get(field_name, "")).splitlines()
-            if line.strip()
-        ]
-        entry_patterns[entry_key] = patterns
-    soft_features = bibliography_rules.setdefault("soft_features", {})
-    for field_name, soft_key in [
-        ("bibliography_book_markers", "book_markers"),
-        ("bibliography_journal_markers", "journal_markers"),
-        ("bibliography_web_markers", "web_markers"),
-        ("bibliography_standard_markers", "standard_markers"),
-    ]:
-        markers = [
-            line.strip()
-            for line in str(form_data.get(field_name, "")).splitlines()
-            if line.strip()
-        ]
-        soft_features[soft_key] = markers
-    citation_rules = edited.setdefault("citation_rules", {})
-    citation_rules["enabled"] = bool(form_data["citation_enabled"])
-    citation_patterns = [
-        str(pattern).strip()
-        for pattern in form_data.get("citation_patterns", [])
-        if str(pattern).strip()
+
+
+def render_meta_line(profile_label: str | None, filename: str | None, block_count: int | None) -> None:
+    """Single mono-fonted line: Профиль · Загружено · N блоков."""
+    parts = []
+    if profile_label:
+        parts.append(
+            f'<span><span class="meta-key">Профиль</span><span class="meta-val">{profile_label}</span></span>'
+        )
+    if filename:
+        parts.append(
+            f'<span><span class="meta-key">Документ</span><span class="meta-val">{filename}</span></span>'
+        )
+    if block_count is not None:
+        parts.append(
+            f'<span><span class="meta-key">Блоков</span><span class="meta-val">{block_count}</span></span>'
+        )
+    if not parts:
+        return
+    st.markdown(
+        f'<div class="meta-line">{" ".join(parts)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_stat_grid(summary: dict[str, Any], report_df: pd.DataFrame | None) -> None:
+    """5-card editorial stat grid. Text-first, monochrome with one accent on totals.
+
+    Card 1 (totals) carries the accent. Cards 2-5 stay neutral.
+    Each card: small uppercase letterspaced label · big serif numeral · description.
+
+    HTML collapsed to a single line to dodge Streamlit's markdown code-fence detection
+    (multi-line nested <div> with indentation gets wrapped in <code>).
+    """
+    blocks_total = int(summary.get("blocks_total", 0) or 0)
+    no_change = int(summary.get("no_change", 0) or 0)
+    changed = int(summary.get("changed", 0) or 0)
+    review = int(summary.get("review", 0) or 0)
+    error = int(summary.get("error", 0) or 0)
+    # "Рекомендация" — count of rows where audit engine suggests a change that hasn't
+    # been applied yet. Falls back to (blocks_total - no_change - review - error - changed)
+    # when action column is missing.
+    suggest_change = 0
+    if report_df is not None and not report_df.empty and "action" in report_df.columns:
+        try:
+            suggest_change = int((report_df["action"].astype(str) == "suggest_change").sum())
+        except Exception:
+            suggest_change = 0
+    if suggest_change == 0:
+        suggest_change = max(0, blocks_total - no_change - review - error - changed)
+
+    def pct(n: int) -> str:
+        return f"{(100 * n / blocks_total):.1f}%" if blocks_total else "—"
+
+    cells = [
+        ("Блоки", blocks_total, "Выделенные структурные элементы документа", "", True),
+        ("Без изменений", no_change, "Соответствуют ожидаемому профилю", pct(no_change), False),
+        ("Рекомендация", suggest_change, "Можно скорректировать безопасно", pct(suggest_change), False),
+        ("Ручная проверка", review, "Низкая уверенность модели", pct(review), False),
+        ("Авто-исправлено", changed, "Безопасно применённые изменения", pct(changed), False),
     ]
-    if citation_patterns:
-        citation_rules["in_text_reference_patterns"] = citation_patterns
-        citation_rules["in_text_reference_pattern"] = citation_patterns[0]
-    else:
-        citation_rules.pop("in_text_reference_patterns", None)
-        citation_rules.pop("in_text_reference_pattern", None)
 
-    nn_context = edited.setdefault("nn_context", {})
-    expected_keywords = [
-        line.strip()
-        for line in str(form_data.get("nn_expected_bibliography_keywords", "")).splitlines()
-        if line.strip()
-    ]
-    if expected_keywords:
-        nn_context["expected_bibliography_keywords"] = expected_keywords
-
-    return edited
-
-
-def filter_audit_df(report_df: pd.DataFrame) -> pd.DataFrame:
-    """Apply sidebar-like audit filters within the audit tabs."""
-    filtered = normalize_table_values(report_df)
-    status_options = sorted(filtered["status"].unique().tolist()) if "status" in filtered.columns else []
-    preferred_statuses = ["review", "changed", "error"]
-    default_statuses = [status for status in preferred_statuses if status in status_options]
-    if not default_statuses:
-        default_statuses = status_options
-    filter_col1, filter_col2, filter_col3 = st.columns([1.1, 1.1, 1.6])
-    with filter_col1:
-        statuses = st.multiselect(
-            "Статус аудита",
-            options=status_options,
-            default=default_statuses,
-            key="audit_status_filter",
+    html_cells = []
+    for label, value, desc, percent, is_accent in cells:
+        accent_cls = " accent" if is_accent else ""
+        pct_html = f'<div class="stat-pct">{percent}</div>' if percent else ""
+        # Single-line per cell — no leading whitespace, no newlines inside.
+        html_cells.append(
+            f'<div class="stat-cell{accent_cls}"><div class="stat-label">{label}</div><div class="stat-value">{value}</div>{pct_html}<div class="stat-desc">{desc}</div></div>'
         )
-    with filter_col2:
-        labels = st.multiselect(
-            "Тип блока",
-            options=sorted(filtered["label"].unique().tolist()) if "label" in filtered.columns else [],
-            default=[],
-            key="audit_label_filter",
-        )
-    with filter_col3:
-        text_query = st.text_input("Поиск по тексту, объяснению или правилу", key="audit_text_filter").strip().lower()
 
-    if statuses and "status" in filtered.columns:
-        filtered = filtered[filtered["status"].isin(statuses)]
-    if labels and "label" in filtered.columns:
-        filtered = filtered[filtered["label"].isin(labels)]
-    if text_query:
-        mask = pd.Series(False, index=filtered.index)
-        for column in ["text", "explanation", "violated_rules", "applied_fixes", "reason"]:
-            if column in filtered.columns:
-                mask = mask | filtered[column].astype(str).str.lower().str.contains(text_query, na=False)
-        filtered = filtered[mask]
-    return filtered
+    st.markdown(
+        f'<div class="stat-grid">{"".join(html_cells)}</div>',
+        unsafe_allow_html=True,
+    )
 
 
-def filter_predictions_df(predictions_df: pd.DataFrame) -> pd.DataFrame:
-    """Apply prediction-specific filters."""
-    filtered = normalize_table_values(predictions_df)
-    filter_col1, filter_col2, filter_col3 = st.columns([1.1, 1.1, 1.2])
-    with filter_col1:
-        labels = st.multiselect(
-            "Предсказанный тип",
-            options=sorted(filtered["postprocessed_label"].unique().tolist()) if "postprocessed_label" in filtered.columns else [],
-            default=[],
-            key="prediction_label_filter",
-        )
-    with filter_col2:
-        kinds = st.multiselect(
-            "Физический блок",
-            options=sorted(filtered["kind"].unique().tolist()) if "kind" in filtered.columns else [],
-            default=[],
-            key="prediction_kind_filter",
-        )
-    with filter_col3:
-        low_confidence_only = st.checkbox("Только низкая уверенность", key="prediction_low_confidence_only")
-
-    if labels and "postprocessed_label" in filtered.columns:
-        filtered = filtered[filtered["postprocessed_label"].isin(labels)]
-    if kinds and "kind" in filtered.columns:
-        filtered = filtered[filtered["kind"].isin(kinds)]
-    if low_confidence_only and "low_confidence" in filtered.columns:
-        filtered = filtered[filtered["low_confidence"] == True]
-    return filtered
-
-
-def render_artifact_download_card(title: str, description: str, path: Path, mime: str, key: str) -> None:
-    """Render one artifact download card."""
+def render_artifact_tile(title: str, description: str, path: Path, mime: str, key: str) -> None:
+    """Editorial download tile: serif title, muted description, mono path,
+    then a Streamlit download_button styled via injected CSS."""
     st.markdown(
         f"""
-        <div class="artifact-card">
+        <div class="artifact-tile">
             <h4>{title}</h4>
             <p>{description}</p>
         </div>
@@ -475,276 +696,301 @@ def render_artifact_download_card(title: str, description: str, path: Path, mime
             use_container_width=True,
             key=key,
         )
-    st.caption(str(path))
+    st.markdown(f'<div class="artifact-tile path-line">{path}</div>', unsafe_allow_html=True)
 
 
-def render_manual_decision_table(report_df: pd.DataFrame) -> pd.DataFrame:
-    """Render manual decision support for uncertain blocks."""
-    manual_df = report_df.copy()
-    if "manual_review_required" not in manual_df.columns:
-        st.info("Для этого запуска нет данных ручной проверки.")
-        return pd.DataFrame()
+def _has(value: Any) -> bool:
+    if pd.isna(value):
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    return value is not None
 
-    manual_df = manual_df[
-        (manual_df["manual_review_required"] == True)
-        | (manual_df.get("blocked_unsafe_autofix", False) == True)
-    ].copy()
-    if manual_df.empty:
-        st.info("Нет спорных блоков, требующих ручного решения.")
-        return pd.DataFrame()
 
-    manual_df["apply_suggested_fix"] = False
-    decision_columns = [
-        column
-        for column in [
-            "apply_suggested_fix",
-            "block_id",
-            "label",
-            "confidence_score",
-            "blocked_unsafe_autofix",
-            "suggested_fix",
-            "suggested_rule_ids",
-            "unsafe_auto_fix_reason",
-            "recommendation",
-            "text",
-        ]
-        if column in manual_df.columns
-    ]
-    edited_df = st.data_editor(
-        manual_df[decision_columns],
-        use_container_width=True,
-        height=320,
-        hide_index=True,
-        disabled=[column for column in decision_columns if column != "apply_suggested_fix"],
-        key="manual_decision_editor",
+def compute_quality_score(summary: dict[str, Any]) -> float:
+    """Quality bar value: (no_change + auto_fixed/2) / total. Heuristic — anchors the
+    Обзор tab's progress bar so users have a single-number signal.
+
+    Returns a float in [0, 1].
+    """
+    total = float(summary.get("blocks_total", 0) or 0)
+    if total == 0:
+        return 0.0
+    no_change = float(summary.get("no_change", 0) or 0)
+    auto = float(summary.get("changed", 0) or 0)
+    return min(1.0, (no_change + auto * 0.5) / total)
+
+
+def render_quality_bar(summary: dict[str, Any]) -> None:
+    score = compute_quality_score(summary)
+    pct = f"{score * 100:.1f}%"
+    st.markdown(
+        f"""
+        <div class="quality-bar">
+            <div class="ql-label">
+                <span>Качество документа</span>
+                <span class="ql-value">{pct}</span>
+            </div>
+            <div class="ql-track"><div class="ql-fill" style="width: {score * 100:.1f}%"></div></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    selected_df = edited_df[edited_df["apply_suggested_fix"] == True].copy()
-    st.caption(f"Выбрано ручных решений: {len(selected_df)}")
-    return selected_df
 
 
-def render_results(result: ProcessingArtifacts) -> None:
-    """Render the restored UI around current backend outputs."""
+def _select_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Return only the requested columns that exist, in order."""
+    available = [c for c in columns if c in df.columns]
+    if not available:
+        return df
+    return df[available]
+
+
+def render_tab_overview(result: ProcessingArtifacts, profile_label: str | None) -> None:
+    """Обзор: text summary + quality progress bar. Quiet."""
     summary = result.summary
-    report_df = normalize_table_values(result.report_df)
-    predictions_df = normalize_table_values(result.predictions_df)
+    total = int(summary.get("blocks_total", 0) or 0)
+    no_change = int(summary.get("no_change", 0) or 0)
+    changed = int(summary.get("changed", 0) or 0)
+    review = int(summary.get("review", 0) or 0)
 
-    st.success("Документ обработан успешно.")
+    sentences = []
+    profile_phrase = f"Активный профиль: {profile_label}." if profile_label else ""
+    sentences.append(profile_phrase)
+    sentences.append(
+        f"Извлечено блоков: {total}. Без изменений — {no_change}, "
+        f"рекомендация на исправление — {changed}, на ручную проверку — {review}."
+    )
+    if review > 0:
+        sentences.append("Есть блоки, требующие ручной проверки — посмотрите вкладку «Аудит».")
+    if changed > 0:
+        sentences.append("Есть рекомендации к исправлению — посмотрите вкладку «Форматирование».")
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        render_metric_card("Всего блоков", int(summary.get("blocks_total", 0)), "Извлеченные структурные элементы")
-    with c2:
-        render_metric_card("Ручная проверка", int(summary.get("review", 0)), "Низкая уверенность или спорный случай")
-    with c3:
-        render_metric_card("Предложить исправления", int(summary.get("changed", 0)), "Обнаружены параметры для правки")
-    with c4:
-        render_metric_card(
-            "Заблокировано",
-            int(summary.get("blocked_unsafe_autofix", 0)),
-            "Небезопасные автоисправления не применены",
+    body = " ".join([s for s in sentences if s])
+    st.markdown(f"<p style='font-size: 1.02rem; color: var(--ink-soft); max-width: 720px;'>{body}</p>", unsafe_allow_html=True)
+    render_quality_bar(summary)
+
+
+def render_tab_predictions(result: ProcessingArtifacts) -> None:
+    """Предсказания: filter dropdown + DataFrame.
+
+    Columns prioritized per interface/4.jpg: block_id, kind, predicted_label,
+    postprocessed_label, confidence_score, low_confidence, text.
+    """
+    df = result.predictions_df
+    if df is None or df.empty:
+        st.markdown('<p class="block-row-meta">Нет данных предсказаний.</p>', unsafe_allow_html=True)
+        return
+
+    df = normalize_table_values(df.copy())
+    label_col = "postprocessed_label" if "postprocessed_label" in df.columns else "predicted_label"
+    classes = ["Все"] + sorted({str(v) for v in df[label_col].unique() if str(v).strip()})
+    pick = st.selectbox(
+        "Фильтр по предсказанному классу",
+        options=classes,
+        index=0,
+        key="predictions_class_filter",
+    )
+    filtered = df if pick == "Все" else df[df[label_col].astype(str) == pick]
+    cols = ["block_id", "kind", "predicted_label", "postprocessed_label",
+            "confidence_score", "low_confidence", "text"]
+    st.dataframe(
+        _select_columns(filtered, cols),
+        use_container_width=True,
+        hide_index=True,
+        height=500,
+    )
+    st.markdown(
+        f'<div class="block-row-meta">Показано {len(filtered)} из {len(df)} блоков.</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_tab_audit(result: ProcessingArtifacts) -> None:
+    """Аудит: search + status filter + kind filter + low-confidence toggle + table.
+
+    Columns per interface/5.jpg: block_id, kind, label, action, profile_id,
+    confidence_score, low_confidence, changed_fields, uncertain_fields, reason.
+    """
+    df = result.report_df
+    if df is None or df.empty:
+        st.markdown('<p class="block-row-meta">Нет данных аудита.</p>', unsafe_allow_html=True)
+        return
+
+    df = normalize_table_values(df.copy())
+
+    col_a, col_b, col_c = st.columns([1, 1, 0.8])
+    status_options = ["Все"] + sorted({str(v) for v in df.get("status", pd.Series(dtype=str)).unique() if str(v).strip()}) if "status" in df.columns else ["Все"]
+    kind_options = ["Все"] + sorted({str(v) for v in df.get("kind", pd.Series(dtype=str)).unique() if str(v).strip()}) if "kind" in df.columns else ["Все"]
+
+    with col_a:
+        status_pick = st.selectbox("Статус аудита", options=status_options, key="audit_status_filter")
+    with col_b:
+        kind_pick = st.selectbox("Тип блока", options=kind_options, key="audit_kind_filter")
+    with col_c:
+        only_low = st.checkbox("Только low confidence", key="audit_low_conf_toggle")
+
+    search = st.text_input("Поиск по тексту блока", key="audit_search")
+
+    filtered = df
+    if status_pick != "Все" and "status" in filtered.columns:
+        filtered = filtered[filtered["status"].astype(str) == status_pick]
+    if kind_pick != "Все" and "kind" in filtered.columns:
+        filtered = filtered[filtered["kind"].astype(str) == kind_pick]
+    if only_low and "low_confidence" in filtered.columns:
+        filtered = filtered[filtered["low_confidence"].apply(lambda v: bool(v) if pd.notna(v) else False)]
+    if search:
+        if "text" in filtered.columns:
+            filtered = filtered[filtered["text"].astype(str).str.contains(search, case=False, na=False)]
+
+    st.markdown(
+        f'<div class="block-row-meta">Найдено строк: {len(filtered)}</div>',
+        unsafe_allow_html=True,
+    )
+    cols = ["block_id", "kind", "label", "action", "profile_id", "confidence_score",
+            "low_confidence", "changed_fields", "uncertain_fields", "reason"]
+    st.dataframe(
+        _select_columns(filtered, cols),
+        use_container_width=True,
+        hide_index=True,
+        height=520,
+    )
+
+
+def render_tab_formatting(result: ProcessingArtifacts, uploaded_file, selected_profile_path: str) -> None:
+    """Форматирование: trigger re-run in fix mode + download corrected DOCX.
+
+    Editorial layout: serif intro paragraph → CTA → download tile.
+    Mode 'fix' is triggered via a separate button here, NOT via a sidebar radio
+    (v1.1 redesign — mode lives in the action, not in upfront config).
+    """
+    if result.input_extension == ".pdf":
+        st.markdown(
+            '<p class="block-row-meta">'
+            'PDF режим аудита — исправленный документ не формируется.'
+            '</p>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    has_output = result.output_docx is not None and Path(result.output_docx).exists()
+    if has_output:
+        st.markdown(
+            '<p style="font-family: \'EB Garamond\', serif; font-style: italic; font-size: 1.05rem; '
+            'color: var(--ink-soft); max-width: 640px;">'
+            'Исправленный DOCX уже сформирован. Скачайте файл ниже или '
+            'примените форматирование заново — оригинал не изменяется.'
+            '</p>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<p style="font-family: \'EB Garamond\', serif; font-style: italic; font-size: 1.05rem; '
+            'color: var(--ink-soft); max-width: 640px;">'
+            'Текущий запуск выполнен в режиме аудита. Чтобы сформировать DOCX с '
+            'безопасными правками — нажмите кнопку ниже.'
+            '</p>',
+            unsafe_allow_html=True,
         )
 
-    render_status_badges(summary)
+    cta_label = "Применить безопасное форматирование заново" if has_output else "Применить безопасное форматирование"
+    apply_clicked = st.button(cta_label, type="primary", key="formatting_apply_button", use_container_width=False)
+    if apply_clicked and uploaded_file is not None:
+        # Re-run process_document in fix mode. Single-shot, blocking — no extra RunLog
+        # since the new run replaces the old result in session_state.
+        with st.spinner("Применяем правки..."):
+            input_path = save_uploaded_bytes(
+                uploaded_file.getvalue(),
+                suffix=Path(uploaded_file.name).suffix,
+            )
+            try:
+                new_result = process_document(
+                    input_path=input_path,
+                    model_choice="baseline",
+                    mode="fix",
+                    profile_path=selected_profile_path,
+                )
+                st.session_state["last_result"] = new_result
+                st.rerun()
+            except Exception as exc:
+                user_msg = preflight_translate_error(exc) if isinstance(exc, (FileNotFoundError, PdfNoTextLayer, ValueError, zipfile.BadZipFile)) else "Не удалось применить форматирование."
+                st.error(user_msg)
 
-    tab_overview, tab_predictions, tab_audit, tab_formatting, tab_artifacts = st.tabs(
-        ["Обзор", "Предсказания", "Аудит", "Форматирование", "Артефакты"]
-    )
+    if has_output:
+        st.markdown('<hr class="divider"/>', unsafe_allow_html=True)
+        render_artifact_tile(
+            "Исправленный DOCX",
+            "Безопасные правки применены. Оригинал не изменён.",
+            Path(result.output_docx),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "download_corrected_docx",
+        )
 
+
+def render_tab_artifacts(result: ProcessingArtifacts, run_log_path: Path | None) -> None:
+    """Артефакты: 3 download tiles (Report CSV, Summary JSON, Run-log)."""
+    if result.report_csv and Path(result.report_csv).exists():
+        render_artifact_tile(
+            "Отчёт CSV",
+            "Таблица по блокам: статусы, нарушенные правила, исправления, объяснения.",
+            Path(result.report_csv),
+            "text/csv",
+            "download_report_csv",
+        )
+    if result.summary_json and Path(result.summary_json).exists():
+        render_artifact_tile(
+            "Сводка JSON",
+            "Счётчики статусов и технические данные запуска.",
+            Path(result.summary_json),
+            "application/json",
+            "download_summary_json",
+        )
+    if run_log_path and Path(run_log_path).exists():
+        render_artifact_tile(
+            "Журнал запуска (JSON)",
+            "Стадии пайплайна и статусы. PII-безопасный лог.",
+            Path(run_log_path),
+            "application/json",
+            "download_run_log_json",
+        )
+
+
+def render_report(result: ProcessingArtifacts, filename: str | None, profile_label: str | None, uploaded_file, selected_profile_path: str) -> None:
+    """v1.1 tabbed layout per interface/ baseline + Editorial palette.
+
+    Top: stat grid + meta line.
+    Tabs (5): Обзор · Предсказания · Аудит · Форматирование · Артефакты.
+    """
+    summary = result.summary
+    block_count = int(summary.get("blocks_total", 0) or 0)
+
+    st.markdown('<h2 style="margin-top: 0.2rem;">Сводка по аудиту</h2>', unsafe_allow_html=True)
+    render_stat_grid(summary, result.report_df)
+    render_meta_line(profile_label, filename, block_count)
+
+    tab_overview, tab_pred, tab_audit, tab_format, tab_art = st.tabs([
+        "Обзор", "Предсказания", "Аудит", "Форматирование", "Артефакты"
+    ])
     with tab_overview:
-        left_col, right_col = st.columns([1.05, 1.35])
-        with left_col:
-            st.subheader("Сводка запуска")
-            summary_view = {
-                "input_docx": summary.get("input_docx"),
-                "profile_name": summary.get("profile_name"),
-                "model_type": summary.get("model_type"),
-                "mode": summary.get("mode"),
-                "blocks_total": summary.get("blocks_total"),
-                "no_change": summary.get("no_change"),
-                "review": summary.get("review"),
-                "changed": summary.get("changed"),
-                "error": summary.get("error"),
-                "output_docx": summary.get("output_docx"),
-            }
-            st.json(summary_view)
-
-        with right_col:
-            st.subheader("Проблемные блоки")
-            problematic_df = report_df[report_df["status"].isin(["review", "changed", "error"])] if "status" in report_df.columns else report_df
-            overview_columns = [
-                column
-                for column in ["block_id", "label", "status", "violated_rules", "applied_fixes", "explanation", "text"]
-                if column in problematic_df.columns
-            ]
-            st.dataframe(problematic_df[overview_columns], use_container_width=True, height=420)
-
-    with tab_predictions:
-        st.subheader("Предсказанные блоки")
-        st.caption("Показаны типы блоков, уверенность модели и признаки списков.")
-        filtered_predictions = filter_predictions_df(predictions_df)
-        prediction_columns = [
-            column
-            for column in [
-                "block_id",
-                "kind",
-                "list_type",
-                "list_level",
-                "predicted_label",
-                "postprocessed_label",
-                "confidence_score",
-                "low_confidence",
-                "text",
-            ]
-            if column in filtered_predictions.columns
-        ]
-        st.dataframe(filtered_predictions[prediction_columns], use_container_width=True, height=520)
-
+        render_tab_overview(result, profile_label)
+    with tab_pred:
+        render_tab_predictions(result)
     with tab_audit:
-        st.subheader("Отчет аудита")
-        st.caption("Фильтры применяются к проблемным блокам и полной таблице аудита.")
-        filtered_audit = filter_audit_df(report_df)
-        focused_columns = [
-            column
-            for column in [
-                "block_id",
-                "label",
-                "status",
-                "blocked_unsafe_autofix",
-                "violated_rules",
-                "suggested_fix",
-                "applied_fixes",
-                "explanation",
-                "recommendation",
-                "text",
-            ]
-            if column in filtered_audit.columns
-        ]
-        st.markdown("**Проблемные блоки**")
-        focused_df = filtered_audit[filtered_audit["status"].isin(["review", "changed", "error"])] if "status" in filtered_audit.columns else filtered_audit
-        st.dataframe(focused_df[focused_columns], use_container_width=True, height=280)
-        st.markdown("**Полная таблица аудита**")
-        st.dataframe(filtered_audit, use_container_width=True, height=320)
+        render_tab_audit(result)
+    with tab_format:
+        render_tab_formatting(result, uploaded_file, selected_profile_path)
+    with tab_art:
+        run_log_path = st.session_state.get("last_run_log_path")
+        render_tab_artifacts(result, run_log_path)
 
-    with tab_formatting:
-        st.subheader("Действия форматирования")
-        st.caption("Объяснения по правилам и список безопасных исправлений.")
-        st.markdown("**Ручные решения**")
-        selected_manual_df = render_manual_decision_table(report_df)
-        formatting_df = report_df.copy()
-        if "status" in formatting_df.columns:
-            formatting_df = formatting_df[formatting_df["status"].isin(["changed", "review", "error"])]
-        formatting_columns = [
-            column
-            for column in [
-                "block_id",
-                "label",
-                "status",
-                "action",
-                "blocked_unsafe_autofix",
-                "manual_review_required",
-                "violated_rules",
-                "suggested_rule_ids",
-                "applied_fixes",
-                "suggested_fix",
-                "changed_fields",
-                "unsafe_auto_fix_reason",
-                "reason",
-                "explanation",
-                "text",
-            ]
-            if column in formatting_df.columns
-        ]
-        st.dataframe(formatting_df[formatting_columns], use_container_width=True, height=520)
-        if result.output_docx is not None and result.output_docx.exists():
-            st.info(f"Исправленный DOCX сформирован: {result.output_docx.name}")
-        else:
-            st.info("В режиме аудита исправленный DOCX не создается.")
 
-    with tab_artifacts:
-        st.subheader("Артефакты")
-        st.caption("Все файлы сформированы текущим pipeline и доступны для скачивания.")
-        a1, a2, a3 = st.columns(3)
-        with a1:
-            render_artifact_download_card(
-                title="Отчет аудита CSV",
-                description="Таблица по блокам: статусы, нарушенные правила, исправления и объяснения.",
-                path=result.report_csv,
-                mime="text/csv",
-                key="download_report_csv",
-            )
-        with a2:
-            render_artifact_download_card(
-                title="Отчет аудита JSON",
-                description="Машиночитаемый экспорт результатов проверки.",
-                path=result.report_json,
-                mime="application/json",
-                key="download_report_json",
-            )
-        with a3:
-            render_artifact_download_card(
-                title="Сводка",
-                description="Краткое описание результатов текущей обработки.",
-                path=result.summary_txt,
-                mime="text/plain",
-                key="download_summary_txt",
-            )
-
-        b1, b2, b3 = st.columns(3)
-        with b1:
-            render_artifact_download_card(
-                title="Предсказания CSV",
-                description="Предсказанные типы блоков, уверенность модели и признаки списков.",
-                path=result.predictions_csv,
-                mime="text/csv",
-                key="download_predictions_csv",
-            )
-        with b2:
-            render_artifact_download_card(
-                title="Сводка JSON",
-                description="Счетчики статусов и технические данные запуска.",
-                path=result.summary_json,
-                mime="application/json",
-                key="download_summary_json",
-            )
-        with b3:
-            if not selected_manual_df.empty:
-                st.markdown(
-                    """
-                    <div class="artifact-card">
-                        <h4>Ручные решения CSV</h4>
-                        <p>Выбранные пользователем решения для спорных блоков.</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                st.download_button(
-                    "Скачать manual_decisions.csv",
-                    data=selected_manual_df.to_csv(index=False).encode("utf-8-sig"),
-                    file_name="manual_decisions.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                    key="download_manual_decisions_csv",
-                )
-            else:
-                st.markdown(
-                    """
-                    <div class="artifact-card">
-                        <h4>Ручные решения CSV</h4>
-                        <p>Появится после выбора спорных блоков для ручной обработки.</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-        if result.output_docx is not None and result.output_docx.exists():
-            st.markdown("---")
-            render_artifact_download_card(
-                title="Исправленный DOCX",
-                description="Редактируемый DOCX, созданный после безопасных исправлений.",
-                path=result.output_docx,
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                key="download_output_docx",
-            )
+def _persist_run_log(run_log: RunLog, input_filename: str) -> Path:
+    """Dump `run_log` to a stable per-run JSON file under REPORTS_DIR."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    stem = Path(input_filename).stem
+    log_path = REPORTS_DIR / f"{stem}_run_log_{timestamp}.json"
+    run_log.dump_json(log_path)
+    return log_path
 
 
 def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, selected_profile_path: str) -> None:
@@ -753,11 +999,13 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
         st.warning("Сначала загрузите DOCX-документ.")
         return
 
-    if selected_model_key == "baseline_unavailable":
-        st.error("Baseline-модель недоступна: в workspace нет сохраненного .joblib-артефакта.")
+    if selected_model_key == "baseline_unavailable" and Path(uploaded_file.name).suffix.lower() != ".pdf":
+        st.error("Baseline-модель недоступна: в workspace нет сохранённого .joblib-артефакта.")
         return
 
     input_path = save_uploaded_bytes(uploaded_file.getvalue(), suffix=Path(uploaded_file.name).suffix)
+    run_log = RunLog(uploaded_file.name)
+    run_log.record("document-read", "ok")
 
     try:
         result = process_document(
@@ -766,435 +1014,300 @@ def run_processing(uploaded_file, selected_model_key: str, selected_mode: str, s
             mode=selected_mode,
             profile_path=selected_profile_path,
         )
-    except NotImplementedError as exc:
-        st.error(str(exc))
+    except (FileNotFoundError, PdfNoTextLayer, ValueError, zipfile.BadZipFile) as exc:
+        user_msg = preflight_translate_error(exc)
+        run_log.record(
+            "document-read",
+            "error",
+            error_class=type(exc).__name__,
+            error_message=user_msg,
+        )
+        st.error(user_msg)
+        st.session_state["last_run_log"] = run_log
+        st.session_state["last_run_log_path"] = _persist_run_log(run_log, uploaded_file.name)
+        st.session_state["last_uploaded_name"] = uploaded_file.name
         return
     except Exception as exc:
-        st.exception(exc)
+        run_log.record(
+            "unknown",
+            "error",
+            error_class=type(exc).__name__,
+            error_message="Не удалось обработать документ.",
+        )
+        st.error("Не удалось обработать документ: " + type(exc).__name__)
+        st.session_state["last_run_log"] = run_log
+        st.session_state["last_run_log_path"] = _persist_run_log(run_log, uploaded_file.name)
+        st.session_state["last_uploaded_name"] = uploaded_file.name
         return
+
+    run_log.record("classification", "ok")
+    run_log.record("rule-apply", "ok")
+    run_log.record("save", "ok")
 
     st.session_state["last_result"] = result
     st.session_state["last_uploaded_name"] = uploaded_file.name
+    st.session_state["last_run_log"] = run_log
+    st.session_state["last_run_log_path"] = _persist_run_log(run_log, uploaded_file.name)
+
+
+@st.dialog("Создать профиль из методички", width="large")
+def methodical_modal(available_profile_ids: list[str]) -> None:
+    """Methodical-profile-extraction modal mirroring Phase 5 CLI contract."""
+    uploaded = st.file_uploader(
+        "Загрузите методичку",
+        type=SUPPORTED_METHODICAL_UPLOAD_TYPES,
+        key="modal_methodical_file",
+    )
+    if "gost_7_32_2017" in available_profile_ids:
+        default_base = ["gost_7_32_2017"]
+    elif available_profile_ids:
+        default_base = available_profile_ids[:1]
+    else:
+        default_base = []
+    base_ids = st.multiselect(
+        "Базовые профили",
+        options=available_profile_ids,
+        default=default_base,
+        key="modal_base_profiles",
+    )
+    preview_clicked = st.button("Сгенерировать предпросмотр", key="modal_preview_button")
+    if preview_clicked:
+        if uploaded is None:
+            st.warning("Загрузите файл методички (PDF / DOCX / TXT / MD).")
+        elif not base_ids:
+            st.warning("Выберите хотя бы один базовый профиль.")
+        else:
+            try:
+                tmp_path = save_uploaded_bytes(
+                    uploaded.getvalue(),
+                    suffix=Path(uploaded.name).suffix,
+                )
+                draft = build_methodical_profile(input_path=tmp_path, base_profile_ids=base_ids)
+                base_profile = load_profile(profile_id=base_ids[0])
+                diff_lines = compute_profile_diff(base_profile, draft)
+                st.session_state["modal_diff_lines"] = diff_lines
+                st.session_state["modal_draft_profile"] = draft
+            except ValueError as exc:
+                msg = str(exc)
+                if "PDF" in msg or "text" in msg.lower():
+                    st.error(
+                        "PDF-файл не содержит извлекаемого текста. "
+                        "Скан без OCR не поддерживается."
+                    )
+                else:
+                    st.error("Не удалось извлечь методичку: " + type(exc).__name__)
+            except Exception as exc:
+                st.error("Не удалось извлечь методичку: " + type(exc).__name__)
+
+    diff = st.session_state.get("modal_diff_lines")
+    draft = st.session_state.get("modal_draft_profile")
+    if diff is not None and draft is not None:
+        st.code("\n".join(diff), language=None)
+        profile_id = draft["profile_id"]
+        target_path = CUSTOM_PROFILES_DIR / f"{profile_id}.json"
+        target_exists = target_path.exists()
+        shadowing_builtin = (PROFILES_DIR / f"{profile_id}.json").exists()
+        if shadowing_builtin and not target_exists:
+            st.info(
+                f"`{profile_id}` совпадает с именем встроенного профиля — "
+                "пользовательский профиль скроет встроенный в списке."
+            )
+        if not target_exists:
+            apply_clicked = st.button(
+                "Применить и сохранить",
+                type="primary",
+                key="modal_apply_button",
+            )
+            if apply_clicked:
+                CUSTOM_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+                save_methodical_profile(draft, CUSTOM_PROFILES_DIR)
+                new_items = list_available_profiles([PROFILES_DIR, CUSTOM_PROFILES_DIR])
+                new_match = next(
+                    (it for it in new_items if it.get("profile_id") == profile_id),
+                    None,
+                )
+                if new_match is not None:
+                    st.session_state["profile_selectbox"] = format_profile_option(new_match)
+                for k in ("modal_diff_lines", "modal_draft_profile"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+        else:
+            st.warning(
+                f"Профиль `{profile_id}` уже существует. Чтобы перезаписать, "
+                "отметьте чекбокс ниже и заполните поле «Причина» (минимум 8 символов)."
+            )
+            overwrite = st.checkbox(
+                "Перезаписать существующий профиль",
+                key="modal_overwrite_checkbox",
+            )
+            reason = st.text_area("Причина (минимум 8 символов)", key="modal_reason_textarea")
+            reason_ok = modal_reason_is_valid(reason)
+            if not reason_ok and reason:
+                st.caption(
+                    "Причина должна содержать минимум 8 непробельных символов "
+                    "(D-004: no silent rewrites)."
+                )
+            apply_disabled = not (overwrite and reason_ok)
+            apply_clicked = st.button(
+                "Применить и сохранить",
+                type="primary",
+                disabled=apply_disabled,
+                key="modal_apply_force_button",
+            )
+            if apply_clicked and not apply_disabled:
+                draft.setdefault("extraction_meta", {})
+                draft["extraction_meta"]["override_reason"] = reason.strip()
+                CUSTOM_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+                save_methodical_profile(draft, CUSTOM_PROFILES_DIR)
+                new_items = list_available_profiles([PROFILES_DIR, CUSTOM_PROFILES_DIR])
+                new_match = next(
+                    (it for it in new_items if it.get("profile_id") == profile_id),
+                    None,
+                )
+                if new_match is not None:
+                    st.session_state["profile_selectbox"] = format_profile_option(new_match)
+                for k in ("modal_diff_lines", "modal_draft_profile"):
+                    st.session_state.pop(k, None)
+                st.rerun()
+
+    cancel_clicked = st.button("Отмена", key="modal_cancel_button")
+    if cancel_clicked:
+        for k in ("modal_diff_lines", "modal_draft_profile"):
+            st.session_state.pop(k, None)
+        st.rerun()
 
 
 def main() -> None:
-    """Render the Streamlit application."""
+    """v1.1 Editorial-restraint UI per `interface/` baseline.
+
+    Layout — top to bottom:
+      1. Sidebar (minimal): profile select + methodical-upload modal trigger.
+      2. Hero: serif italic title + lead paragraph.
+      3. Uploader + CTA (DOCX-only surface; PDF code remains unreachable from UI).
+      4. Tabs (5) after a successful run.
+    """
     inject_page_styles()
-    render_hero()
 
-    profile_items = get_profile_options()
-    if not profile_items:
-        st.error("Профили ГОСТ не найдены в src/rules/profiles.")
-        st.stop()
-
-    st.session_state.setdefault("custom_profile_items", [])
-    st.session_state.setdefault("methodical_profile_draft", None)
-    st.session_state.setdefault("methodical_profile_source_name", "")
-    st.session_state.setdefault("methodical_profile_source_type", "")
-    custom_profile_items = st.session_state.get("custom_profile_items", [])
-    all_profile_items = build_profile_options(profile_items, custom_profile_items)
-    profile_label_to_path = {format_profile_option(item): item["path"] for item in all_profile_items}
-    model_options = list_model_options()
-    available_profile_ids = [item["profile_id"] for item in profile_items]
-
+    # ----- Sidebar (minimal) -----
     with st.sidebar:
-        st.header("Панель управления")
-        st.caption("Выберите профиль проверки, при необходимости создайте локальный профиль из методички, затем загрузите DOCX-документ.")
-        with st.expander("Методичка и локальный профиль", expanded=False):
-            methodical_file = st.file_uploader(
-                "Загрузите методичку для извлечения правил",
-                type=SUPPORTED_METHODICAL_UPLOAD_TYPES,
-                key="methodical_file_uploader",
-            )
-            methodical_profile_name = st.text_input(
-                "Название локального профиля",
-                value="",
-                placeholder="Например: МИРЭА нормоконтроль",
-                key="methodical_profile_name",
-            )
-            methodical_base_profiles = st.multiselect(
-                "Базовые профили",
-                options=available_profile_ids,
-                default=["gost_7_32_2017", "gost_r_7_0_100_2018_bibliography"],
-                key="methodical_base_profiles",
-            )
-            create_profile_clicked = st.button(
-                "Извлечь правила",
-                use_container_width=True,
-                key="create_methodical_profile",
-            )
-            if create_profile_clicked:
-                if methodical_file is None:
-                    st.warning("Сначала загрузите PDF, DOCX, TXT или MD файл методички.")
-                else:
-                    try:
-                        draft_profile = build_methodical_profile_draft(
-                            uploaded_file=methodical_file,
-                            profile_name=methodical_profile_name.strip(),
-                            base_profile_ids=methodical_base_profiles,
-                        )
-                        _set_session_methodical_draft(
-                            profile=draft_profile,
-                            source_name=methodical_file.name,
-                            source_type=methodical_file.type or "application/octet-stream",
-                        )
-                        st.success("Черновик профиля извлечен.")
-                    except Exception as exc:
-                        st.error(str(exc))
-
-            draft_profile = _get_session_methodical_draft()
-            if draft_profile is not None:
-                st.markdown("**Черновик профиля**")
-                st.caption(
-                    f"Источник: {st.session_state.get('methodical_profile_source_name', 'неизвестно')} · "
-                    f"confidence: {draft_profile.get('extraction_meta', {}).get('extraction_confidence', 'n/a')}"
-                )
-                draft_summary = {
-                    "profile_id": draft_profile.get("profile_id"),
-                    "profile_name": draft_profile.get("profile_name"),
-                    "profile_type": draft_profile.get("profile_type"),
-                    "base_profiles": draft_profile.get("base_profiles", []),
-                    "needs_manual_review": draft_profile.get("extraction_meta", {}).get("needs_manual_review"),
-                }
-                st.json(draft_summary)
-                with st.form("methodical_profile_editor", clear_on_submit=False):
-                    edited_profile_name = st.text_input(
-                        "Название профиля",
-                        value=str(draft_profile.get("profile_name", "")),
-                    )
-                    edited_base_profiles = st.multiselect(
-                        "Базовые профили",
-                        options=available_profile_ids,
-                        default=[item for item in draft_profile.get("base_profiles", []) if item in available_profile_ids],
-                    )
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        margin_left_cm = st.number_input(
-                            "Левое поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_left_cm", 3.0)),
-                            step=0.1,
-                        )
-                        margin_right_cm = st.number_input(
-                            "Правое поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_right_cm", 1.0)),
-                            step=0.1,
-                        )
-                        margin_top_cm = st.number_input(
-                            "Верхнее поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_top_cm", 2.0)),
-                            step=0.1,
-                        )
-                        margin_bottom_cm = st.number_input(
-                            "Нижнее поле, см",
-                            min_value=0.0,
-                            max_value=10.0,
-                            value=float(draft_profile.get("document_rules", {}).get("page", {}).get("margin_bottom_cm", 2.0)),
-                            step=0.1,
-                        )
-                        font_name = st.text_input(
-                            "Шрифт",
-                            value=str(draft_profile.get("document_rules", {}).get("default_font", {}).get("font_name", "Times New Roman")),
-                        )
-                        font_size_pt = st.number_input(
-                            "Размер шрифта, pt",
-                            min_value=8.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("document_rules", {}).get("default_font", {}).get("font_size_pt", 14.0)),
-                            step=1.0,
-                        )
-                        default_line_spacing = st.number_input(
-                            "Интервал по умолчанию",
-                            min_value=1.0,
-                            max_value=2.5,
-                            value=float(draft_profile.get("document_rules", {}).get("default_line_spacing", 1.5)),
-                            step=0.1,
-                        )
-                    with c2:
-                        body_first_line_indent_cm = st.number_input(
-                            "Абзацный отступ body_text, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("body_text", {}).get("style_profile", {}).get("first_line_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        body_line_spacing = st.number_input(
-                            "Интервал body_text",
-                            min_value=1.0,
-                            max_value=2.5,
-                            value=float(draft_profile.get("labels", {}).get("body_text", {}).get("style_profile", {}).get("line_spacing", 1.5)),
-                            step=0.1,
-                        )
-                        title_left_indent_cm = st.number_input(
-                            "Отступ title_section слева, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("left_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        title_font_size_pt = st.number_input(
-                            "Размер title_section, pt",
-                            min_value=10.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("font_size_pt", 18.0)),
-                            step=1.0,
-                        )
-                        title_space_after_pt = st.number_input(
-                            "Интервал после title_section, pt",
-                            min_value=0.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("space_after_pt", 10.0)),
-                            step=1.0,
-                        )
-                        title_bold = st.checkbox(
-                            "title_section жирный",
-                            value=bool(draft_profile.get("labels", {}).get("title_section", {}).get("style_profile", {}).get("bold", True)),
-                        )
-                        list_left_indent_cm = st.number_input(
-                            "Отступ list_item слева, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("list_item", {}).get("style_profile", {}).get("left_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        list_line_spacing = st.number_input(
-                            "Интервал list_item",
-                            min_value=1.0,
-                            max_value=2.5,
-                            value=float(draft_profile.get("labels", {}).get("list_item", {}).get("style_profile", {}).get("line_spacing", 1.5)),
-                            step=0.1,
-                        )
-                        figure_alignment = st.selectbox(
-                            "Выравнивание figure_caption",
-                            options=["LEFT", "CENTER", "RIGHT", "JUSTIFY"],
-                            index=["LEFT", "CENTER", "RIGHT", "JUSTIFY"].index(
-                                str(draft_profile.get("labels", {}).get("figure_caption", {}).get("style_profile", {}).get("alignment", "CENTER"))
-                            ),
-                        )
-                        figure_font_size_pt = st.number_input(
-                            "Размер figure_caption, pt",
-                            min_value=8.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("figure_caption", {}).get("style_profile", {}).get("font_size_pt", 12.0)),
-                            step=1.0,
-                        )
-                        bibliography_title_left_indent_cm = st.number_input(
-                            "Отступ bibliography_title слева, см",
-                            min_value=0.0,
-                            max_value=3.0,
-                            value=float(draft_profile.get("labels", {}).get("bibliography_title", {}).get("style_profile", {}).get("left_indent_cm", 1.25)),
-                            step=0.05,
-                        )
-                        bibliography_title_font_size_pt = st.number_input(
-                            "Размер bibliography_title, pt",
-                            min_value=8.0,
-                            max_value=24.0,
-                            value=float(draft_profile.get("labels", {}).get("bibliography_title", {}).get("style_profile", {}).get("font_size_pt", 14.0)),
-                            step=1.0,
-                        )
-
-                    st.markdown("**Структурные правила**")
-                    title_section_numbering_enabled = st.checkbox(
-                        "Нумерация для title_section",
-                        value=bool(draft_profile.get("numbering_rules", {}).get("title_section", {}).get("enabled", True)),
-                    )
-                    title_section_numbering_pattern = st.text_input(
-                        "Шаблон title_section",
-                        value=str(draft_profile.get("numbering_rules", {}).get("title_section", {}).get("pattern", r"^\d+\s+.+$")),
-                    )
-                    title_subsection_numbering_enabled = st.checkbox(
-                        "Нумерация для title_subsection",
-                        value=bool(draft_profile.get("numbering_rules", {}).get("title_subsection", {}).get("enabled", True)),
-                    )
-                    title_subsection_numbering_pattern = st.text_input(
-                        "Шаблон title_subsection",
-                        value=str(draft_profile.get("numbering_rules", {}).get("title_subsection", {}).get("pattern", r"^\d+\.\d+\s+.+$")),
-                    )
-                    unnumbered_sections = st.text_area(
-                        "Секции без нумерации",
-                        value="\n".join(draft_profile.get("numbering_rules", {}).get("unnumbered_sections", [])),
-                        height=120,
-                    )
-                    bibliography_enabled = st.checkbox(
-                        "Включить bibliography_rules",
-                        value=bool(draft_profile.get("bibliography_rules", {}).get("enabled", True)),
-                    )
-                    bibliography_separate_profile_required = st.checkbox(
-                        "Требуется отдельный профиль библиографии",
-                        value=bool(draft_profile.get("bibliography_rules", {}).get("separate_profile_required", False)),
-                    )
-                    bibliography_require_url = st.checkbox(
-                        "Требовать URL для web_resource",
-                        value=bool(draft_profile.get("bibliography_rules", {}).get("general", {}).get("require_url_for_web_resource", True)),
-                    )
-                    bibliography_soft_features = draft_profile.get("bibliography_rules", {}).get("soft_features", {})
-                    st.markdown("**Мягкие признаки библиографии**")
-                    bibliography_book_markers = st.text_area(
-                        "book_markers",
-                        value="\n".join(bibliography_soft_features.get("book_markers", [])),
-                        height=90,
-                    )
-                    bibliography_journal_markers = st.text_area(
-                        "journal_markers",
-                        value="\n".join(bibliography_soft_features.get("journal_markers", [])),
-                        height=90,
-                    )
-                    bibliography_web_markers = st.text_area(
-                        "web_markers",
-                        value="\n".join(bibliography_soft_features.get("web_markers", [])),
-                        height=90,
-                    )
-                    bibliography_standard_markers = st.text_area(
-                        "standard_markers",
-                        value="\n".join(bibliography_soft_features.get("standard_markers", [])),
-                        height=90,
-                    )
-                    bibliography_entry_patterns = draft_profile.get("bibliography_rules", {}).get("entry_patterns", {})
-                    st.markdown("**Шаблоны библиографических описаний**")
-                    bibliography_book_patterns = st.text_area(
-                        "book",
-                        value="\n".join(bibliography_entry_patterns.get("book", [])),
-                        height=90,
-                    )
-                    bibliography_journal_patterns = st.text_area(
-                        "journal_article",
-                        value="\n".join(bibliography_entry_patterns.get("journal_article", [])),
-                        height=90,
-                    )
-                    bibliography_web_patterns = st.text_area(
-                        "web_resource",
-                        value="\n".join(bibliography_entry_patterns.get("web_resource", [])),
-                        height=90,
-                    )
-                    bibliography_standard_patterns = st.text_area(
-                        "standard",
-                        value="\n".join(bibliography_entry_patterns.get("standard", [])),
-                        height=90,
-                    )
-                    bibliography_law_patterns = st.text_area(
-                        "law",
-                        value="\n".join(bibliography_entry_patterns.get("law", [])),
-                        height=90,
-                    )
-                    bibliography_thesis_patterns = st.text_area(
-                        "thesis",
-                        value="\n".join(bibliography_entry_patterns.get("thesis", [])),
-                        height=90,
-                    )
-                    nn_expected_bibliography_keywords = st.text_area(
-                        "expected_bibliography_keywords",
-                        value="\n".join(draft_profile.get("nn_context", {}).get("expected_bibliography_keywords", [])),
-                        height=90,
-                    )
-                    citation_enabled = st.checkbox(
-                        "Включить citation_rules",
-                        value=bool(draft_profile.get("citation_rules", {}).get("enabled", True)),
-                    )
-                    citation_patterns_value = draft_profile.get("citation_rules", {}).get("in_text_reference_patterns", [])
-                    if not citation_patterns_value:
-                        single_citation_pattern = draft_profile.get("citation_rules", {}).get("in_text_reference_pattern", "")
-                        citation_patterns_value = [single_citation_pattern] if single_citation_pattern else []
-                    citation_patterns = st.text_area(
-                        "Шаблоны ссылок в тексте",
-                        value="\n".join(str(item) for item in citation_patterns_value if str(item).strip()),
-                        height=120,
-                    )
-                    save_profile_clicked = st.form_submit_button("Сохранить профиль")
-                    if save_profile_clicked:
-                        try:
-                            citation_patterns_list = [
-                                line.strip()
-                                for line in str(citation_patterns).splitlines()
-                                if line.strip()
-                            ]
-                            edited_profile = _apply_methodical_form_edits(
-                                draft_profile,
-                                {
-                                    "profile_name": edited_profile_name,
-                                    "base_profiles": edited_base_profiles,
-                                    "margin_left_cm": margin_left_cm,
-                                    "margin_right_cm": margin_right_cm,
-                                    "margin_top_cm": margin_top_cm,
-                                    "margin_bottom_cm": margin_bottom_cm,
-                                    "font_name": font_name,
-                                    "font_size_pt": font_size_pt,
-                                    "default_line_spacing": default_line_spacing,
-                                    "body_first_line_indent_cm": body_first_line_indent_cm,
-                                    "body_line_spacing": body_line_spacing,
-                                    "title_left_indent_cm": title_left_indent_cm,
-                                    "title_font_size_pt": title_font_size_pt,
-                                    "title_space_after_pt": title_space_after_pt,
-                                    "title_bold": title_bold,
-                                    "list_left_indent_cm": list_left_indent_cm,
-                                    "list_line_spacing": list_line_spacing,
-                                    "figure_alignment": figure_alignment,
-                                    "figure_font_size_pt": figure_font_size_pt,
-                                    "bibliography_title_left_indent_cm": bibliography_title_left_indent_cm,
-                                    "bibliography_title_font_size_pt": bibliography_title_font_size_pt,
-                                    "title_section_numbering_enabled": title_section_numbering_enabled,
-                                    "title_section_numbering_pattern": title_section_numbering_pattern,
-                                    "title_subsection_numbering_enabled": title_subsection_numbering_enabled,
-                                    "title_subsection_numbering_pattern": title_subsection_numbering_pattern,
-                                    "unnumbered_sections": unnumbered_sections,
-                                    "bibliography_enabled": bibliography_enabled,
-                                    "bibliography_separate_profile_required": bibliography_separate_profile_required,
-                                    "bibliography_require_url": bibliography_require_url,
-                                    "bibliography_book_markers": bibliography_book_markers,
-                                    "bibliography_journal_markers": bibliography_journal_markers,
-                                    "bibliography_web_markers": bibliography_web_markers,
-                                    "bibliography_standard_markers": bibliography_standard_markers,
-                                    "bibliography_book_patterns": bibliography_book_patterns,
-                                    "bibliography_journal_patterns": bibliography_journal_patterns,
-                                    "bibliography_web_patterns": bibliography_web_patterns,
-                                    "bibliography_standard_patterns": bibliography_standard_patterns,
-                                    "bibliography_law_patterns": bibliography_law_patterns,
-                                    "bibliography_thesis_patterns": bibliography_thesis_patterns,
-                                    "nn_expected_bibliography_keywords": nn_expected_bibliography_keywords,
-                                    "citation_enabled": citation_enabled,
-                                    "citation_patterns": citation_patterns_list,
-                                },
-                            )
-                            custom_profile = persist_custom_profile(edited_profile)
-                            st.session_state["custom_profile_items"] = [
-                                *st.session_state.get("custom_profile_items", []),
-                                custom_profile,
-                            ]
-                            st.session_state["methodical_profile_draft"] = edited_profile
-                            st.success(f"Профиль сохранен: {custom_profile['profile_name']}")
-                            st.rerun()
-                        except Exception as exc:
-                            st.error(str(exc))
-        uploaded_file = st.file_uploader("Загрузите DOCX-документ для проверки", type=SUPPORTED_UPLOAD_TYPES)
-        selected_model_key = st.selectbox(
-            "Модель",
-            options=list(model_options.keys()),
-            format_func=lambda key: {
-                "baseline": "SVM baseline",
-                "transformer": "Transformer",
-                "baseline_unavailable": "Baseline недоступен",
-            }.get(key, model_options[key]),
+        st.markdown("## Панель управления")
+        st.markdown(
+            '<p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.5;">'
+            'Выберите профиль ГОСТ или загрузите методичку, '
+            'чтобы построить кастомный профиль проверки.'
+            '</p>',
+            unsafe_allow_html=True,
         )
-        selected_mode = st.radio(
-            "Режим",
-            options=["audit", "fix"],
-            format_func=lambda value: "Только аудит" if value == "audit" else "Аудит и безопасное форматирование",
+
+        profile_items_raw = get_profile_options()
+        custom_items_raw = list_available_profiles([CUSTOM_PROFILES_DIR]) if CUSTOM_PROFILES_DIR.exists() else []
+        merged_items = build_profile_options(profile_items_raw, custom_items_raw)
+        if not merged_items:
+            st.error("Профили ГОСТ не найдены в src/rules/profiles.")
+            return
+        formatted_labels = [format_profile_option(item) for item in merged_items]
+
+        st.markdown(
+            '<div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; '
+            'color: var(--muted); font-weight: 600; margin-bottom: 0.3rem;">Базовый профиль</div>',
+            unsafe_allow_html=True,
         )
-        selected_profile_label = st.selectbox(
-            "Профиль ГОСТ",
-            options=list(profile_label_to_path.keys()),
+        selected_label = st.selectbox(
+            label="profile_selectbox_hidden_label",
+            label_visibility="collapsed",
+            options=formatted_labels,
             key="profile_selectbox",
         )
-        process_clicked = st.button("Запустить анализ документа", type="primary", use_container_width=True)
-        st.markdown("---")
-        st.caption("Поддерживаемый формат MVP: DOCX.")
+        selected_index = formatted_labels.index(selected_label)
+        selected_item = merged_items[selected_index]
+        selected_profile_id = selected_item.get("profile_id", "")
+        profile_name = selected_item.get("profile_name", selected_profile_id)
+        # profile_label used in meta-line + overview tab — short human-readable.
+        profile_label = f"{profile_name} [{selected_profile_id}]"
 
-    if process_clicked:
-        selected_profile_path = profile_label_to_path[selected_profile_label]
+        # Modal trigger
+        open_modal_clicked = st.button(
+            "+ Создать профиль из методички",
+            key="open_methodical_modal",
+            use_container_width=True,
+        )
+        if open_modal_clicked:
+            st.session_state["methodical_modal_request"] = True
+
+        # Resolve profile_path for downstream process_document
+        selected_profile_path = ""
+        if selected_profile_id:
+            candidate_paths = [
+                CUSTOM_PROFILES_DIR / f"{selected_profile_id}.json",
+                PROFILES_DIR / f"{selected_profile_id}.json",
+            ]
+            for cp in candidate_paths:
+                if cp.exists():
+                    selected_profile_path = str(cp)
+                    break
+
+        # Model/mode defaults (hidden per v1.1 redesign — model='baseline', mode='audit'
+        # by default; 'fix' triggered from the Форматирование tab button).
+        model_options = list_model_options()
+        if "baseline" in model_options:
+            selected_model_key = "baseline"
+        elif "baseline_unavailable" in model_options:
+            selected_model_key = "baseline_unavailable"
+        else:
+            selected_model_key = next(iter(model_options.keys()))
+        selected_mode = "audit"
+
+    # ----- Methodical modal (if triggered) -----
+    available_profile_ids = [item.get("profile_id", "") for item in merged_items if item.get("profile_id")]
+    if st.session_state.pop("methodical_modal_request", False):
+        methodical_modal(available_profile_ids)
+
+    # ----- Hero -----
+    render_hero()
+
+    # ----- Uploader + CTA row -----
+    col_upload, col_actions = st.columns([2, 1])
+    with col_upload:
+        st.markdown(
+            '<div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.16em; '
+            'color: var(--muted); font-weight: 600; margin-bottom: 0.4rem;">'
+            'Загрузите DOCX-документ для проверки'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        # UPLOADER_ACCEPT_TYPES = ['docx'] — v1.1 DOCX-only surface.
+        # SUPPORTED_UPLOAD_TYPES (the module constant) stays ['docx', 'pdf'] for
+        # backward-compat with Phase 7 tests; the UI surface narrows here.
+        uploaded_file = st.file_uploader(
+            label="docx_uploader_hidden_label",
+            label_visibility="collapsed",
+            type=UPLOADER_ACCEPT_TYPES,
+            key="docx_uploader",
+        )
+
+    with col_actions:
+        st.markdown('<div style="height: 1.6rem;"></div>', unsafe_allow_html=True)
+        run_disabled = uploaded_file is None
+        run_clicked = st.button(
+            "Запустить анализ документа",
+            type="primary",
+            disabled=run_disabled,
+            key="run_audit_button",
+            use_container_width=True,
+        )
+        clear_clicked = st.button(
+            "Очистить экран",
+            disabled=False,
+            key="clear_screen_button",
+            use_container_width=True,
+        )
+
+    if clear_clicked:
+        for k in ("last_result", "last_run_log", "last_run_log_path", "last_uploaded_name"):
+            st.session_state.pop(k, None)
+        st.rerun()
+
+    if run_clicked:
         run_processing(
             uploaded_file=uploaded_file,
             selected_model_key=selected_model_key,
@@ -1202,14 +1315,48 @@ def main() -> None:
             selected_profile_path=selected_profile_path,
         )
 
+    # Status banner for current upload (between CTA and results)
+    if uploaded_file is not None:
+        st.markdown(
+            f'<div class="meta-line" style="margin-top: 1.2rem;">'
+            f'<span><span class="meta-key">Загружен DOCX</span>'
+            f'<span class="meta-val">{uploaded_file.name}</span></span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ----- Results section (after success) -----
     result = st.session_state.get("last_result")
     if result is None:
-        st.info("Загрузите документ и запустите анализ, чтобы увидеть сводку, аудит и артефакты.")
-        return
+        render_empty_state()
+    else:
+        st.markdown('<hr class="divider-strong"/>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="meta-line" style="background: transparent; border: none; padding: 0; '
+            'color: var(--success); font-family: \'EB Garamond\', serif; font-size: 1rem; '
+            'font-style: italic; margin-bottom: 1.2rem;">'
+            'Документ обработан успешно.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        render_report(
+            result=result,
+            filename=st.session_state.get("last_uploaded_name"),
+            profile_label=profile_label,
+            uploaded_file=uploaded_file,
+            selected_profile_path=selected_profile_path,
+        )
 
-    current_upload = st.session_state.get("last_uploaded_name", result.input_path.name)
-    st.caption(f"Последний запуск: {current_upload}")
-    render_results(result)
+    # ----- Footer signature -----
+    st.markdown(
+        """
+        <div class="editorial-footer">
+            <span>ГОСТ Formatter v1.1</span>
+            <span>Local-only · No PII transmitted</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":

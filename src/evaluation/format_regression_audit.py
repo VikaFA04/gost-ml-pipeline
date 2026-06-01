@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
+from typing import Callable
 
 import pandas as pd
 from docx import Document
@@ -11,9 +12,14 @@ from docx.table import Table
 from src.evaluation.docx_style_diff import DocxStyleDiff, compare_docx_styles
 from src.generate.inplace_formatter import audit_or_format_docx, extract_table_text
 from src.io.block_extractor import extract_blocks_from_docx
+from src.postprocess.postprocess_rules import apply_postprocess_rules
 
 
 WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9_]+")
+BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE = re.compile(
+    r"^\d+\s*(теоретическая\s+часть|практическая\s+часть)$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -41,6 +47,8 @@ def infer_regression_label(row: pd.Series) -> str:
         return "title_section"
     if "heading 2" in style or "heading 3" in style:
         return "title_subsection"
+    if BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE.search(text):
+        return "title_section"
     if "list" in style or pd.notna(row.get("list_type")):
         return "list_item"
     if text.startswith("таблица"):
@@ -54,7 +62,7 @@ def build_regression_predictions(input_docx: Path, predictions_csv: Path) -> Non
     df = extract_blocks_from_docx(input_docx)
     labels = [infer_regression_label(row) for _, row in df.iterrows()]
     df["predicted_label"] = labels
-    df["postprocessed_label"] = labels
+    df = apply_postprocess_rules(df, pred_col="predicted_label", out_col="postprocessed_label")
     df["confidence_score"] = 0.99
     df["low_confidence"] = False
     df.to_csv(predictions_csv, index=False, encoding="utf-8-sig")
@@ -133,10 +141,18 @@ def audit_negative_directory(
     negative_dir: Path,
     workspace_dir: Path,
     profile_id: str = "gost_7_32_2017",
+    limit: int | None = None,
+    progress_callback: Callable[[int, int, Path], None] | None = None,
 ) -> list[NegativePairAudit]:
-    positive_paths = sorted(positive_dir.glob("*.docx"))
+    positive_paths = sorted(path for path in positive_dir.glob("*.docx") if not path.name.startswith("~$"))
     audits: list[NegativePairAudit] = []
-    for negative_path in sorted(negative_dir.glob("*.docx")):
+    negative_paths = sorted(path for path in negative_dir.glob("*.docx") if not path.name.startswith("~$"))
+    if limit is not None:
+        negative_paths = negative_paths[: max(limit, 0)]
+    total = len(negative_paths)
+    for index, negative_path in enumerate(negative_paths, start=1):
+        if progress_callback is not None:
+            progress_callback(index, total, negative_path)
         positive_path, _ = best_positive_match(negative_path, positive_paths)
         pair_workspace = workspace_dir / negative_path.stem
         audits.append(
@@ -153,6 +169,8 @@ def audit_negative_directory(
 def audits_to_frame(audits: list[NegativePairAudit]) -> pd.DataFrame:
     rows = []
     for audit in audits:
+        before_field_mismatches = sum(audit.before.field_mismatches.values())
+        after_field_mismatches = sum(audit.after.field_mismatches.values())
         rows.append(
             {
                 "positive": audit.positive_path.name,
@@ -164,6 +182,9 @@ def audits_to_frame(audits: list[NegativePairAudit]) -> pd.DataFrame:
                 "diff_delta": round(audit.diff_delta, 6),
                 "before_changed": audit.before.changed_paragraphs,
                 "after_changed": audit.after.changed_paragraphs,
+                "before_field_mismatches": before_field_mismatches,
+                "after_field_mismatches": after_field_mismatches,
+                "field_mismatch_delta": after_field_mismatches - before_field_mismatches,
                 "formatter_changed": audit.formatter_summary.get("changed", 0),
                 "formatter_review": audit.formatter_summary.get("review", 0),
                 "formatter_blocked_unsafe": audit.formatter_summary.get("blocked_unsafe_autofix", 0),
@@ -171,3 +192,70 @@ def audits_to_frame(audits: list[NegativePairAudit]) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)
+
+
+def write_per_pair_baseline(
+    *,
+    path: Path,
+    frame: pd.DataFrame,
+    reason: str,
+    profile_id: str,
+) -> None:
+    """Update per-pair regression baseline JSON from a fresh audit `frame`.
+
+    Reads existing JSON at `path` (or seeds an empty `_metadata` shell if
+    absent), filters `frame` to `_metadata.subset_filenames` (Pitfall 1:
+    `--limit N` produces lexicographic-first-N, NOT the pinned subset —
+    silently writing those rows would replicate the Wave B baseline-skip
+    bug in the update path), rewrites every per-pair entry whose `negative`
+    filename appears in the filtered frame, warns on subset filenames
+    missing from the frame (operator likely ran with `--limit`), prints a
+    `<name>: <old> -> <new>` diff per pair, and writes JSON back atomically.
+    """
+    import json
+    from datetime import datetime, timezone
+
+    if path.exists():
+        data = json.loads(path.read_text(encoding="utf-8"))
+    else:
+        data = {
+            "_metadata": {
+                "schema_version": 1,
+                "aggregate_mean_ceiling": 0.4781,
+                "profile_id": profile_id,
+                "subset_filenames": [],
+            }
+        }
+    subset = list(data.get("_metadata", {}).get("subset_filenames", []))
+    if subset:
+        filtered = frame[frame["negative"].isin(subset)].reset_index(drop=True)
+        missing = [name for name in subset if name not in set(filtered["negative"].tolist())]
+        if missing:
+            # Stderr-style warning; do not raise — user may legitimately update
+            # a subset of the baseline. But surface the mismatch loudly so the
+            # operator notices that --limit dropped pairs (Pitfall 1).
+            print(
+                f"WARNING: subset filenames {missing} missing from frame — "
+                f"likely caused by --limit. Re-run without --limit for a full baseline refresh."
+            )
+    else:
+        # No existing subset locked yet → write every row in frame (seed scenario).
+        filtered = frame
+    recorded_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
+    for _, row in filtered.iterrows():
+        name = str(row["negative"])
+        old = data.get(name, {}).get("after_diff_rate_ceiling")
+        new_ceiling = round(float(row["after_diff_rate"]), 6)
+        new_field = int(row["after_field_mismatches"])
+        data[name] = {
+            "after_diff_rate_ceiling": new_ceiling,
+            "field_mismatch_ceiling": new_field,
+            "recorded_at": recorded_at,
+            "profile_id": profile_id,
+            "notes": reason,
+        }
+        print(f"{name}: {old} -> {new_ceiling}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")

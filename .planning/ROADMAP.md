@@ -1,0 +1,256 @@
+# Roadmap: gost-formatter
+
+## Overview
+
+This milestone has a single, measurable goal: **UI usability passes design review
+AND critical-bug count = 0**. We sequence work so the engine becomes trustworthy
+before the UI is rebuilt on top of it — fixing destructive autofix and rule-engine
+cohesion first, then bibliography + heading semantics, then the regression gate
+that keeps the corpus honest, then profile selection, then the UI redesign on a
+stable backend. The PDF text-layer audit slice (locked by D-PDF-SCOPE) lands
+after the UI is sound and before the final acceptance gate. The historical
+operational state and the original Этапы 1–9 are preserved in
+`.planning/intel/context.md` and are referenced by phase, not duplicated here.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work.
+- Decimal phases (2.1, 2.2): Urgent insertions if needed (marked INSERTED).
+
+- [x] **Phase 1: Engine guardrails & cohesion audit** *(completed 2026-05-12)* - Stop destructive autofix from styled paragraphs and verify the rule-engine dependency graph.
+- [x] **Phase 2: Bibliography & list semantics** *(completed 2026-05-12)* - Recognise bibliography lists; single shared `numId`; conservative list autofix.
+- [x] **Phase 3: Heading signature & DOCX generator** *(completed 2026-05-13)* - Extend heading signature and harden the DOCX writer for template-specific styles.
+- [x] **Phase 4: Regression gate** *(completed 2026-05-14)* - Bring the negative corpus under a tracked baseline via the `audit-regression` CLI.
+- [x] **Phase 5: Rule profiles & methodical-profile ingestion** *(completed 2026-05-14)* - Multiple selectable profiles + PDF methodical-profile ingestion with diff (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
+- [x] **Phase 6: Streamlit UI redesign** *(completed 2026-05-15)* - Rebuild the UI around the audit flow and pass design review.
+- [x] **Phase 7: PDF text-layer audit slice** *(completed 2026-05-15)* - Read-only PDF audit (no OCR, no autofix), reusing the audit CSV schema.
+- [x] **Phase 9: Classical model zoo** *(completed 2026-05-16)* - Extended classical-model comparison (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) with unified `predict_proba` on the current TF-IDF + structural-features pipeline; new `compare_classical` CLI; feeds Phase 8 ML quality gate (dual-source per D-E-05: raw-ML floor from zoo + after-rules floor from production metrics).
+- [x] **Phase 8: Milestone acceptance** *(completed 2026-05-16)* - End-to-end MVP acceptance + success-metric verification. Milestone v1.0 signed off; `git tag v1.0` created.
+
+## Phase Details
+
+### Phase 1: Engine guardrails & cohesion audit
+**Goal**: The rule engine stops applying `body_text` rules to heading/toc/caption/list-styled paragraphs, the previously-flagged INFERRED edges around the rule engine are verified, and the cohesion problem from the graphify audit is documented.
+**Depends on**: Nothing (first phase of new milestone)
+**Requirements**: REQ-fix-style-guards, REQ-fix-styled-paragraphs-no-direct-props, REQ-rule-engine-cohesion-audit
+**Success Criteria** (what must be TRUE):
+  1. Running `format-docx --apply-safe` on the GOST-decorated positive subset (`positive_examples/{1,4}.docx` plus any other GOST-decorated positives discoverable in the corpus) keeps `changed=0` modulo the Phase 2 bibliography-only exemption and produces no extra direct properties on Heading/TOC/List Paragraph/Caption-styled paragraphs. Practice reports `58.docx`/`59.docx` are excluded from the gate per Phase 3 D-08 (out of scope for the GOST profile).
+  2. A documented audit of the Rule Engine community lists every INFERRED edge on `apply_rules_to_paragraph()` and `load_rules()` as either confirmed (kept) or removed; cohesion score after refactor is strictly higher than 0.06.
+  3. Existing pytest baseline (21+ tests) still passes; new guard tests cover Heading/TOC/Caption-styled paragraph cases.
+  4. No negative-corpus pair regresses relative to the FORMAT_FIX_PLAN Этап 8 baseline diff-rate (mean ≤ 0.4781).
+**Plans:** 4 plans
+Plans:
+- [x] 01-01-test-scaffolding-red-PLAN.md — Wave 0 RED: stub style_signatures.py, write 13+ failing tests, build minimal DOCX fixture, extend positive-corpus regression list
+- [x] 01-02-style-signatures-green-PLAN.md — Wave 1 GREEN: implement classify_style with 4 regexes; turn the 6 classify_style unit tests green
+- [x] 01-03-rule-engine-guard-green-PLAN.md — Wave 2 GREEN: insert early-return style guard in apply_rules_to_paragraph; turn the 7 guard tests + integration + positive corpus + negative-corpus diff-rate ≤ 0.4781 gates green
+- [x] 01-04-cohesion-audit-PLAN.md — Wave 3: enumerate 67 INFERRED edges in 01-COHESION-AUDIT.md, apply D-10 low-risk refactors, run /graphify --update and record cohesion before=0.06 after=<X> with X > 0.06
+
+### Phase 2: Bibliography & list semantics
+**Goal**: Bibliography lists are detected and unified under a single Word numbering; ambiguous lists are routed to `review` rather than auto-coerced; conservative list handling matches the positive corpus shape.
+**Depends on**: Phase 1
+**Requirements**: REQ-list-conservative-handling
+**Success Criteria** (what must be TRUE):
+  1. `СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ` (and `ИСПОЛЬЗУЕМЫХ` variant) is classified as `bibliography_title` even when the SVM returns `body_text`, by a deterministic postprocess override.
+  2. After `audit-docx --apply-safe` on a real negative DOCX containing a bibliography, all bibliography entries share one `numId`, and `applied_fixes` includes `numbering`.
+  3. Long text paragraphs without `numId` are not coerced into lists; marker-only lists without `numId` become `review`.
+  4. Targeted pytest fixtures cover bibliography detection + single-`numId` enforcement + ambiguous-list `review` routing.
+**Plans:** 4 plans
+Plans:
+- [x] 02-01-test-scaffolding-red-PLAN.md — Wave 0 RED: hand-crafted DOCX fixture + 19 failing tests across postprocess/profile_loader/bibliography_phase2/negative-corpus diff-rate.
+- [x] 02-02-postprocess-and-profile-green-PLAN.md — Wave 1 GREEN: D-01 unconditional title override + D-04 heading-style subsection detection + D-03/D-11 profile schema (helpers + validator + gost_7_32_2017.json fields).
+- [x] 02-03-multilevel-numbering-green-PLAN.md — Wave 2 GREEN: D-05 2-level multilevel abstract + per-subsection w:num with lvlOverride + D-06 first-valid-numId coercion + D-07 idempotent seed + stable cache key (id(paragraph.part.document.part)).
+- [x] 02-04-ambiguous-routing-and-gate-green-PLAN.md — Wave 3 GREEN: D-09 ambiguous-list review routing + D-10 sanity + D-13 formatting_rules_v1.json strip + D-11 MAX_FALLBACK_LIST_* constant deletion + D-15 negative-corpus regression gate verification.
+**UI hint**: yes
+
+### Phase 3: Heading signature & DOCX generator
+**Goal**: Heading rules check both font and paragraph-format Word parameters with explicit direct-vs-inherited separation. Inherited mismatches go to `review`; direct overrides on Heading-styled paragraphs are autofixed. Per-field heading rules.
+**Depends on**: Phase 1
+**Requirements**: REQ-heading-style-signature
+**Success Criteria** (what must be TRUE):
+  1. Extractor's heading signature includes font name/size/bold/italic/underline/color/CAPS plus alignment / first-line indent / left+right indent / space_before+after / line_spacing / keep_with_next / keep_lines_together / page_break_before / widow control.
+  2. For paragraphs whose Heading style is inherited from `Heading 1/2/3`, autofix is blocked — mismatch routes to `review`. Direct overrides on Heading-styled paragraphs are autofixed.
+  3. GOST-decorated positive subset stays `changed=0` for any heading rule (regression gate from Phase 2 extended with heading-direct-fix invariant); negative heading fixtures move toward target signatures with no text changes; TOC and list structure remain stable.
+**Plans:** 4 plans
+Plans:
+- [x] 03-01-PLAN.md — Wave 0 RED (TDD): 4+8 failing tests, heading_minimal.docx fixture+builder, D-07 invariant in positive-corpus regression
+- [x] 03-02-PLAN.md — Wave 1 GREEN: D-01..D-04 — _resolve_inherited_value + _extract_heading_format_signature + extract_paragraph_block wiring (lazy heading-only, JSON-serialized 18-key signature)
+- [x] 03-03-PLAN.md — Wave 2 GREEN: D-05/D-06/D-09 — remove blanket heading guard, add per-field source dispatcher (HEADING_SIG_FIELDS), apply_heading_scalar_fix, +17 heading_* rules in formatting_rules_v1.json (level-split + null-target load+skip per Open Question 2)
+- [x] 03-04-PLAN.md — Wave 3 verification: positive-corpus signature-presence assertion + full Phase 3 success-criteria empirical verification (negative-corpus diff-rate ≤ 0.4781 preserved)
+
+> **Scope reduction (2026-05-13, Phase 3 discuss-phase D-08):** REQ-fix-docx-generator-custom-styles dropped from this milestone. 58.docx and 59.docx are practice reports (отчёт по практике), not GOST coursework — applying GOST rules to them produces spurious edits because the profile doesn't cover that doc type. Practice-doc support, if needed, lands via Phase 5 multi-profile + methodical-profile ingest. See `.planning/phases/03-heading-signature-and-docx-generator/03-CONTEXT.md` D-08.
+
+### Phase 4: Regression gate
+**Goal**: The negative-corpus diff-rate becomes a tracked, blocking metric. The `audit-regression` CLI is the gate for every subsequent change; the rules-quality acceptance rollup is enforced.
+**Depends on**: Phase 2, Phase 3
+**Requirements**: REQ-fix-negative-corpus-no-regression, REQ-audit-regression-cli, REQ-rules-quality-acceptance
+**Success Criteria** (what must be TRUE):
+  1. `audit-regression` CLI compares a corpus run against a saved baseline and emits per-pair CSV plus a summary JSON (already partly implemented per recent commits — bring under the gate).
+  2. No negative-corpus pair regresses below its Wave-A-locked per-pair ceiling (`3.docx` pair ≤ 0.359712, others tracked in `tests/baselines/negative_corpus.json`); mean negative diff-rate ≤ 0.4781. Per Phase 4 D-05 Branch B — root cause traced to Phase 3 D-05/D-06 per-field heading source dispatcher (commit 7207cbe), see `.planning/phases/04-regression-gate/04-WAVE-A-3docx-rootcause.md`.
+  3. Audit report covers every rule in `RuleRecord` format; every violation surfaces; every applied fix surfaces; unsafe fixes blocked; low-confidence blocks become `manual_review_required` with reason.
+  4. `audit-regression` is wired into CI / a documented local check so every fix-track PR is gated against the baseline.
+**Plans:** 5 plans
+Plans:
+- [x] 04-01-PLAN.md — Wave A: 3.docx root-cause investigation; produces 04-WAVE-A-3docx-rootcause.md + worst-offender CSV; locks D-05 branch (A=bug fix→0.318 OR B=ROADMAP amendment→root-cause-justified ceiling) before any baseline is written *(completed 2026-05-13 — Branch B locked: ceiling 0.359712 / 630, root cause = Phase 3 7207cbe D-05/D-06)*
+- [x] 04-02-PLAN.md — Wave B (TDD): per-pair baseline JSON at tests/baselines/negative_corpus.json + extend tests/test_negative_corpus_diff_rate.py with 3 new tests (D-03 triple metric, RED→GREEN); conditional ROADMAP/REQUIREMENTS amendment in same commit if Wave A picked Branch B *(completed 2026-05-14 — 3-pair Option D subset; D-05 Branch B atomic amendment commit e100a44; pytest 3 passed)*
+- [x] 04-03-PLAN.md — Wave C (TDD): new tests/test_rules_quality_acceptance.py (canonical name per RESEARCH probe 7) with 5 static-schema lint tests + 1 runtime CSV-invariants smoke test (REQ-rules-quality-acceptance, D-12) *(completed 2026-05-14 — Option 1 deviation: bogus-required-field RED carrier; commits cdc9055/02e1207/b8ee13a)*
+- [x] 04-04-PLAN.md — Wave D (TDD): audit-regression --update-baseline / --reason CLI flags (D-13) + write_per_pair_baseline helper + Makefile regression-gate target + README Pre-PR section + CONTRIBUTING.md *(completed 2026-05-14 — RED/GREEN commits 210105d/2bdaf71; Pitfall-6 argparse + 8-char dispatcher guard; Pitfall-1 subset filter + WARNING; make regression-gate exits 0 against 4 gate test files in 1380s; commit 19b6592)*
+- [x] 04-05-PLAN.md — Wave E: .github/workflows/regression-gate.yml (D-08) + manual end-to-end verification via deliberately-regressing PR *(completed 2026-05-14 — Option D corpus fixture + workflow staging step + `python -m pytest` deviation; validated end-to-end via PR #1 clean GREEN run #25846822154 + PR #2 regression RED run #25847679849; gate live on VikaFA04/gost-ml-pipeline; commits 4831a8f / 7204698 / 5c6327d)*
+
+### Phase 5: Rule profiles & methodical-profile ingestion
+**Goal**: Multiple rule profiles (GOST + university-local) are selectable per audit run; a normcontrol presentation can be ingested as a methodological source and a profile diff is shown to the user before save.
+**Depends on**: Phase 4
+**Requirements**: REQ-rule-profiles, REQ-methodical-profile-extract
+**Success Criteria** (what must be TRUE):
+  1. User can pick a rule profile per audit; the chosen profile id is recorded in the report header.
+  2. Profiles live outside code (e.g. `rules/gost_7_32_2017.json`, `rules/gost_r_7_0_100_2018_bibliography.json`, `rules/local_university_profile.json`).
+  3. `extract-methodical-profile` CLI ingests a PDF methodical (e.g., normcontrol guideline), produces a draft profile, shows a diff against the chosen base profile, and requires explicit user confirmation before save (presentation-format ingestion dropped 2026-05-14 per 05-CONTEXT D-01).
+  4. Ambiguous extracted requirements land as `needs_manual_review` with source/page attribution; methodical never silently replaces GOST.
+**Plans:** 5 plans
+Plans:
+- [x] 05-01-PLAN.md — Wave 1 (TDD): per-leaf `_source` annotation + derived `needs_manual_review` in `methodical_extractor.py`; atomic doc updates dropping presentation-format scope (D-01)
+- [x] 05-02-PLAN.md — Wave 2 (TDD): profile diff generator (`src/rules/profile_diff.py`) — unified text diff over flattened JSON paths + sidecar writer (D-02)
+- [x] 05-03-PLAN.md — Wave 3 (TDD): CLI dispatcher rewrite — dry-run default + `--apply` + `--force --reason ≥8` + path-traversal guard (D-03/D-04/D-12, T-04-02/T-05-01)
+- [x] 05-04-PLAN.md — Wave 4: profile schema lint (`tests/test_profile_quality_acceptance.py`, two-tier) + SC-1 verify (`--profile-id` on `audit-docx`/`format-docx`, D-07/D-08)
+- [x] 05-05-PLAN.md — Wave 5 (checkpoint): commit Бергер CI fixture (D-06), extend `.github/workflows/regression-gate.yml` + Makefile 4-file → 6-file pytest, designed-failure PR validation (D-10)
+
+### Phase 6: Streamlit UI redesign
+**Goal**: The Streamlit UI is rebuilt around the audit flow with consistent visual language across block statuses, profile selection is first-class, and the redesign passes a design-review pass by the project owner.
+**Depends on**: Phase 5
+**Requirements**: REQ-ui-main-flow, REQ-ui-problem-block-view, REQ-input-preflight, REQ-pipeline-logging, REQ-ui-design-review
+**Success Criteria** (what must be TRUE):
+  1. User can complete a full audit run from upload to download in one linear flow: upload `.docx` → pick profile → run audit → see summary counters (total / no_change / changed / review / error) → inspect per-block table → download audit CSV and (if safe fixes exist) corrected DOCX.
+  2. `review` and `error` blocks are visually distinct from `no_change` and `changed`; per-block confidence is shown; manual-review reason is taken from `explanation`; original block text is always inspectable.
+  3. Preflight failures (unreadable file, malformed paragraphs) surface as user-facing messages rather than tracebacks; logs do not leak full document text.
+  4. The redesigned UI passes a design-review pass by the project owner; recorded defects fixed before close.
+**Plans:** 6 plans
+Plans:
+- [x] 06-00-PLAN.md — Wave 0 RED: test scaffolding (conftest + test_app_ui + test_run_log + test_render_block_section + test_preflight)
+- [x] 06-01-PLAN.md — Wave 1 GREEN: src/inference/run_log.py RunLog single-writer logger (PII boundary)
+- [x] 06-02-PLAN.md — Wave 2: app.py sidebar redesign (D-01) + RunLog wiring in run_processing + preflight_translate_error + modal_reason_is_valid + STATUS_CHIP; remove st.exception traceback leak
+- [x] 06-03-PLAN.md — Wave 3: app.py render_report + render_block_section + render_summary_counters (D-02 grouped sections); delete render_results + 5 other orphans; run-log JSON download
+- [x] 06-04-PLAN.md — Wave 4: app.py methodical_modal @st.dialog (D-03 + D-004 mirror — preview / apply / force-reason ≥8)
+- [x] 06-05-PLAN.md — Wave 5 (checkpoint): app.py cleanup + 06-DESIGN-REVIEW.md + human design-review sign-off
+**UI hint**: yes
+
+### Phase 7: PDF text-layer audit slice
+**Goal**: PDF documents with an extractable text layer can be audited read-only: text-block extraction, basic layout features, ML classification, and an audit CSV — no OCR, no PDF writing.
+**Depends on**: Phase 6
+**Requirements**: REQ-pdf-text-only
+**Success Criteria** (what must be TRUE):
+  1. PDF upload is accepted only when a text layer is extractable; scanned/page-image PDFs are rejected with a user-facing message.
+  2. Audit report for a PDF input uses the same CSV schema as DOCX; `applied_fixes` is always empty and no PDF is written.
+  3. UI uploader supports `.pdf` alongside `.docx` and clearly labels PDF as audit-only.
+  4. README + UI copy state the text-layer + read-only + no-OCR limits; no autofix code path runs on PDF input.
+**Plans:** 5 plans (3 base + 2 gap-closure)
+Plans:
+- [x] 07-01-PLAN.md — Wave 0 RED (TDD): tests/inference/ scaffolding + 13 RED tests for pdf_loader / ProcessingArtifacts.input_extension + sentinels / README §Limits + 2 RED tests for render_report PDF surface; update tests/test_preflight.py + tests/test_app_upload_contract.py + tests/test_render_block_section.py (delete dead NotImplementedError test, flip upload-type assertions, add PdfNoTextLayer test)
+- [x] 07-02-PLAN.md — Wave 1 GREEN backend: src/inference/pdf_loader.py (check_text_layer + extract_pdf_blocks + PdfNoTextLayer); document_loader.py delete NotImplementedError block; application_service.py ProcessingArtifacts.input_extension field + _process_pdf branch with predictions/extracted_csv sentinels (Pitfalls 3+5 resolved)
+- [x] 07-03-PLAN.md — Wave 2 GREEN UI + docs: app.py 5 sites (SUPPORTED_UPLOAD_TYPES, preflight branch swap, except-tuple swap, render_report badge + DOCX gate, sidebar uploader label + caption); README.md §Limits paragraph (audit-only / text layer / no OCR / no corrected PDF); manual UAT checkpoint
+- [x] 07-04-PLAN.md — Wave 3 GAP G-07-01: run_processing widens baseline_unavailable guard to skip for .pdf uploads (PDF path bypasses SVM per 07-02); RED-then-GREEN regression test in tests/test_run_processing_pdf_bypass.py; CLAUDE.md self-improvement rule for pre-pipeline UI gates on supported-format expansion
+- [x] 07-05-PLAN.md — Wave 4 GAPS G-07-02 + G-07-03: main-pane empty-state copy mirrors sidebar uploader («Загрузите документ (DOCX или PDF), чтобы начать аудит»); extract_pdf_blocks text-block reason reframed to reviewer-POV («PDF блок — текстовый слой, требует ручной проверки»); RED tests in tests/test_app_ui.py + tests/inference/test_pdf_loader.py
+**UI hint**: yes
+
+### Phase 9: Classical model zoo
+**Goal**: Расширенное сравнение классических моделей (LR / SVM / ComplementNB / RandomForest / HistGBM+TruncatedSVD) с унифицированным `predict_proba` (CalibratedClassifierCV для SVM) на текущем pipeline TF-IDF + structural features. Dataset: `annotations_train.csv` (15.7k), full train без sampling. Новая CLI команда `compare-classical` → артефакты в `results/reports/classical_zoo_<ts>/` (results.json + results.csv + summary.txt + per_class_f1.md). Метрики основной таблицы: accuracy, weighted_f1, macro_f1, train_time_sec, inference_time_ms_per_block, model_size_mb. TDD-driven. Phase 9 was inserted post-Phase-7; its results feed the Phase 8 ML quality gate dual-source per D-E-05: zoo raw-ML floor `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.86` on `linear_svm_production` row + production after-rules floor `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.9414` on `results/metrics/<svm_run>.json["after_rules"]`.
+**Depends on**: Phase 7
+**Requirements**: REQ-classical-model-zoo
+**Success Criteria** (what must be TRUE):
+  1. `python -m src.main compare-classical` exits 0 and writes 4 artifact files to `results/reports/classical_zoo_<ts>/`.
+  2. `results.csv` has 6 rows (logistic_regression, linear_svm, linear_svm_production, complement_nb, random_forest, histgbm_svd256) in the locked 8-column order. Every row has `weighted_f1 > 0.5`.
+  3. `linear_svm_production` row clears the raw-ML SC-2 floor: `weighted_f1 ≥ 0.94 AND macro_f1 ≥ 0.86` (D-E-05). Production `.joblib` is NOT modified by the zoo.
+  4. Reproducibility: `results.json` records `dataset_hashes`, `environment`, `cli_args`, `timestamps`. `RANDOM_STATE=42` for all stochastic components.
+  5. `per_class_f1.md` includes every `label_core` class for every successfully scored model.
+**Plans:** 3 plans
+Plans:
+- [x] 09-01-PLAN.md — Wave 1 RED (TDD): amend REQUIREMENTS.md with REQ-classical-model-zoo; tests/test_compare_classical_acceptance.py with 4 RED tests (CLI smoke + results.json schema, 8-col CSV schema, per-model metric floor incl linear_svm_production raw-ML SC-2 gate, per-class F1 coverage). All 4 FAIL with ModuleNotFoundError until 09-02 lands src/compare_classical.py.
+- [x] 09-02-PLAN.md — Wave 2 GREEN: src/compare_classical.py with 6 model pipelines per D-B-01 + D-E-01 (LR + LinearSVC zoo + LinearSVC production via src/train.py build_pipeline + ComplementNB + RandomForest + HistGBM+TruncatedSVD). HistGBM uses classifier__sample_weight= per Pitfall P1. Wire src/main.py dispatcher with compare-classical subcommand. Per-model exception handling per D-E-02. OQ-5 mid-execution amend: D-E-05 SC-2 macro_f1 floor relaxed 0.9414 → 0.86 (raw-ML baseline; 0.9414 is after-rules system metric, kept for Phase 8 SC-2 production-pipeline gate).
+- [x] 09-03-PLAN.md — Wave 3 GREEN + manual UAT: tests/test_phase_8_sc2_acceptance.py standalone SC-2 acceptance gate (linear_svm_production row, D-E-05 raw-ML floor); Makefile compare-classical-acceptance target; README.md §Classical model comparison; manual UAT checkpoint approved 2026-05-16 (8/8 points pass on full corpus). make compare-classical-acceptance exits 0 end-to-end.
+
+### Phase 8: Milestone acceptance
+**Goal**: The two-part success metric is verified end-to-end: critical-bug count = 0, UI design review passed.
+**Depends on**: Phase 9
+**Requirements**: REQ-mvp-acceptance
+**Success Criteria** (what must be TRUE):
+  1. End-to-end acceptance run on a representative DOCX corpus: extraction → features → SVM prediction → rule audit → CSV report → safe corrected DOCX where applicable → Streamlit UI mirrors all CLI outputs.
+  2. ML quality gate held: `weighted_f1 ≥ 0.94`, `macro_f1` not below 0.9414; 100% of blocks have explainable status; 100% of detected unsafe fixes blocked.
+  3. Negative-corpus regression gate passes (Phase 4 baseline held or improved).
+  4. UI design review sign-off recorded; critical-bug list (from FORMAT_FIX_PLAN open items + HEADING_AND_NORMCONTROL Block A/B + graphify follow-up) is empty.
+**Plans:** 3 plans (completed 2026-05-16)
+Plans:
+- [x] 08-01-PLAN.md — Wave 1 RED + scaffolding: pytest.ini for @pytest.mark.slow registration (D-E-07); 5 RED test files for SC-1..SC-4 + Streamlit headless smoke. All collect cleanly; pre-implementation gates RED/SKIP as designed.
+- [x] 08-02-PLAN.md — Wave 2 GREEN: Makefile gains milestone-acceptance-sc1..sc4 + milestone-acceptance (D-E-03 chain SC-3 → SC-1 → SC-2 → SC-4) + milestone-smoke (fast CI tier per D-A-04). Existing regression-gate + compare-classical-acceptance UNMODIFIED.
+- [x] 08-03-PLAN.md — Wave 3 GREEN + UAT: 08-DESIGN-REVIEW-ROLLUP.md (Phase 6 retroactive sign-off synthesised from 06-05-SUMMARY per D-E-02 + Phase 7 7/7 + Phase 9 8/8 + 999.x deferred); 08-VERDICT.md (5 SC PASS, signed 2026-05-16); CHANGELOG.md at repo root (Keep-a-Changelog 1.1.0; [v1.0] newest-first per D-E-06). Project-owner UAT 5/5 approved 2026-05-16; `git tag -a v1.0` created.
+**UI hint**: yes
+
+## Progress
+
+**Execution Order:**
+Phases execute in this order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 9 → 8.
+Phases 2 and 3 are both gated by Phase 1 and may be planned in either order
+once Phase 1 is complete; Phase 4 requires both. Phase 9 was inserted
+post-Phase-7 to feed Phase 8's ML quality gate; Phase 8 is the final
+milestone-acceptance gate and depends on Phase 9.
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Engine guardrails & cohesion audit | 4/4 | Complete | 2026-05-12 |
+| 2. Bibliography & list semantics | 4/4 | Complete | 2026-05-12 |
+| 3. Heading signature & DOCX generator | 4/4 | Complete | 2026-05-13 |
+| 4. Regression gate | 5/5 | Complete | 2026-05-14 |
+| 5. Rule profiles & methodical-profile ingestion | 5/5 | Complete | 2026-05-14 |
+| 6. Streamlit UI redesign | 6/6 | Complete | 2026-05-15 |
+| 7. PDF text-layer audit slice | 5/5 | Complete | 2026-05-15 |
+| 9. Classical model zoo | 3/3 | Complete | 2026-05-16 |
+| 8. Milestone acceptance | 3/3 | Complete | 2026-05-16 |
+
+## Historical Context
+
+The previous ROADMAP.md tracked Этапы 1–6 of the original MVP build and is
+preserved in `.planning/intel/context.md` under topics:
+
+- "Current operational state (from historical ROADMAP)" — what is already DONE
+  (SVM baseline, audit/fix end-to-end, UI default to baseline, CLI test
+  coverage).
+- "Critical pipeline defects — DOCX formatter (FORMAT_FIX_PLAN baseline)" —
+  Этапы 1–9, of which 1–7 are DONE and the remainder feed Phase 1, Phase 3 and
+  Phase 4 of this roadmap.
+- "Headings, bibliography lists, normcontrol presentation (forward plan)" —
+  HEADING_AND_NORMCONTROL Blocks A / B / C, which feed Phase 2, Phase 3 and
+  Phase 5 of this roadmap.
+
+Do not duplicate that content here.
+
+## Backlog
+
+### Phase 999.1: ui-tabbed-layout-restoration (EXECUTED 2026-05-19, NOT FULL GSD)
+
+**Goal:** Restore the multi-tab navigation layout from the pre-Phase-6 Streamlit interface (screenshots in `interface/`).
+**Status:** EXECUTED inline 2026-05-19 (commit `ebd68a1`) via `huashu-design` skill + `design-taste-frontend` (anti-AI-slop). No formal GSD discuss / plan / verify ceremony — direct rewrite based on user's screenshot baseline + Editorial-restraint design direction (Pentagram lineage, monochrome + rust accent, serif italic display, UPPERCASE letterspaced tabs).
+**Outcome:**
+- `app.py` rewritten (985+/362- lines)
+- 5-tab layout restored: Обзор · Предсказания · Аудит · Форматирование · Артефакты
+- 5 stat cards (text-first, monochrome, one rust accent on totals)
+- Hero, meta-line, quality progress bar, artifact tiles
+- Sidebar minimized (profile + methodical-modal trigger only; model + mode selectors hidden — defaults baseline/audit, fix-mode triggered from Форматирование tab)
+- DOCX-only UI surface; PDF flow (Phase 7) preserved in src/inference but unreachable from new UI
+- SUPPORTED_UPLOAD_TYPES constant preserved for test backward-compat
+- Visual UAT via Playwright (4.docx → 183 blocks, full tab walkthrough, 5/5 cards correct, table-first Аудит)
+**Requirements:** TBD (no formal REQ written; if future formalisation needed, run /gsd-discuss-phase 999.1 retroactively)
+**Plans:** 0 (executed inline)
+
+Plans:
+- [x] inline rewrite via huashu-design skill — commit ebd68a1 2026-05-19
+
+### Phase 999.2: docx-formatting-bugs-list-indent-formula-vars (BACKLOG)
+
+**Goal:** [Captured for future planning] Four related DOCX formatter indent defects surfaced during Phase 7 UAT (negative_examples/tmppo4el27k_baseline_formatted_20260515_141351.docx p.7):
+1. Bulleted-list items whose body wraps to a second line lose hanging-indent alignment — must match numbered-list indent contract.
+2. After formulas, variable legends starting with «где» must render as «где[Tab]variable — description» with a fixed tab stop, all rows aligned along the same column.
+3. Bibliography («СПИСОК ИСПОЛЬЗУЕМЫХ ИСТОЧНИКОВ») indentation is inconsistent — numbering is now correct (post Phase 2/3) but the wrapped-line indent does not align under the first non-numeric character.
+4. Section subheading «1 Теоретическая часть» inside the bibliography uses a different indent than the same-level heading elsewhere in the document.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)

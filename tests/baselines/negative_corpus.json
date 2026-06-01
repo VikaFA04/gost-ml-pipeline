@@ -1,0 +1,33 @@
+{
+  "_metadata": {
+    "schema_version": 1,
+    "aggregate_mean_ceiling": 0.4781,
+    "profile_id": "gost_7_32_2017",
+    "subset_filenames": [
+      "3_formatted_20260413_194927.docx",
+      "45_formatted_20260414_220339.docx",
+      "4_formatted_20260413_185420.docx"
+    ]
+  },
+  "3_formatted_20260413_194927.docx": {
+    "after_diff_rate_ceiling": 0.359712,
+    "field_mismatch_ceiling": 630,
+    "recorded_at": "2026-05-14T03:06:43Z",
+    "profile_id": "gost_7_32_2017",
+    "notes": "Wave A locked per D-05 Branch B (legit Phase 3 D-05/D-06 behaviour change, commit 7207cbe). Root cause: per-field heading source dispatcher autofixes one direct override the Phase 2 blanket guard left alone."
+  },
+  "45_formatted_20260414_220339.docx": {
+    "after_diff_rate_ceiling": 0.412162,
+    "field_mismatch_ceiling": 372,
+    "recorded_at": "2026-05-14T03:06:43Z",
+    "profile_id": "gost_7_32_2017",
+    "notes": "Wave A worst-offender (corpus net of 58/59 + tmp* generator-test artefacts per Option D). Ceiling at empirical HEAD."
+  },
+  "4_formatted_20260413_185420.docx": {
+    "after_diff_rate_ceiling": 0.163743,
+    "field_mismatch_ceiling": 165,
+    "recorded_at": "2026-05-14T03:06:43Z",
+    "profile_id": "gost_7_32_2017",
+    "notes": "Sanity-stable floor (empirical, RESEARCH.md ≤0.1 target unmet in corpus net of 58/59)."
+  }
+}

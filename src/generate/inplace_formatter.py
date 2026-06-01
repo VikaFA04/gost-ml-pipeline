@@ -60,7 +60,7 @@ def build_filtered_docx_blocks(document: Document) -> list[tuple[object, str, st
     filtered_blocks: list[tuple[object, str, str]] = []
     for block in iter_block_items(document):
         if isinstance(block, Paragraph):
-            text = safe_text(block.text)
+            text = "" if block.text is None else str(block.text)
             kind = "paragraph"
         elif isinstance(block, Table):
             text = extract_table_text(block)
@@ -364,7 +364,7 @@ def audit_or_format_docx(
     ):
         row_data = row._asdict()
         csv_kind = str(getattr(row, "kind", "paragraph"))
-        csv_text = str(getattr(row, "text", "")).strip()
+        csv_text = "" if pd.isna(getattr(row, "text", "")) else str(getattr(row, "text", ""))
         label = str(getattr(row, label_col, ""))
         low_confidence = bool(getattr(row, "low_confidence", False))
         confidence_score = getattr(row, "confidence_score", None)
@@ -376,6 +376,7 @@ def audit_or_format_docx(
             raise ValueError(
                 f"Text mismatch at block {i}.\nDOCX: {docx_text[:120]}\nCSV : {csv_text[:120]}"
             )
+        row_data["text"] = csv_text
 
         action = "skip"
         changed_fields: list[str] = []

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import pandas as pd
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from src.evaluation.format_regression_audit import (
     audit_negative_pair,
+    audit_negative_directory,
     audits_to_frame,
+    build_regression_predictions,
     best_positive_match,
     text_jaccard,
 )
@@ -60,3 +63,45 @@ def test_audit_negative_pair_reports_before_after_diff(tmp_path) -> None:
     assert audit.after.changed_paragraphs == 1
     assert audit.formatter_summary["error"] == 0
     assert frame.loc[0, "negative"] == "negative.docx"
+    assert frame.loc[0, "before_field_mismatches"] == 1
+    assert frame.loc[0, "after_field_mismatches"] == 1
+    assert frame.loc[0, "field_mismatch_delta"] == 0
+
+
+def test_build_regression_predictions_preserves_bibliography_context(tmp_path) -> None:
+    input_docx = tmp_path / "bibliography.docx"
+    document = Document()
+    document.add_paragraph("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ")
+    document.add_paragraph("1 Теоретическая часть")
+    document.add_paragraph("\tИсточник 1")
+    document.add_paragraph("2 Практическая часть")
+    document.add_paragraph("\tИсточник 2")
+    document.save(input_docx)
+
+    predictions_csv = tmp_path / "predictions.csv"
+    build_regression_predictions(input_docx, predictions_csv)
+
+    df = pd.read_csv(predictions_csv)
+    assert df["postprocessed_label"].tolist() == [
+        "bibliography_title",
+        "title_section",
+        "bibliography_item",
+        "title_section",
+        "bibliography_item",
+    ]
+
+
+def test_audit_negative_directory_skips_word_lock_files(tmp_path) -> None:
+    positive_dir = tmp_path / "positive"
+    negative_dir = tmp_path / "negative"
+    workspace_dir = tmp_path / "workspace"
+    positive_dir.mkdir()
+    negative_dir.mkdir()
+
+    write_docx(positive_dir / "positive.docx", ["Paragraph"])
+    write_docx(negative_dir / "negative.docx", ["Paragraph"])
+    (negative_dir / "~$negative.docx").write_text("not a real docx", encoding="utf-8")
+
+    audits = audit_negative_directory(positive_dir, negative_dir, workspace_dir)
+
+    assert [audit.negative_path.name for audit in audits] == ["negative.docx"]

@@ -61,6 +61,176 @@
       "priority": 20
     },
     {
+      "id": "heading_section_font_size",
+      "applicable_labels": ["title_section"],
+      "parameter": "font_size",
+      "expected_value": 18.0,
+      "action": "fix",
+      "severity": "high",
+      "autocorrect": true,
+      "priority": 50
+    },
+    {
+      "id": "heading_subsection_font_size",
+      "applicable_labels": ["title_subsection"],
+      "parameter": "font_size",
+      "expected_value": 16.0,
+      "action": "fix",
+      "severity": "high",
+      "autocorrect": true,
+      "priority": 50
+    },
+    {
+      "id": "heading_left_indent_cm",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "left_indent_cm",
+      "expected_value": 1.25,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 25
+    },
+    {
+      "id": "heading_line_spacing",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "line_spacing",
+      "expected_value": 1.5,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 22
+    },
+    {
+      "id": "heading_space_after_pt",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "space_after_pt",
+      "expected_value": 10.0,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 21
+    },
+    {
+      "id": "heading_section_space_before_pt",
+      "applicable_labels": ["title_section"],
+      "parameter": "space_before_pt",
+      "expected_value": 0.0,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 23
+    },
+    {
+      "id": "heading_subsection_space_before_pt",
+      "applicable_labels": ["title_subsection"],
+      "parameter": "space_before_pt",
+      "expected_value": 15.0,
+      "action": "fix",
+      "severity": "medium",
+      "autocorrect": true,
+      "priority": 23
+    },
+    {
+      "id": "heading_color",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "color",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_caps",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "caps",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_font_name",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "font_name",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_italic",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "italic",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_underline",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "underline",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_right_indent_cm",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "right_indent_cm",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_keep_with_next",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "keep_with_next",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_keep_lines_together",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "keep_lines_together",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_page_break_before",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "page_break_before",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
+      "id": "heading_widow_control",
+      "applicable_labels": ["title_section", "title_subsection"],
+      "parameter": "widow_control",
+      "expected_value": null,
+      "action": "fix",
+      "severity": "low",
+      "autocorrect": false,
+      "priority": 5
+    },
+    {
       "id": "list_item_layout",
       "applicable_labels": ["list_item"],
       "parameter": "list_format",
@@ -119,9 +289,7 @@
       "applicable_labels": ["bibliography_item"],
       "parameter": "bibliography_format",
       "expected_value": {
-        "style_name": "List Number",
-        "first_line_indent_cm": -1.0,
-        "left_indent_cm": 2.25
+        "style_name": "List Number"
       },
       "action": "fix",
       "severity": "high",

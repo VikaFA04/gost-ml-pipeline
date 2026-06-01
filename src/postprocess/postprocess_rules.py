@@ -4,15 +4,23 @@ import re
 
 import pandas as pd
 
+from src.rules.style_signatures import HEADING_STYLE_RE, TOC_STYLE_RE, CAPTION_STYLE_RE, LIST_STYLE_RE
+
 NUMBERED_LIST_ITEM_RE = re.compile(r"^\s*\d+[\.\)]\s+")
 LIST_STYLE_RE = re.compile(r"list|список|маркирован|нумерован", re.IGNORECASE)
 TEXT_LETTER_RE = re.compile(r"[A-Za-zА-Яа-яЁё]")
+LIST_INTRO_RE = re.compile(r":\s*$")
+LIST_MARKER_FRAGMENT_RE = re.compile(r"^\s*(?:[-—–•●■◦]|\d+[\.\)]|[A-Za-zА-Яа-я][\.\)])")
 BIBLIOGRAPHY_TITLE_RE = re.compile(
     r"^(список\s+(использованных|используемых)\s+источников|библиографический\s+список|литература)$",
     re.IGNORECASE,
 )
 BIBLIOGRAPHY_SUBHEADING_RE = re.compile(
     r"^(?:\d+\s*)?(теоретическая\s+часть|практическая\s+часть)$",
+    re.IGNORECASE,
+)
+BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE = re.compile(
+    r"^\d+\s*(теоретическая\s+часть|практическая\s+часть)$",
     re.IGNORECASE,
 )
 BIBLIOGRAPHY_STOP_RE = re.compile(r"^(заключение|приложени[ея].*)$", re.IGNORECASE)
@@ -53,12 +61,41 @@ def _is_structural_list_item(row: pd.Series, text: str) -> bool:
     return _has_list_metadata(row) and not _is_formula_like(text)
 
 
+def _row_style_class(row) -> str:
+    """Classify a DataFrame row's `style` string into one of the 5 StyleClass values.
+
+    Priority matches src.rules.style_signatures.classify_style:
+        toc → heading → caption → list → body.
+
+    Returns 'body' on any error or empty/missing style.
+    """
+    try:
+        style_value = row.get("style", "") if hasattr(row, "get") else ""
+        if not isinstance(style_value, str) or not style_value:
+            return "body"
+        if TOC_STYLE_RE.search(style_value):
+            return "toc"
+        if HEADING_STYLE_RE.search(style_value):
+            return "heading"
+        if CAPTION_STYLE_RE.search(style_value):
+            return "caption"
+        if LIST_STYLE_RE.search(style_value):
+            return "list"
+        return "body"
+    except Exception:
+        return "body"
+
+
 def _is_bibliography_title(text: str) -> bool:
     return BIBLIOGRAPHY_TITLE_RE.search(text) is not None
 
 
 def _is_bibliography_subheading(text: str) -> bool:
     return BIBLIOGRAPHY_SUBHEADING_RE.search(text) is not None
+
+
+def _is_numbered_bibliography_subheading(text: str) -> bool:
+    return BIBLIOGRAPHY_NUMBERED_SUBHEADING_RE.search(text) is not None
 
 
 def _stops_bibliography_context(text: str, label: str) -> bool:
@@ -72,7 +109,25 @@ def _stops_bibliography_context(text: str, label: str) -> bool:
 def _looks_like_bibliography_entry(row: pd.Series, text: str) -> bool:
     if _is_formula_like(text):
         return False
-    return BIBLIOGRAPHY_ENTRY_RE.search(text) is not None or _has_list_metadata(row)
+    return _has_list_metadata(row) or _looks_like_list_fragment(text)
+
+
+def _looks_like_list_fragment(text: str) -> bool:
+    if _is_formula_like(text):
+        return False
+    stripped = text.strip()
+    if not stripped or len(stripped) > 180 or len(stripped.split()) > 20:
+        return False
+    if text.lstrip(" ").startswith("\t"):
+        return True
+    return LIST_MARKER_FRAGMENT_RE.search(text) is not None
+
+
+def _is_list_intro(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped or len(stripped) > 200:
+        return False
+    return LIST_INTRO_RE.search(stripped) is not None
 
 
 def _has_bibliography_context(labels: list[str], index: int) -> bool:
@@ -95,12 +150,46 @@ def apply_postprocess_rules(
     for _, group in df.groupby("doc_id", sort=False):
         group = group.copy().sort_values("block_id")
         labels = [str(value) for value in group[pred_col].tolist()]
-        texts = [_safe_text(value) for value in group["text"].tolist()]
+        texts = ["" if pd.isna(value) else str(value) for value in group["text"].tolist()]
         section_indices: list[int | None] = [None] * len(labels)
 
+        # D-01 — unconditional bibliography_title override. Runs BEFORE all other
+        # label-rewriting passes. BIBLIOGRAPHY_TITLE_RE matches → label becomes
+        # bibliography_title regardless of SVM's predicted_label.
+        for position in range(len(labels)):
+            if _is_bibliography_title(texts[position]):
+                labels[position] = "bibliography_title"
+
         for position, (_, row) in enumerate(group.iterrows()):
+            if labels[position] == "list_item" and _is_formula_like(texts[position]):
+                labels[position] = "body_text"
             if labels[position] == "body_text" and _is_structural_list_item(row, texts[position]):
                 labels[position] = "list_item"
+
+        index = 0
+        while index < len(labels):
+            if labels[index] != "body_text" or not _is_list_intro(texts[index]):
+                index += 1
+                continue
+
+            run_start = index + 1
+            run_end = run_start
+            while run_end < len(labels):
+                next_text = texts[run_end]
+                next_label = labels[run_end]
+                if next_label != "body_text":
+                    break
+                if _is_bibliography_title(next_text) or _is_bibliography_subheading(next_text):
+                    break
+                if not _looks_like_list_fragment(next_text):
+                    break
+                run_end += 1
+
+            if run_end - run_start >= 2:
+                for position in range(run_start, run_end):
+                    labels[position] = "list_item"
+
+            index = max(run_end, index + 1)
 
         in_bibliography = False
         bibliography_section_index = 0
@@ -111,18 +200,43 @@ def apply_postprocess_rules(
                 labels[position] = "bibliography_title"
                 in_bibliography = True
                 continue
-            if in_bibliography and _stops_bibliography_context(text, label):
+            # D-04 — subsection detection: primary signal is Heading 1/2/3 style;
+            # fallback is the legacy BIBLIOGRAPHY_SUBHEADING_RE so that
+            # src.evaluation.format_regression_audit.infer_regression_label (which
+            # uses synthetic predictions WITHOUT a real style string) keeps working.
+            style_class = _row_style_class(row)
+            is_subsection_heading = (
+                style_class == "heading"
+                or _is_bibliography_subheading(text)
+            )
+            # Stop signals (BIBLIOGRAPHY_STOP_RE: заключение, приложения, …)
+            # ALWAYS end bibliography context — even when the row carries a
+            # Heading style. D-04 subsection heading promotion only applies to
+            # rows whose text isn't a known bibliography terminator.
+            stops_bib = in_bibliography and _stops_bibliography_context(text, label)
+            if stops_bib and (
+                BIBLIOGRAPHY_STOP_RE.search(text) is not None
+                or not is_subsection_heading
+            ):
                 in_bibliography = False
             if not in_bibliography:
                 continue
-            if _is_bibliography_subheading(text):
+            if is_subsection_heading:
                 bibliography_section_index += 1
                 if label not in {"title_section", "title_subsection"}:
                     labels[position] = "bibliography_title"
-                section_indices[position] = bibliography_section_index
+                section_indices[position] = bibliography_section_index or None
             elif label in {"body_text", "list_item"} and _looks_like_bibliography_entry(row, text):
                 labels[position] = "bibliography_item"
                 section_indices[position] = bibliography_section_index or None
+            elif label in {"body_text", "list_item"} and bibliography_section_index >= 1:
+                # D-04 + D-14: a body paragraph that follows a Heading 1
+                # subsection inside the bibliography belongs to that subsection.
+                # Relabel as bibliography_item and attach the active
+                # section_index — the rule layer can then apply per-subsection
+                # numbering even when the source DOCX entry lacks numPr.
+                labels[position] = "bibliography_item"
+                section_indices[position] = bibliography_section_index
 
         index = 0
         while index < len(labels):
@@ -143,8 +257,25 @@ def apply_postprocess_rules(
             else:
                 index += 1
 
+        # List-instance tagging: each maximal run of consecutive list_item blocks
+        # is one list. A gap (any non-list_item block) starts a new instance. The
+        # rule layer allocates a fresh numId per instance so every list restarts
+        # at 1 instead of continuing the previous list's numbering.
+        list_instances: list[int | None] = [None] * len(labels)
+        current_instance = 0
+        prev_was_list = False
+        for position in range(len(labels)):
+            if labels[position] == "list_item":
+                if not prev_was_list:
+                    current_instance += 1
+                list_instances[position] = current_instance
+                prev_was_list = True
+            else:
+                prev_was_list = False
+
         group[out_col] = labels
         group["bibliography_section_index"] = pd.Series(section_indices, dtype=object).to_numpy()
+        group["list_instance"] = pd.Series(list_instances, dtype=object).to_numpy()
         result_parts.append(group)
 
     return pd.concat(result_parts, axis=0).sort_index()

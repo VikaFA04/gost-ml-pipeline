@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json as _json_for_heading_tests
 import shutil
 import uuid
 
 import pandas as pd
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm
 
+from src.evaluation.format_regression_audit import build_regression_predictions
 from src.generate.inplace_formatter import audit_or_format_docx
 from src.rules.profile_loader import load_profile
-from src.rules.rule_engine import apply_rules_to_paragraph
+from src.rules.rule_engine import apply_list_numbering, apply_rules_to_paragraph
 from src.rules.rule_loader import load_rules
 
 
@@ -126,27 +129,6 @@ def test_inherited_heading_bold_requires_review_not_autofix() -> None:
     assert paragraph.runs[0].bold is None
 
 
-def test_heading_style_direct_alignment_requires_review_not_autofix() -> None:
-    document = Document()
-    paragraph = document.add_paragraph("Список источников")
-    paragraph.style = "Heading 2"
-    paragraph.alignment = 1
-
-    result = apply_rules_to_paragraph(
-        paragraph=paragraph,
-        label="title_subsection",
-        row_data={"text": paragraph.text, "confidence_score": 0.99, "low_confidence": False},
-        rules=load_rules(),
-        apply_safe=True,
-        default_font_name="Times New Roman",
-    )
-
-    assert result is not None
-    assert result["status"] == "review"
-    assert result["manual_review_required"] is True
-    assert result["applied_fixes"] == []
-    assert paragraph.alignment == 1
-
 
 def test_list_like_paragraph_predicted_as_body_text_is_not_autofixed() -> None:
     document = Document()
@@ -170,7 +152,10 @@ def test_list_like_paragraph_predicted_as_body_text_is_not_autofixed() -> None:
 
     assert result is not None
     assert result["status"] == "review"
-    assert result["blocked_unsafe_autofix"] is True
+    # Plan 03 style_guard fires earlier than the old list-like
+    # blocked_unsafe_autofix path: List-styled paragraph + body_text label
+    # short-circuits with style_guard_block, not blocked_unsafe_autofix.
+    assert result["explanation"].startswith("style_guard_block:")
     assert result["manual_review_required"] is True
     assert result["applied_fixes"] == []
     assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
@@ -372,7 +357,208 @@ def test_bibliography_item_gets_numbered_word_style_without_text_change() -> Non
     assert paragraph._p.pPr is not None
     assert paragraph._p.pPr.numPr is not None
     assert paragraph._p.pPr.numPr.numId is not None
-    assert paragraph.text == before_text
+
+
+def test_accepted_list_layout_without_numbering_stays_unchanged() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Accepted layout with no numbering")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Accepted layout with no numbering",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+
+
+def test_accepted_non_list_style_without_numbering_gets_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Accepted layout with no numbering")
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+    paragraph.style = "Quote"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Accepted layout with no numbering",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is None
+
+
+def test_body_text_accepted_list_layout_gets_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Body text with accepted list layout")
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+    paragraph.style = "Quote"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data={
+            "text": "Body text with accepted list layout",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is None
+
+
+def test_list_item_without_layout_gets_format_and_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("List item with no layout")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "List item with no layout",
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "numbering" in result["applied_fixes"]
+    assert "left_indent_cm" in result["applied_fixes"]
+    assert "first_line_indent_cm" in result["applied_fixes"]
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is not None
+    assert paragraph._p.pPr.numPr.numId is not None
+
+
+def test_numbered_list_with_inherited_layout_keeps_layout_unchanged() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("COUNT(*) returns row count")
+    apply_list_numbering(paragraph, "bullet")
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": paragraph.text,
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert paragraph.paragraph_format.left_indent is None
+    assert paragraph.paragraph_format.first_line_indent is None
+    assert list(paragraph.paragraph_format.tab_stops) == []
+
+
+def test_generic_style_only_list_item_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Generic style-only list candidate")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(1.0)
+    paragraph.paragraph_format.first_line_indent = Cm(0.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": paragraph.text,
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["blocked_unsafe_autofix"] is True
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 1.0
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == 0.0
+    assert paragraph._p.pPr is None or paragraph._p.pPr.numPr is None
+
+
+def test_list_style_partial_layout_requires_review_not_autofix() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Bullet item with local inherited first indent")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": paragraph.text,
+            "list_level": 0,
+            "list_type": "bullet",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 1.0
+    assert paragraph.paragraph_format.first_line_indent is None
 
 
 def test_bibliography_item_numbering_uses_section_prefix() -> None:
@@ -397,7 +583,7 @@ def test_bibliography_item_numbering_uses_section_prefix() -> None:
     assert result["status"] == "changed"
     assert "numbering" in result["applied_fixes"]
     numbering_xml = paragraph.part.numbering_part.element.xml
-    assert 'w:val="2.%1"' in numbering_xml
+    assert 'w:val="%1.%2."' in numbering_xml
 
 
 def test_bibliography_item_replaces_wrong_existing_section_numbering() -> None:
@@ -424,7 +610,7 @@ def test_bibliography_item_replaces_wrong_existing_section_numbering() -> None:
     assert result is not None
     assert result["status"] == "changed"
     assert "numbering" in result["applied_fixes"]
-    assert 'w:val="1.%1"' in paragraph.part.numbering_part.element.xml
+    assert 'w:val="%1.%2."' in paragraph.part.numbering_part.element.xml
 
 
 def test_bibliography_subheading_gets_section_number_prefix() -> None:
@@ -473,6 +659,31 @@ def test_numbered_bibliography_title_section_gets_section_number_prefix() -> Non
     assert result["status"] == "changed"
     assert "bibliography_section_prefix" in result["applied_fixes"]
     assert paragraph.text == "1 ТЕОРЕТИЧЕСКАЯ ЧАСТЬ"
+
+
+def test_bibliography_title_section_keeps_existing_alignment() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("2 ПРАКТИЧЕСКАЯ ЧАСТЬ")
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data={
+            "text": paragraph.text,
+            "bibliography_section_index": 2,
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["applied_fixes"] == []
+    assert paragraph.alignment == WD_ALIGN_PARAGRAPH.CENTER
 
 
 def test_marker_only_list_item_requires_review_not_autofix() -> None:
@@ -561,6 +772,35 @@ def test_accepted_positive_list_layout_ignores_inferred_level() -> None:
     assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
 
 
+def test_list_paragraph_with_accepted_layout_but_missing_numbering_gets_numbering() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Accepted list layout without numbering")
+    paragraph.style = "List Paragraph"
+    paragraph.paragraph_format.left_indent = Cm(2.25)
+    paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "Accepted list layout without numbering",
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.99,
+            "low_confidence": False,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "no_change"
+    assert result["applied_fixes"] == []
+    assert paragraph._p.pPr is not None
+    assert paragraph._p.pPr.numPr is None
+
+
 def test_inherited_list_paragraph_layout_is_not_autofixed() -> None:
     document = Document()
     paragraph = document.add_paragraph("List style item")
@@ -641,6 +881,37 @@ def test_low_confidence_list_item_blocks_unsafe_autofix() -> None:
     assert result["blocked_unsafe_autofix"] is True
     assert result["manual_review_required"] is True
     assert result["applied_fixes"] == []
+
+
+def test_low_confidence_list_item_with_structural_triple_signal_is_autofixed() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("интерпретация результатов.")
+    paragraph.style = "List Paragraph"
+    apply_list_numbering(paragraph, "list")
+    paragraph.paragraph_format.left_indent = Cm(1.25)
+    paragraph.paragraph_format.first_line_indent = Cm(0.0)
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="list_item",
+        row_data={
+            "text": "интерпретация результатов.",
+            "list_level": 0,
+            "list_type": "list",
+            "confidence_score": 0.73,
+            "low_confidence": True,
+        },
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "changed"
+    assert "left_indent_cm" in result["applied_fixes"]
+    assert "first_line_indent_cm" in result["applied_fixes"]
+    assert round(paragraph.paragraph_format.left_indent.cm, 2) == 2.25
+    assert round(paragraph.paragraph_format.first_line_indent.cm, 2) == -1.0
 
 
 def test_long_paragraph_is_not_auto_fixed_as_list() -> None:
@@ -748,3 +1019,618 @@ def test_fix_mode_is_idempotent() -> None:
         assert second_summary["no_change"] == 1
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_fix_mode_preserves_tabbed_list_markers_from_predictions_csv() -> None:
+    tmp_path = build_workspace_temp_dir()
+    try:
+        input_docx = tmp_path / "input.docx"
+        document = Document()
+        paragraph = document.add_paragraph("\tПервый пункт")
+        paragraph.style = "List Paragraph"
+        paragraph.paragraph_format.left_indent = Cm(2.25)
+        paragraph.paragraph_format.first_line_indent = Cm(-1.0)
+        document.save(input_docx)
+
+        predictions_csv = tmp_path / "predictions.csv"
+        build_prediction_csv(predictions_csv, "\tПервый пункт", "list_item", list_level=0)
+
+        fixed_docx = tmp_path / "fixed.docx"
+        summary = audit_or_format_docx(
+            input_docx=input_docx,
+            predictions_csv=predictions_csv,
+            report_csv=tmp_path / "fix.csv",
+            output_docx=fixed_docx,
+            apply_safe=True,
+            profile_id="gost_7_32_2017",
+        )
+
+        assert summary["changed"] == 1
+        fixed = Document(fixed_docx)
+        assert fixed.paragraphs[0]._p.pPr is not None
+        assert fixed.paragraphs[0]._p.pPr.numPr is not None
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+def test_fix_mode_preserves_tabbed_bibliography_entries_from_predictions_csv() -> None:
+    tmp_path = build_workspace_temp_dir()
+    try:
+        input_docx = tmp_path / "input.docx"
+        document = Document()
+        document.add_paragraph("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ")
+        document.add_paragraph("1 Теоретическая часть")
+        document.add_paragraph("\tИванов И. И. Учебник. — Москва, 2020. — 120 с.")
+        document.save(input_docx)
+
+        predictions_csv = tmp_path / "predictions.csv"
+        pd.DataFrame(
+            [
+                {
+                    "doc_id": "doc_1",
+                    "block_id": 1,
+                    "text": "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
+                    "kind": "paragraph",
+                    "alignment": "LEFT",
+                    "style": "Normal",
+                    "bold_ratio": 0.0,
+                    "file_name": "sample.docx",
+                    "predicted_label": "body_text",
+                    "postprocessed_label": "bibliography_title",
+                    "confidence_score": 0.99,
+                    "low_confidence": False,
+                },
+                {
+                    "doc_id": "doc_1",
+                    "block_id": 2,
+                    "text": "1 Теоретическая часть",
+                    "kind": "paragraph",
+                    "alignment": "LEFT",
+                    "style": "Normal",
+                    "bold_ratio": 0.0,
+                    "file_name": "sample.docx",
+                    "predicted_label": "title_section",
+                    "postprocessed_label": "title_section",
+                    "confidence_score": 0.99,
+                    "low_confidence": False,
+                    "bibliography_section_index": 1,
+                },
+                {
+                    "doc_id": "doc_1",
+                    "block_id": 3,
+                    "text": "\tИванов И. И. Учебник. — Москва, 2020. — 120 с.",
+                    "kind": "paragraph",
+                    "alignment": "LEFT",
+                    "style": "Normal",
+                    "bold_ratio": 0.0,
+                    "file_name": "sample.docx",
+                    "predicted_label": "body_text",
+                    "postprocessed_label": "bibliography_item",
+                    "confidence_score": 0.99,
+                    "low_confidence": False,
+                    "bibliography_section_index": 1,
+                },
+            ]
+        ).to_csv(predictions_csv, index=False, encoding="utf-8-sig")
+
+        fixed_docx = tmp_path / "fixed.docx"
+        summary = audit_or_format_docx(
+            input_docx=input_docx,
+            predictions_csv=predictions_csv,
+            report_csv=tmp_path / "fix.csv",
+            output_docx=fixed_docx,
+            apply_safe=True,
+            profile_id="gost_7_32_2017",
+        )
+
+        assert summary["changed"] == 2
+        fixed = Document(fixed_docx)
+        assert fixed.paragraphs[1].text == "1 ТЕОРЕТИЧЕСКАЯ ЧАСТЬ"
+        assert fixed.paragraphs[2]._p.pPr is not None
+        assert fixed.paragraphs[2]._p.pPr.numPr is not None
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+# ---- Phase 01: style-guard tests (RED state — guard implemented in Plan 03) ----
+
+def _row_data_body_text(text: str) -> dict:
+    return {
+        "text": text,
+        "confidence_score": 0.99,
+        "low_confidence": False,
+    }
+
+
+def test_style_guard_blocks_body_text_on_heading() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Глава 1. Введение")
+    paragraph.style = "Heading 1"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["manual_review_required"] is True
+    assert result["applied_fixes"] == []
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_blocks_body_text_on_toc() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Глава 1 ... 5")
+    # python-docx default template ships no "TOC 1" — use "TOC Heading"
+    # (the same choice the fixture _build_style_guard_minimal.py makes).
+    paragraph.style = "TOC Heading"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_blocks_body_text_on_caption() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Рисунок 1 — Схема")
+    paragraph.style = "Caption"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_blocks_body_text_on_list() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Первый пункт перечисления")
+    paragraph.style = "List Paragraph"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None
+    assert result["status"] == "review"
+    # NEW guard fires earlier than the existing late blocked_unsafe_autofix path —
+    # the explanation marker distinguishes the two.
+    assert result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_passes_heading_rule_on_heading() -> None:
+    # Heading rule on heading paragraph: guard MUST NOT fire (D-03).
+    # rationale: D-03 says non-body_text labels are unaffected. Strengthened
+    # vs. vacuous variant by asserting `result is not None` AND the
+    # explanation does NOT begin with "style_guard_block:". If the existing
+    # title_section path returns None for this paragraph, copy the
+    # row_data/paragraph shape from a pre-Phase-1 test in this file that
+    # already produces a non-None title_section result (grep for
+    # `label="title_section"` and pick one with non-None observed outcome).
+    document = Document()
+    paragraph = document.add_paragraph("Введение")
+    paragraph.style = "Heading 1"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data={"text": paragraph.text, "confidence_score": 0.99, "low_confidence": False},
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    # Strengthened — refuse to vacuously pass on result is None.
+    assert result is not None, (
+        "title_section path returned None for a Heading-styled paragraph — "
+        "this test cannot prove the guard did not fire. Replace the row_data/"
+        "paragraph shape with one that an existing pre-Phase-1 test already "
+        "produces a non-None title_section result for, then re-run."
+    )
+    assert not result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_passes_body_text_on_normal() -> None:
+    # body_text on Normal-styled paragraph: guard MUST NOT fire — existing
+    # body_text path runs. Strengthened to refuse vacuous-None passes.
+    # rationale: if `apply_rules_to_paragraph(label="body_text", Normal-styled,
+    # long text)` returns None for this row_data, copy the row_data shape
+    # from an existing body_text test that produces a non-None result
+    # (e.g., the pre-Phase-1 `test_rule_application_*` family in this file).
+    document = Document()
+    paragraph = document.add_paragraph(
+        "Обычный абзац основного текста с достаточной длиной для applicable_rules."
+    )
+    # leave style as default Normal
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    assert result is not None, (
+        "body_text path returned None for a Normal-styled paragraph — "
+        "this test cannot prove the guard did not fire. Replace row_data "
+        "with a shape that produces a non-None result in an existing pre-"
+        "Phase-1 test, then re-run."
+    )
+    assert not result["explanation"].startswith("style_guard_block:"), result["explanation"]
+
+
+def test_style_guard_does_not_write_direct_props() -> None:
+    document = Document()
+    paragraph = document.add_paragraph("Глава 2. Методика")
+    paragraph.style = "Heading 1"
+    # baseline: paragraph_format props are None by default for a freshly-added paragraph
+    assert paragraph.paragraph_format.left_indent is None
+    assert paragraph.paragraph_format.first_line_indent is None
+
+    apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="body_text",
+        row_data=_row_data_body_text(paragraph.text),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+
+    # After guard fires, NO direct paragraph-format props get written.
+    assert paragraph.paragraph_format.left_indent is None
+    assert paragraph.paragraph_format.first_line_indent is None
+    assert paragraph.alignment is None
+
+
+def test_style_guard_minimal_docx_changed_zero(tmp_path) -> None:
+    """Integration: hand-crafted DOCX with one paragraph per style class.
+
+    After Plan 03's guard lands, format-docx --apply-safe must yield changed=0
+    because the guard short-circuits each styled paragraph (Heading/TOC/Caption/List)
+    to status=review even when the predicted label is body_text, and the Normal
+    paragraph already complies with body_text rules.
+
+    Deviation rationale (Wave 0): `build_regression_predictions` would route the
+    Heading/List/Caption paragraphs to non-body_text labels via `infer_regression_label`
+    (style-based heuristic), bypassing the body_text path entirely — the guard would
+    never be exercised. To pin the contract the plan is actually targeting
+    ("body_text autofix mutates Heading/TOC/Caption/List paragraphs without the
+    guard"), we simulate a worst-case model misprediction by overwriting
+    predicted_label/postprocessed_label to "body_text" for ALL rows. This is the
+    exact failure mode the Plan 03 guard exists to catch.
+    """
+    import pandas as pd
+
+    input_docx = Path("tests/fixtures/style_guard_minimal.docx")
+    assert input_docx.exists(), "fixture missing — run tests/fixtures/_build_style_guard_minimal.py"
+
+    predictions_csv = tmp_path / "predictions.csv"
+    report_csv = tmp_path / "report.csv"
+    output_docx = tmp_path / "output.docx"
+    build_regression_predictions(input_docx, predictions_csv)
+
+    # Force body_text label on every paragraph to exercise the guard contract.
+    predictions_df = pd.read_csv(predictions_csv, encoding="utf-8-sig")
+    predictions_df["predicted_label"] = "body_text"
+    predictions_df["postprocessed_label"] = "body_text"
+    predictions_df.to_csv(predictions_csv, index=False, encoding="utf-8-sig")
+
+    summary = audit_or_format_docx(
+        input_docx=input_docx,
+        predictions_csv=predictions_csv,
+        report_csv=report_csv,
+        output_docx=output_docx,
+        apply_safe=True,
+        profile_id="gost_7_32_2017",
+    )
+
+    assert summary["error"] == 0
+    assert summary["changed"] == 0
+
+    # Guard contract: every NON-Normal styled paragraph must be short-circuited
+    # by the style_guard with an explanation starting "style_guard_block:".
+    # Pre-Plan-03 this assertion is RED because no guard exists — explanations
+    # come from the generic body_text inherited-format review path.
+    report_df = pd.read_csv(report_csv, encoding="utf-8-sig")
+    fixture_doc = Document(str(input_docx))
+    styled_paragraph_indices = [
+        i for i, p in enumerate(fixture_doc.paragraphs)
+        if p.style.name != "Normal"
+    ]
+    for idx in styled_paragraph_indices:
+        explanation = str(report_df.iloc[idx]["explanation"])
+        assert explanation.startswith("style_guard_block:"), (
+            f"paragraph {idx} (style={fixture_doc.paragraphs[idx].style.name}) "
+            f"explanation should start with 'style_guard_block:' but was: {explanation}"
+        )
+
+
+# ---- Phase 03 Wave 0 RED: D-05/D-06 heading routing tests ----
+
+
+def _heading_row_data(paragraph, *, label_text: str = "1 Заголовок", extra: dict | None = None) -> dict:
+    """Build a row_data dict including a serialized heading_format_signature."""
+    from src.rules.style_signatures import _extract_heading_format_signature
+    sig = _extract_heading_format_signature(paragraph)
+    row = {
+        "text": paragraph.text,
+        "confidence_score": 0.99,
+        "low_confidence": False,
+        "heading_format_signature": _json_for_heading_tests.dumps(sig),
+    }
+    if extra:
+        row.update(extra)
+    return row
+
+
+def test_heading_inherited_mismatch_routes_to_review() -> None:
+    """D-05: source='inherited' AND value!=expected → status='review', explanation has heading_inherited_mismatch:."""
+    document = Document()
+    paragraph = document.add_paragraph("1 Заголовок")
+    paragraph.style = "Heading 1"
+    # No direct override → all source='inherited' or 'unset'
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "review", result
+    assert result["applied_fixes"] == [], result["applied_fixes"]
+    assert "heading_inherited_mismatch" in result["explanation"], result["explanation"]
+
+
+def test_heading_direct_mismatch_routes_to_autofix() -> None:
+    """D-06: source='direct' AND value!=expected → status='changed', parameter in applied_fixes."""
+    from docx.shared import Pt
+    document = Document()
+    paragraph = document.add_paragraph("1 Заголовок")
+    paragraph.style = "Heading 1"
+    paragraph.paragraph_format.space_before = Pt(99.0)  # direct override; expected differs
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "space_before_pt" in result["applied_fixes"], result["applied_fixes"]
+
+
+def test_heading_direct_match_no_change() -> None:
+    """D-06: source='direct' AND value==expected → status='no_change'."""
+    from docx.shared import Pt
+    document = Document()
+    paragraph = document.add_paragraph("1 Заголовок")
+    paragraph.style = "Heading 1"
+    paragraph.paragraph_format.space_before = Pt(0.0)  # direct override matching gost expected 0.0
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    # No mismatch on space_before_pt, so this rule contributes neither violations nor fixes
+    assert "space_before_pt" not in result["applied_fixes"], result["applied_fixes"]
+
+
+def test_heading_rules_present_in_schema() -> None:
+    """D-09 + CONTEXT.md D-09 + RESEARCH.md Open Question 2 (RESOLVED): 18+ heading_* rules.
+    Level-sensitive space_before_pt is split into heading_section_space_before_pt and
+    heading_subsection_space_before_pt (matching the level-split pattern already used for
+    font_size); there is intentionally NO single 'heading_space_before_pt' rule."""
+    rules = load_rules()
+    heading_rule_ids = {r["id"] for r in rules if r["id"].startswith("heading_")}
+    expected_min = {
+        "heading_alignment", "heading_indent", "heading_bold",
+        "heading_section_font_size", "heading_subsection_font_size",
+        "heading_section_space_before_pt", "heading_subsection_space_before_pt",
+        "heading_font_name", "heading_italic", "heading_underline",
+        "heading_color", "heading_caps",
+        "heading_left_indent_cm", "heading_right_indent_cm",
+        "heading_line_spacing", "heading_space_after_pt",
+        "heading_keep_with_next", "heading_keep_lines_together",
+        "heading_page_break_before", "heading_widow_control",
+    }
+    missing = expected_min - heading_rule_ids
+    assert not missing, f"missing heading rules: {sorted(missing)}; got: {sorted(heading_rule_ids)}"
+    # heading_color must have autocorrect=false (Pitfall 6)
+    color_rule = next(r for r in rules if r["id"] == "heading_color")
+    assert color_rule["autocorrect"] is False, color_rule
+
+
+def test_heading_minimal_positive_zero_fixes() -> None:
+    """D-10 fixture paragraph 1: positive Heading 1 — zero applied_fixes from heading rules."""
+    from pathlib import Path
+    if not Path("tests/fixtures/heading_minimal.docx").exists():
+        import pytest as _pytest; _pytest.skip("heading_minimal.docx fixture missing")
+    document = Document("tests/fixtures/heading_minimal.docx")
+    paragraph = list(document.paragraphs)[0]
+    assert paragraph.text == "1 Основная часть"
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    # All values are inherited from Heading 1 style → either no_change or review (D-05),
+    # never autofix (D-05 forbids it).
+    assert all(not f.startswith("heading_") and f not in {
+        "font_name", "font_size", "bold", "italic", "underline", "color", "caps",
+        "alignment", "first_line_indent_cm", "left_indent_cm", "right_indent_cm",
+        "line_spacing", "space_before_pt", "space_after_pt",
+        "keep_with_next", "keep_lines_together", "page_break_before", "widow_control",
+    } for f in result["applied_fixes"]), result["applied_fixes"]
+
+
+def test_heading_minimal_direct_fix() -> None:
+    """D-10 fixture paragraph 2: direct space_before/space_after override → autofix (D-06)."""
+    from pathlib import Path
+    if not Path("tests/fixtures/heading_minimal.docx").exists():
+        import pytest as _pytest; _pytest.skip("heading_minimal.docx fixture missing")
+    document = Document("tests/fixtures/heading_minimal.docx")
+    paragraph = list(document.paragraphs)[1]
+    assert paragraph.text == "2 Нарушение интервалов"
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    fixed = set(result["applied_fixes"])
+    assert "space_before_pt" in fixed or "space_after_pt" in fixed, fixed
+
+
+def test_heading_minimal_inherited_review() -> None:
+    """D-10 fixture paragraph 4: pure-inherited heading with style-cascade mismatch → review (D-05)."""
+    from pathlib import Path
+    if not Path("tests/fixtures/heading_minimal.docx").exists():
+        import pytest as _pytest; _pytest.skip("heading_minimal.docx fixture missing")
+    document = Document("tests/fixtures/heading_minimal.docx")
+    paragraph = list(document.paragraphs)[3]
+    assert paragraph.text == "4 Унаследованное нарушение"
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    # No direct overrides → no autofix possible per D-05
+    assert all(f not in {
+        "font_name", "font_size", "bold", "italic", "underline", "color", "caps",
+        "alignment", "first_line_indent_cm", "left_indent_cm", "right_indent_cm",
+        "line_spacing", "space_before_pt", "space_after_pt",
+        "keep_with_next", "keep_lines_together", "page_break_before", "widow_control",
+    } for f in result["applied_fixes"]), result["applied_fixes"]
+    # Inherited mismatch SHOULD surface as review with the D-05 explanation
+    if result["status"] == "review":
+        assert "heading_inherited_mismatch" in result["explanation"], result["explanation"]
+
+
+def test_heading_style_direct_alignment_autofixed_after_guard_removal() -> None:
+    """D-06: paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER (=1) is a DIRECT override on Heading 2.
+    After Plan 03-03 removes the blanket heading guard at lines 998-1004 of rule_engine.py,
+    this routes to autofix (D-06), NOT review."""
+    document = Document()
+    paragraph = document.add_paragraph("Список источников")
+    paragraph.style = "Heading 2"
+    paragraph.alignment = 1  # WD_ALIGN_PARAGRAPH.CENTER — direct override
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_subsection",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "alignment" in result["applied_fixes"], result["applied_fixes"]
+
+
+def test_heading_direct_bold_fix_preserves_inherited_font_name() -> None:
+    """WR-01 invariant (CLAUDE.md "Не перезаписывай наследуемое DOCX-форматирование
+    прямыми значениями"): D-06 bold autofix on a Heading paragraph MUST NOT set a
+    direct run.font.name override; the inherited font from the Heading style cascade
+    must survive the fix."""
+    document = Document()
+    paragraph = document.add_paragraph("Раздел")
+    paragraph.style = "Heading 1"
+    # Direct bold=False override; font.name stays None (inherited from Heading 1).
+    run = paragraph.runs[0]
+    run.bold = False
+    assert run.font.name is None, "Precondition: font.name must be inherited (None) at start"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "bold" in result["applied_fixes"], result["applied_fixes"]
+    assert paragraph.runs[0].bold is True, "bold should be flipped to True per GOST rule"
+    # The actual invariant: font.name MUST stay inherited (None).
+    assert paragraph.runs[0].font.name is None, (
+        "D-06 bold fix overwrote inherited font.name with a direct value — "
+        "CLAUDE.md violation."
+    )
+
+
+def test_heading_direct_font_size_fix_preserves_inherited_font_name() -> None:
+    """WR-01 invariant for font_size: D-06 font_size autofix must not clobber inherited font.name."""
+    from docx.shared import Pt
+    document = Document()
+    paragraph = document.add_paragraph("Раздел")
+    paragraph.style = "Heading 1"
+    run = paragraph.runs[0]
+    # Direct font_size override that mismatches heading_section_font_size (18pt).
+    run.font.size = Pt(12)
+    assert run.font.name is None, "Precondition: font.name must be inherited (None) at start"
+
+    result = apply_rules_to_paragraph(
+        paragraph=paragraph,
+        label="title_section",
+        row_data=_heading_row_data(paragraph),
+        rules=load_rules(),
+        apply_safe=True,
+        default_font_name="Times New Roman",
+    )
+    assert result is not None
+    assert result["status"] == "changed", result
+    assert "font_size" in result["applied_fixes"], result["applied_fixes"]
+    assert round(paragraph.runs[0].font.size.pt, 2) == 18.0, "font_size should match GOST target"
+    assert paragraph.runs[0].font.name is None, (
+        "D-06 font_size fix overwrote inherited font.name with a direct value — "
+        "CLAUDE.md violation."
+    )

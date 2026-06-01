@@ -1,0 +1,2448 @@
+- generic [ref=e2]:
+  - generic [ref=e7]:
+    - button "keyboard_double_arrow_left" [ref=e10] [cursor=pointer]:
+      - generic [ref=e12]: keyboard_double_arrow_left
+    - generic [ref=e15]:
+      - heading "Панель управления" [level=2] [ref=e19]
+      - paragraph [ref=e24]: Выберите профиль ГОСТ, загрузите DOCX-документ и запустите аудит.
+      - generic [ref=e26]:
+        - paragraph [ref=e30]: Профиль ГОСТ
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - generic [ref=e34]: ГОСТ 7.32-2017 [gost_7_32_2017] · gost · standard
+            - combobox "Selected ГОСТ 7.32-2017 [gost_7_32_2017] · gost · standard. Профиль ГОСТ" [ref=e36]
+          - img "open" [ref=e38]
+      - button "+ Создать профиль из методички" [ref=e42] [cursor=pointer]:
+        - paragraph [ref=e46]: + Создать профиль из методички
+      - generic [ref=e48]:
+        - paragraph [ref=e52]: Модель
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: Baseline
+            - combobox "Selected Baseline. Модель" [ref=e58]
+          - img "open" [ref=e60]
+      - generic [ref=e63]:
+        - paragraph [ref=e67]: Режим
+        - radiogroup "Режим" [ref=e68] [cursor=pointer]:
+          - generic [ref=e69]:
+            - radio "Только аудит" [checked]
+            - paragraph [ref=e74]: Только аудит
+          - generic [ref=e75]:
+            - radio "Применить безопасные исправления"
+            - paragraph [ref=e80]: Применить безопасные исправления
+      - generic [ref=e82]:
+        - paragraph [ref=e86]: Загрузите документ (DOCX или PDF)
+        - region "Загрузите документ (DOCX или PDF)" [ref=e87] [cursor=pointer]:
+          - button "Choose File" [ref=e88]
+          - generic [ref=e90]:
+            - generic "4.docx, 0.6MB" [ref=e93]:
+              - img [ref=e95]
+              - generic [ref=e98]:
+                - generic "4.docx" [ref=e99]
+                - generic [ref=e100]: 0.6MB
+              - button "Remove 4.docx" [ref=e102]:
+                - img [ref=e103]
+            - button "Add files" [ref=e106]:
+              - generic [ref=e110]: add
+      - paragraph [ref=e115]: "PDF: только аудит, без OCR"
+      - button "Запустить аудит" [active] [ref=e118] [cursor=pointer]:
+        - paragraph [ref=e122]: Запустить аудит
+  - generic [ref=e3]:
+    - banner [ref=e125]:
+      - generic [ref=e128]:
+        - button "Deploy" [ref=e130] [cursor=pointer]:
+          - generic [ref=e132]: Deploy
+        - button "Main menu" [ref=e134] [cursor=pointer]:
+          - img [ref=e135]
+    - generic [ref=e138]:
+      - 'heading "Отчёт по документу: tmp3o51bcwm.docx" [level=3] [ref=e171]':
+        - text: "Отчёт по документу: tmp3o51bcwm.docx"
+        - generic [ref=e172]:
+          - link "Link to heading":
+            - /url: "#otchyot-po-dokumentu-tmp3o51bcwm-docx"
+            - img
+      - paragraph [ref=e151]: "Профиль: ГОСТ 7.32-2017 (gost_7_32_2017)"
+      - generic [ref=e174]:
+        - generic [ref=e179]:
+          - paragraph [ref=e182]: Всего блоков
+          - paragraph [ref=e185]: "183"
+        - generic [ref=e190]:
+          - paragraph [ref=e193]: Без изменений
+          - paragraph [ref=e196]: "20"
+        - generic [ref=e201]:
+          - paragraph [ref=e204]: Изменены
+          - paragraph [ref=e207]: "0"
+        - generic [ref=e212]:
+          - paragraph [ref=e215]: Требуют проверки
+          - paragraph [ref=e218]: "151"
+        - generic [ref=e223]:
+          - paragraph [ref=e226]: Ошибки
+          - paragraph [ref=e229]: "0"
+        - generic [ref=e234]:
+          - paragraph [ref=e237]: Небезопасно (заблокировано)
+          - paragraph [ref=e240]: "0"
+      - heading "Требуют внимания (151)" [level=3] [ref=e245]:
+        - text: Требуют внимания (151)
+        - generic [ref=e246]:
+          - link "Link to heading":
+            - /url: "#trebuyut-vnimaniya-151"
+            - img
+      - group [ref=e249]:
+        - generic "keyboard_arrow_down ⚠️ 1 · body_text · Требует проверки · уверенность 0.86" [ref=e250] [cursor=pointer]:
+          - generic [ref=e251]:
+            - generic [ref=e253]: keyboard_arrow_down
+            - paragraph [ref=e256]: ⚠️ 1 · body_text · Требует проверки · уверенность 0.86
+        - generic [ref=e258]:
+          - paragraph [ref=e263]:
+            - strong [ref=e264]: Оригинальный текст блока
+          - code [ref=e269]: ВВЕДЕНИЕ
+          - paragraph [ref=e274]:
+            - strong [ref=e275]: Причина ручной проверки
+          - paragraph [ref=e280]: "style_guard_block: rule_class=body_text paragraph_style_class=heading"
+      - group [ref=e283]:
+        - generic "keyboard_arrow_down ⚠️ 2 · body_text · Требует проверки · уверенность 2.34" [ref=e284] [cursor=pointer]:
+          - generic [ref=e285]:
+            - generic [ref=e287]: keyboard_arrow_down
+            - paragraph [ref=e290]: ⚠️ 2 · body_text · Требует проверки · уверенность 2.34
+        - generic [ref=e292]:
+          - paragraph [ref=e297]:
+            - strong [ref=e298]: Оригинальный текст блока
+          - code [ref=e303]: В современных условиях глобализации и стремительного развития экономики особую роль играет анализ рынка недвижимости. Изучение и анализ данного рынка позволяет определить основные тенденции и характеристики, влияющие на развитие данной отрасли.
+          - paragraph [ref=e308]:
+            - strong [ref=e309]: Причина ручной проверки
+          - paragraph [ref=e314]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e319]:
+            - strong [ref=e320]: Нарушенные правила
+          - paragraph [ref=e325]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e328]:
+        - generic "keyboard_arrow_down ⚠️ 3 · body_text · Требует проверки · уверенность 2.77" [ref=e329] [cursor=pointer]:
+          - generic [ref=e330]:
+            - generic [ref=e332]: keyboard_arrow_down
+            - paragraph [ref=e335]: ⚠️ 3 · body_text · Требует проверки · уверенность 2.77
+        - generic [ref=e337]:
+          - paragraph [ref=e342]:
+            - strong [ref=e343]: Оригинальный текст блока
+          - code [ref=e348]: Рынок недвижимости в зависимости от местоположения имеет свои уникальные характеристики, которые зачастую играют немаловажную роль в формировании цены на недвижимость. Для того, чтобы выявить наличие и степень влияния между характеристиками и ценой недвижимости, можно использовать регрессионный анализ.
+          - paragraph [ref=e353]:
+            - strong [ref=e354]: Причина ручной проверки
+          - paragraph [ref=e359]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e364]:
+            - strong [ref=e365]: Нарушенные правила
+          - paragraph [ref=e370]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e373]:
+        - generic "keyboard_arrow_down ⚠️ 4 · body_text · Требует проверки · уверенность 2.14" [ref=e374] [cursor=pointer]:
+          - generic [ref=e375]:
+            - generic [ref=e377]: keyboard_arrow_down
+            - paragraph [ref=e380]: ⚠️ 4 · body_text · Требует проверки · уверенность 2.14
+        - generic [ref=e382]:
+          - paragraph [ref=e387]:
+            - strong [ref=e388]: Оригинальный текст блока
+          - code [ref=e393]: Благодаря данным, полученным с помощью регрессионного анализа, покупатели смогут сориентироваться в огромном разнообразии предложений рынка недвижимости и сделать выбор на основе своих интересов и возможностей.
+          - paragraph [ref=e398]:
+            - strong [ref=e399]: Причина ручной проверки
+          - paragraph [ref=e404]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e409]:
+            - strong [ref=e410]: Нарушенные правила
+          - paragraph [ref=e415]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e418]:
+        - generic "keyboard_arrow_down ⚠️ 5 · body_text · Требует проверки · уверенность 1.39" [ref=e419] [cursor=pointer]:
+          - generic [ref=e420]:
+            - generic [ref=e422]: keyboard_arrow_down
+            - paragraph [ref=e425]: ⚠️ 5 · body_text · Требует проверки · уверенность 1.39
+        - generic [ref=e427]:
+          - paragraph [ref=e432]:
+            - strong [ref=e433]: Оригинальный текст блока
+          - code [ref=e438]: Таким образом, тема данной курсовой работы является актуальной и востребованной для сферы рынка недвижимости.
+          - paragraph [ref=e443]:
+            - strong [ref=e444]: Причина ручной проверки
+          - paragraph [ref=e449]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e454]:
+            - strong [ref=e455]: Нарушенные правила
+          - paragraph [ref=e460]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e463]:
+        - generic "keyboard_arrow_down ⚠️ 6 · body_text · Требует проверки · уверенность 1.51" [ref=e464] [cursor=pointer]:
+          - generic [ref=e465]:
+            - generic [ref=e467]: keyboard_arrow_down
+            - paragraph [ref=e470]: ⚠️ 6 · body_text · Требует проверки · уверенность 1.51
+        - generic [ref=e472]:
+          - paragraph [ref=e477]:
+            - strong [ref=e478]: Оригинальный текст блока
+          - code [ref=e483]: Цель данной курсовой работы — проведение регрессионного анализа влияния основных характеристик жилья в Эдмонтоне на стоимость этого жилья.
+          - paragraph [ref=e488]:
+            - strong [ref=e489]: Причина ручной проверки
+          - paragraph [ref=e494]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e499]:
+            - strong [ref=e500]: Нарушенные правила
+          - paragraph [ref=e505]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e508]:
+        - generic "keyboard_arrow_down ⚠️ 7 · body_text · Требует проверки · уверенность 0.92" [ref=e509] [cursor=pointer]:
+          - generic [ref=e510]:
+            - generic [ref=e512]: keyboard_arrow_down
+            - paragraph [ref=e515]: ⚠️ 7 · body_text · Требует проверки · уверенность 0.92
+        - generic [ref=e517]:
+          - paragraph [ref=e522]:
+            - strong [ref=e523]: Оригинальный текст блока
+          - code [ref=e528]: "Задачи, решаемые в данной курсовой работе:"
+          - paragraph [ref=e533]:
+            - strong [ref=e534]: Причина ручной проверки
+          - paragraph [ref=e539]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e544]:
+            - strong [ref=e545]: Нарушенные правила
+          - paragraph [ref=e550]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e553]:
+        - generic "keyboard_arrow_down ⚠️ 11 · title_section · Требует проверки · уверенность 1.50" [ref=e554] [cursor=pointer]:
+          - generic [ref=e555]:
+            - generic [ref=e557]: keyboard_arrow_down
+            - paragraph [ref=e560]: ⚠️ 11 · title_section · Требует проверки · уверенность 1.50
+        - generic [ref=e562]:
+          - paragraph [ref=e567]:
+            - strong [ref=e568]: Оригинальный текст блока
+          - code [ref=e573]: 1 ТЕОРЕТИЧЕСКАЯ ЧАСТЬ
+          - paragraph [ref=e578]:
+            - strong [ref=e579]: Причина ручной проверки
+          - paragraph [ref=e584]: heading_inherited_mismatch:field=first_line_indent_cm,actual=1.251,expected=0.0; heading_inherited_mismatch:field=space_after_pt,actual=28.35,expected=10.0
+          - paragraph [ref=e589]:
+            - strong [ref=e590]: Нарушенные правила
+          - paragraph [ref=e595]: heading_indent, heading_space_after_pt
+      - group [ref=e598]:
+        - generic "keyboard_arrow_down ⚠️ 13 · body_text · Требует проверки · уверенность 1.86" [ref=e599] [cursor=pointer]:
+          - generic [ref=e600]:
+            - generic [ref=e602]: keyboard_arrow_down
+            - paragraph [ref=e605]: ⚠️ 13 · body_text · Требует проверки · уверенность 1.86
+        - generic [ref=e607]:
+          - paragraph [ref=e612]:
+            - strong [ref=e613]: Оригинальный текст блока
+          - code [ref=e618]: Регрессионный анализ — это метод изучения статистической взаимосвязи между одной зависимой количественной зависимой переменной от одной или нескольких независимых количественных переменных.
+          - paragraph [ref=e623]:
+            - strong [ref=e624]: Причина ручной проверки
+          - paragraph [ref=e629]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e634]:
+            - strong [ref=e635]: Нарушенные правила
+          - paragraph [ref=e640]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e643]:
+        - generic "keyboard_arrow_down ⚠️ 14 · body_text · Требует проверки · уверенность 1.59" [ref=e644] [cursor=pointer]:
+          - generic [ref=e645]:
+            - generic [ref=e647]: keyboard_arrow_down
+            - paragraph [ref=e650]: ⚠️ 14 · body_text · Требует проверки · уверенность 1.59
+        - generic [ref=e652]:
+          - paragraph [ref=e657]:
+            - strong [ref=e658]: Оригинальный текст блока
+          - code [ref=e663]: Зависимая переменная в регрессионном анализе называется результирующей, а переменные факторы — предикторами или объясняющими переменными.
+          - paragraph [ref=e668]:
+            - strong [ref=e669]: Причина ручной проверки
+          - paragraph [ref=e674]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e679]:
+            - strong [ref=e680]: Нарушенные правила
+          - paragraph [ref=e685]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e688]:
+        - generic "keyboard_arrow_down ⚠️ 15 · body_text · Требует проверки · уверенность 1.79" [ref=e689] [cursor=pointer]:
+          - generic [ref=e690]:
+            - generic [ref=e692]: keyboard_arrow_down
+            - paragraph [ref=e695]: ⚠️ 15 · body_text · Требует проверки · уверенность 1.79
+        - generic [ref=e697]:
+          - paragraph [ref=e702]:
+            - strong [ref=e703]: Оригинальный текст блока
+          - code [ref=e708]: Основы регрессионного анализа были заложены А. Лежандром и Карлом Гауссом в их работах по методу наименьших квадратов в начале XIX в.
+          - paragraph [ref=e713]:
+            - strong [ref=e714]: Причина ручной проверки
+          - paragraph [ref=e719]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e724]:
+            - strong [ref=e725]: Нарушенные правила
+          - paragraph [ref=e730]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e733]:
+        - generic "keyboard_arrow_down ⚠️ 16 · body_text · Требует проверки · уверенность 2.37" [ref=e734] [cursor=pointer]:
+          - generic [ref=e735]:
+            - generic [ref=e737]: keyboard_arrow_down
+            - paragraph [ref=e740]: ⚠️ 16 · body_text · Требует проверки · уверенность 2.37
+        - generic [ref=e742]:
+          - paragraph [ref=e747]:
+            - strong [ref=e748]: Оригинальный текст блока
+          - code [ref=e753]: Регрессионный анализ помогает понять, как «типичное» значение зависимой переменной изменяется при изменении одной из независимых переменных, в то время как другие независимые переменные остаются фиксированными. [1.4]
+          - paragraph [ref=e758]:
+            - strong [ref=e759]: Причина ручной проверки
+          - paragraph [ref=e764]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e769]:
+            - strong [ref=e770]: Нарушенные правила
+          - paragraph [ref=e775]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e778]:
+        - generic "keyboard_arrow_down ⚠️ 17 · body_text · Требует проверки · уверенность 2.99" [ref=e779] [cursor=pointer]:
+          - generic [ref=e780]:
+            - generic [ref=e782]: keyboard_arrow_down
+            - paragraph [ref=e785]: ⚠️ 17 · body_text · Требует проверки · уверенность 2.99
+        - generic [ref=e787]:
+          - paragraph [ref=e792]:
+            - strong [ref=e793]: Оригинальный текст блока
+          - code [ref=e798]: Он применяется в тех случаях, когда необходимо отыскать непосредственно вид зависимости и . При этом предполагается, что независимые факторы являются не случайными величинами, а результативный показатель у имеет постоянную, независимую от факторов дисперсию и стандартное отклонение. [1.5]
+          - paragraph [ref=e803]:
+            - strong [ref=e804]: Причина ручной проверки
+          - paragraph [ref=e809]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e814]:
+            - strong [ref=e815]: Нарушенные правила
+          - paragraph [ref=e820]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e823]:
+        - generic "keyboard_arrow_down ⚠️ 18 · body_text · Требует проверки · уверенность 1.91" [ref=e824] [cursor=pointer]:
+          - generic [ref=e825]:
+            - generic [ref=e827]: keyboard_arrow_down
+            - paragraph [ref=e830]: ⚠️ 18 · body_text · Требует проверки · уверенность 1.91
+        - generic [ref=e832]:
+          - paragraph [ref=e837]:
+            - strong [ref=e838]: Оригинальный текст блока
+          - code [ref=e843]: Регрессионный анализ является одним из наиболее распространенных методов обработки результатов экспериментов при изучении зависимостей в естественных науках, экономике, технике и др. областях.
+          - paragraph [ref=e848]:
+            - strong [ref=e849]: Причина ручной проверки
+          - paragraph [ref=e854]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e859]:
+            - strong [ref=e860]: Нарушенные правила
+          - paragraph [ref=e865]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e868]:
+        - generic "keyboard_arrow_down ⚠️ 19 · body_text · Требует проверки · уверенность 1.57" [ref=e869] [cursor=pointer]:
+          - generic [ref=e870]:
+            - generic [ref=e872]: keyboard_arrow_down
+            - paragraph [ref=e875]: ⚠️ 19 · body_text · Требует проверки · уверенность 1.57
+        - generic [ref=e877]:
+          - paragraph [ref=e882]:
+            - strong [ref=e883]: Оригинальный текст блока
+          - code [ref=e888]: Взаимосвязь между средним значением результирующей переменной и средними значениями предикторов выражается в виде уравнения регрессии.
+          - paragraph [ref=e893]:
+            - strong [ref=e894]: Причина ручной проверки
+          - paragraph [ref=e899]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e904]:
+            - strong [ref=e905]: Нарушенные правила
+          - paragraph [ref=e910]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e913]:
+        - generic "keyboard_arrow_down ⚠️ 20 · body_text · Требует проверки · уверенность 2.37" [ref=e914] [cursor=pointer]:
+          - generic [ref=e915]:
+            - generic [ref=e917]: keyboard_arrow_down
+            - paragraph [ref=e920]: ⚠️ 20 · body_text · Требует проверки · уверенность 2.37
+        - generic [ref=e922]:
+          - paragraph [ref=e927]:
+            - strong [ref=e928]: Оригинальный текст блока
+          - code [ref=e933]: Уравнение регрессии — математическая функция, которая подбирается на основе исходных статистических данных зависимой и объясняющих переменных. Чаще всего используется линейная функция. В этом случае говорят о линейном регрессионном анализе.
+          - paragraph [ref=e938]:
+            - strong [ref=e939]: Причина ручной проверки
+          - paragraph [ref=e944]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e949]:
+            - strong [ref=e950]: Нарушенные правила
+          - paragraph [ref=e955]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e958]:
+        - generic "keyboard_arrow_down ⚠️ 21 · body_text · Требует проверки · уверенность 1.78" [ref=e959] [cursor=pointer]:
+          - generic [ref=e960]:
+            - generic [ref=e962]: keyboard_arrow_down
+            - paragraph [ref=e965]: ⚠️ 21 · body_text · Требует проверки · уверенность 1.78
+        - generic [ref=e967]:
+          - paragraph [ref=e972]:
+            - strong [ref=e973]: Оригинальный текст блока
+          - code [ref=e978]: Регрессионный анализ очень тесно связан с корреляционным анализом. В корреляционном анализе исследуется направление и теснота связи между количественными переменными.
+          - paragraph [ref=e983]:
+            - strong [ref=e984]: Причина ручной проверки
+          - paragraph [ref=e989]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e994]:
+            - strong [ref=e995]: Нарушенные правила
+          - paragraph [ref=e1000]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1003]:
+        - generic "keyboard_arrow_down ⚠️ 22 · body_text · Требует проверки · уверенность 2.14" [ref=e1004] [cursor=pointer]:
+          - generic [ref=e1005]:
+            - generic [ref=e1007]: keyboard_arrow_down
+            - paragraph [ref=e1010]: ⚠️ 22 · body_text · Требует проверки · уверенность 2.14
+        - generic [ref=e1012]:
+          - paragraph [ref=e1017]:
+            - strong [ref=e1018]: Оригинальный текст блока
+          - code [ref=e1023]: В регрессионном анализе исследуется форма зависимости между количественными переменными. Фактически оба метода изучают одну и ту же взаимосвязь, но с разных сторон, и дополняют друг друга.
+          - paragraph [ref=e1028]:
+            - strong [ref=e1029]: Причина ручной проверки
+          - paragraph [ref=e1034]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1039]:
+            - strong [ref=e1040]: Нарушенные правила
+          - paragraph [ref=e1045]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1048]:
+        - generic "keyboard_arrow_down ⚠️ 23 · body_text · Требует проверки · уверенность 2.19" [ref=e1049] [cursor=pointer]:
+          - generic [ref=e1050]:
+            - generic [ref=e1052]: keyboard_arrow_down
+            - paragraph [ref=e1055]: ⚠️ 23 · body_text · Требует проверки · уверенность 2.19
+        - generic [ref=e1057]:
+          - paragraph [ref=e1062]:
+            - strong [ref=e1063]: Оригинальный текст блока
+          - code [ref=e1068]: На практике корреляционный анализ выполняется перед регрессионным анализом. После доказательства наличия взаимосвязи методом корреляционного анализа можно выразить форму этой связи с помощью регрессионного анализа. [1.6]
+          - paragraph [ref=e1073]:
+            - strong [ref=e1074]: Причина ручной проверки
+          - paragraph [ref=e1079]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1084]:
+            - strong [ref=e1085]: Нарушенные правила
+          - paragraph [ref=e1090]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1093]:
+        - generic "keyboard_arrow_down ⚠️ 24 · body_text · Требует проверки · уверенность 1.24" [ref=e1094] [cursor=pointer]:
+          - generic [ref=e1095]:
+            - generic [ref=e1097]: keyboard_arrow_down
+            - paragraph [ref=e1100]: ⚠️ 24 · body_text · Требует проверки · уверенность 1.24
+        - generic [ref=e1102]:
+          - paragraph [ref=e1107]:
+            - strong [ref=e1108]: Оригинальный текст блока
+          - code [ref=e1113]: Как и корреляционный анализ, регрессионный анализ отражает только количественные зависимости между переменными.
+          - paragraph [ref=e1118]:
+            - strong [ref=e1119]: Причина ручной проверки
+          - paragraph [ref=e1124]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1129]:
+            - strong [ref=e1130]: Нарушенные правила
+          - paragraph [ref=e1135]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1138]:
+        - generic "keyboard_arrow_down ⚠️ 25 · body_text · Требует проверки · уверенность 2.16" [ref=e1139] [cursor=pointer]:
+          - generic [ref=e1140]:
+            - generic [ref=e1142]: keyboard_arrow_down
+            - paragraph [ref=e1145]: ⚠️ 25 · body_text · Требует проверки · уверенность 2.16
+        - generic [ref=e1147]:
+          - paragraph [ref=e1152]:
+            - strong [ref=e1153]: Оригинальный текст блока
+          - code [ref=e1158]: Причинно-следственные зависимости регрессионный анализ не отражает. Гипотезы о причинно-следственной связи переменных должны формулироваться и обосновываться исходя из теоретического анализа содержания изучаемого явления. [1.6]
+          - paragraph [ref=e1163]:
+            - strong [ref=e1164]: Причина ручной проверки
+          - paragraph [ref=e1169]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1174]:
+            - strong [ref=e1175]: Нарушенные правила
+          - paragraph [ref=e1180]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1183]:
+        - generic "keyboard_arrow_down ⚠️ 26 · body_text · Требует проверки · уверенность 2.06" [ref=e1184] [cursor=pointer]:
+          - generic [ref=e1185]:
+            - generic [ref=e1187]: keyboard_arrow_down
+            - paragraph [ref=e1190]: ⚠️ 26 · body_text · Требует проверки · уверенность 2.06
+        - generic [ref=e1192]:
+          - paragraph [ref=e1197]:
+            - strong [ref=e1198]: Оригинальный текст блока
+          - code [ref=e1203]: В настоящее время разработано много методов регрессионного анализа. Наиболее популярными из них являются простая и множественная линейная регрессия, среденеквадратическая и логистическая регрессия.
+          - paragraph [ref=e1208]:
+            - strong [ref=e1209]: Причина ручной проверки
+          - paragraph [ref=e1214]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1219]:
+            - strong [ref=e1220]: Нарушенные правила
+          - paragraph [ref=e1225]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1228]:
+        - generic "keyboard_arrow_down ⚠️ 27 · body_text · Требует проверки · уверенность 1.83" [ref=e1229] [cursor=pointer]:
+          - generic [ref=e1230]:
+            - generic [ref=e1232]: keyboard_arrow_down
+            - paragraph [ref=e1235]: ⚠️ 27 · body_text · Требует проверки · уверенность 1.83
+        - generic [ref=e1237]:
+          - paragraph [ref=e1242]:
+            - strong [ref=e1243]: Оригинальный текст блока
+          - code [ref=e1248]: Эти модели являются параметрическими в том смысле, что функция регрессии определяется конечным числом неизвестных параметров, которые оцениваются на основе данных.
+          - paragraph [ref=e1253]:
+            - strong [ref=e1254]: Причина ручной проверки
+          - paragraph [ref=e1259]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1264]:
+            - strong [ref=e1265]: Нарушенные правила
+          - paragraph [ref=e1270]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1273]:
+        - generic "keyboard_arrow_down ⚠️ 28 · body_text · Требует проверки · уверенность 2.43" [ref=e1274] [cursor=pointer]:
+          - generic [ref=e1275]:
+            - generic [ref=e1277]: keyboard_arrow_down
+            - paragraph [ref=e1280]: ⚠️ 28 · body_text · Требует проверки · уверенность 2.43
+        - generic [ref=e1282]:
+          - paragraph [ref=e1287]:
+            - strong [ref=e1288]: Оригинальный текст блока
+          - code [ref=e1293]: В математической статистике линейная регрессия представляет собой метод аппроксимации зависимостей между входными и выходными переменными на основе линейной модели. Является частью более широкой статистической методики, называемой регрессионным анализом.
+          - paragraph [ref=e1298]:
+            - strong [ref=e1299]: Причина ручной проверки
+          - paragraph [ref=e1304]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1309]:
+            - strong [ref=e1310]: Нарушенные правила
+          - paragraph [ref=e1315]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1318]:
+        - generic "keyboard_arrow_down ⚠️ 29 · body_text · Требует проверки · уверенность 2.03" [ref=e1319] [cursor=pointer]:
+          - generic [ref=e1320]:
+            - generic [ref=e1322]: keyboard_arrow_down
+            - paragraph [ref=e1325]: ⚠️ 29 · body_text · Требует проверки · уверенность 2.03
+        - generic [ref=e1327]:
+          - paragraph [ref=e1332]:
+            - strong [ref=e1333]: Оригинальный текст блока
+          - code [ref=e1338]: В статистическом моделировании и машинном обучении входной переменной называют величину, от которой зависит изменение выходной переменной, при этом целью построения модели является аппроксимация этой зависимости.
+          - paragraph [ref=e1343]:
+            - strong [ref=e1344]: Причина ручной проверки
+          - paragraph [ref=e1349]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1354]:
+            - strong [ref=e1355]: Нарушенные правила
+          - paragraph [ref=e1360]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1363]:
+        - generic "keyboard_arrow_down ⚠️ 30 · body_text · Требует проверки · уверенность 0.75" [ref=e1364] [cursor=pointer]:
+          - generic [ref=e1365]:
+            - generic [ref=e1367]: keyboard_arrow_down
+            - paragraph [ref=e1370]: ⚠️ 30 · body_text · Требует проверки · уверенность 0.75
+        - generic [ref=e1372]:
+          - paragraph [ref=e1377]:
+            - strong [ref=e1378]: Оригинальный текст блока
+          - code [ref=e1383]: Рассмотрим метод линейной регрессии.
+          - paragraph [ref=e1388]:
+            - strong [ref=e1389]: Причина ручной проверки
+          - paragraph [ref=e1394]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1399]:
+            - strong [ref=e1400]: Нарушенные правила
+          - paragraph [ref=e1405]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1408]:
+        - generic "keyboard_arrow_down ⚠️ 31 · body_text · Требует проверки · уверенность 1.55" [ref=e1409] [cursor=pointer]:
+          - generic [ref=e1410]:
+            - generic [ref=e1412]: keyboard_arrow_down
+            - paragraph [ref=e1415]: ⚠️ 31 · body_text · Требует проверки · уверенность 1.55
+        - generic [ref=e1417]:
+          - paragraph [ref=e1422]:
+            - strong [ref=e1423]: Оригинальный текст блока
+          - code [ref=e1428]: Под линейностью имеется в виду, что переменная у предположительно находится под влиянием переменной x в зависимости
+          - paragraph [ref=e1433]:
+            - strong [ref=e1434]: Причина ручной проверки
+          - paragraph [ref=e1439]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1444]:
+            - strong [ref=e1445]: Нарушенные правила
+          - paragraph [ref=e1450]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1453]:
+        - generic "keyboard_arrow_down ⚠️ 33 · body_text · Требует проверки · уверенность 0.47" [ref=e1454] [cursor=pointer]:
+          - generic [ref=e1455]:
+            - generic [ref=e1457]: keyboard_arrow_down
+            - paragraph [ref=e1460]: ⚠️ 33 · body_text · Требует проверки · уверенность 0.47
+        - generic [ref=e1462]:
+          - paragraph [ref=e1467]:
+            - strong [ref=e1468]: Оригинальный текст блока
+          - code [ref=e1473]: где — постоянная величина (или свободный член уравнения);
+          - paragraph [ref=e1478]:
+            - strong [ref=e1479]: Причина ручной проверки
+          - paragraph [ref=e1484]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1489]:
+            - strong [ref=e1490]: Нарушенные правила
+          - paragraph [ref=e1495]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1498]:
+        - generic "keyboard_arrow_down ⚠️ 34 · list_item · Требует проверки · уверенность 1.08" [ref=e1499] [cursor=pointer]:
+          - generic [ref=e1500]:
+            - generic [ref=e1502]: keyboard_arrow_down
+            - paragraph [ref=e1505]: ⚠️ 34 · list_item · Требует проверки · уверенность 1.08
+        - generic [ref=e1507]:
+          - paragraph [ref=e1512]:
+            - strong [ref=e1513]: Оригинальный текст блока
+          - code [ref=e1518]: — коэффициент регрессии;
+          - paragraph [ref=e1523]:
+            - strong [ref=e1524]: Причина ручной проверки
+          - paragraph [ref=e1529]: "list_item_layout: list layout is inherited or incomplete"
+          - paragraph [ref=e1534]:
+            - strong [ref=e1535]: Нарушенные правила
+          - paragraph [ref=e1540]: list_item_layout
+      - group [ref=e1543]:
+        - generic "keyboard_arrow_down ⚠️ 35 · list_item · Требует проверки · уверенность 1.07" [ref=e1544] [cursor=pointer]:
+          - generic [ref=e1545]:
+            - generic [ref=e1547]: keyboard_arrow_down
+            - paragraph [ref=e1550]: ⚠️ 35 · list_item · Требует проверки · уверенность 1.07
+        - generic [ref=e1552]:
+          - paragraph [ref=e1557]:
+            - strong [ref=e1558]: Оригинальный текст блока
+          - code [ref=e1563]: — независимая нормально распределенная величина — остаток с нулевым математическим ожиданием и постоянной дисперсией.
+          - paragraph [ref=e1568]:
+            - strong [ref=e1569]: Причина ручной проверки
+          - paragraph [ref=e1574]: "list_item_layout: list layout is inherited or incomplete"
+          - paragraph [ref=e1579]:
+            - strong [ref=e1580]: Нарушенные правила
+          - paragraph [ref=e1585]: list_item_layout
+      - group [ref=e1588]:
+        - generic "keyboard_arrow_down ⚠️ 37 · body_text · Требует проверки · уверенность 0.32" [ref=e1589] [cursor=pointer]:
+          - generic [ref=e1590]:
+            - generic [ref=e1592]: keyboard_arrow_down
+            - paragraph [ref=e1595]: ⚠️ 37 · body_text · Требует проверки · уверенность 0.32
+        - generic [ref=e1597]:
+          - paragraph [ref=e1602]:
+            - strong [ref=e1603]: Оригинальный текст блока
+          - code [ref=e1608]: где — среднее квадратическое отклонение.
+          - paragraph [ref=e1613]:
+            - strong [ref=e1614]: Причина ручной проверки
+          - paragraph [ref=e1619]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1624]:
+            - strong [ref=e1625]: Нарушенные правила
+          - paragraph [ref=e1630]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1633]:
+        - generic "keyboard_arrow_down ⚠️ 38 · body_text · Требует проверки · уверенность 1.87" [ref=e1634] [cursor=pointer]:
+          - generic [ref=e1635]:
+            - generic [ref=e1637]: keyboard_arrow_down
+            - paragraph [ref=e1640]: ⚠️ 38 · body_text · Требует проверки · уверенность 1.87
+        - generic [ref=e1642]:
+          - paragraph [ref=e1647]:
+            - strong [ref=e1648]: Оригинальный текст блока
+          - code [ref=e1653]: "Среднее квадратическое отклонение отражает тот факт, что изменение будет неточно описываться изменением : присутствуют другие факты, не учтенные в данной модели."
+          - paragraph [ref=e1658]:
+            - strong [ref=e1659]: Причина ручной проверки
+          - paragraph [ref=e1664]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1669]:
+            - strong [ref=e1670]: Нарушенные правила
+          - paragraph [ref=e1675]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1678]:
+        - generic "keyboard_arrow_down ⚠️ 39 · body_text · Требует проверки · уверенность 2.64" [ref=e1679] [cursor=pointer]:
+          - generic [ref=e1680]:
+            - generic [ref=e1682]: keyboard_arrow_down
+            - paragraph [ref=e1685]: ⚠️ 39 · body_text · Требует проверки · уверенность 2.64
+        - generic [ref=e1687]:
+          - paragraph [ref=e1692]:
+            - strong [ref=e1693]: Оригинальный текст блока
+          - code [ref=e1698]: Коэффициент определяющий наклон линии, вдоль которой рассеяны данные наблюдения. Это показатель, характеризующий изменение переменной при изменении значения xi на единицу. Если , переменные и положительно коррелированные, если же коэффициент — отрицательно коррелированные,
+          - paragraph [ref=e1703]:
+            - strong [ref=e1704]: Причина ручной проверки
+          - paragraph [ref=e1709]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1714]:
+            - strong [ref=e1715]: Нарушенные правила
+          - paragraph [ref=e1720]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1723]:
+        - generic "keyboard_arrow_down ⚠️ 40 · body_text · Требует проверки · уверенность 2.08" [ref=e1724] [cursor=pointer]:
+          - generic [ref=e1725]:
+            - generic [ref=e1727]: keyboard_arrow_down
+            - paragraph [ref=e1730]: ⚠️ 40 · body_text · Требует проверки · уверенность 2.08
+        - generic [ref=e1732]:
+          - paragraph [ref=e1737]:
+            - strong [ref=e1738]: Оригинальный текст блока
+          - code [ref=e1743]: Коэффициенты и , называемые также параметрами модели, определяются таким образом, чтобы сумма квадратов отклонений точек, соответствующих реальным наблюдениям данных, от линии регрессии была бы минимальной.
+          - paragraph [ref=e1748]:
+            - strong [ref=e1749]: Причина ручной проверки
+          - paragraph [ref=e1754]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1759]:
+            - strong [ref=e1760]: Нарушенные правила
+          - paragraph [ref=e1765]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1768]:
+        - generic "keyboard_arrow_down ⚠️ 41 · body_text · Требует проверки · уверенность 1.04" [ref=e1769] [cursor=pointer]:
+          - generic [ref=e1770]:
+            - generic [ref=e1772]: keyboard_arrow_down
+            - paragraph [ref=e1775]: ⚠️ 41 · body_text · Требует проверки · уверенность 1.04
+        - generic [ref=e1777]:
+          - paragraph [ref=e1782]:
+            - strong [ref=e1783]: Оригинальный текст блока
+          - code [ref=e1788]: Коэффициенты обычно оцениваются методом наименьших квадратов (МНК).
+          - paragraph [ref=e1793]:
+            - strong [ref=e1794]: Причина ручной проверки
+          - paragraph [ref=e1799]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1804]:
+            - strong [ref=e1805]: Нарушенные правила
+          - paragraph [ref=e1810]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1813]:
+        - generic "keyboard_arrow_down ⚠️ 42 · body_text · Требует проверки · уверенность 1.62" [ref=e1814] [cursor=pointer]:
+          - generic [ref=e1815]:
+            - generic [ref=e1817]: keyboard_arrow_down
+            - paragraph [ref=e1820]: ⚠️ 42 · body_text · Требует проверки · уверенность 1.62
+        - generic [ref=e1822]:
+          - paragraph [ref=e1827]:
+            - strong [ref=e1828]: Оригинальный текст блока
+          - code [ref=e1833]: Метод наименьших квадратов (МНК) — математический подход для оценки параметров моделей на основании экспериментальных данных, содержащих случайные ошибки.
+          - paragraph [ref=e1838]:
+            - strong [ref=e1839]: Причина ручной проверки
+          - paragraph [ref=e1844]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1849]:
+            - strong [ref=e1850]: Нарушенные правила
+          - paragraph [ref=e1855]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1858]:
+        - generic "keyboard_arrow_down ⚠️ 43 · body_text · Требует проверки · уверенность 1.46" [ref=e1859] [cursor=pointer]:
+          - generic [ref=e1860]:
+            - generic [ref=e1862]: keyboard_arrow_down
+            - paragraph [ref=e1865]: ⚠️ 43 · body_text · Требует проверки · уверенность 1.46
+        - generic [ref=e1867]:
+          - paragraph [ref=e1872]:
+            - strong [ref=e1873]: Оригинальный текст блока
+          - code [ref=e1878]: Если данные известны с некоторой погрешностью, то вместо неизвестного точного значения параметра модели используется приближенное.
+          - paragraph [ref=e1883]:
+            - strong [ref=e1884]: Причина ручной проверки
+          - paragraph [ref=e1889]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1894]:
+            - strong [ref=e1895]: Нарушенные правила
+          - paragraph [ref=e1900]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1903]:
+        - generic "keyboard_arrow_down ⚠️ 44 · body_text · Требует проверки · уверенность 1.81" [ref=e1904] [cursor=pointer]:
+          - generic [ref=e1905]:
+            - generic [ref=e1907]: keyboard_arrow_down
+            - paragraph [ref=e1910]: ⚠️ 44 · body_text · Требует проверки · уверенность 1.81
+        - generic [ref=e1912]:
+          - paragraph [ref=e1917]:
+            - strong [ref=e1918]: Оригинальный текст блока
+          - code [ref=e1923]: Поэтому параметры модели должны быть рассчитаны так, чтобы минимизировать разницу между экспериментальными данными и теоретическими (вычисленными при помощи предложенной модели).
+          - paragraph [ref=e1928]:
+            - strong [ref=e1929]: Причина ручной проверки
+          - paragraph [ref=e1934]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1939]:
+            - strong [ref=e1940]: Нарушенные правила
+          - paragraph [ref=e1945]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1948]:
+        - generic "keyboard_arrow_down ⚠️ 45 · body_text · Требует проверки · уверенность 1.92" [ref=e1949] [cursor=pointer]:
+          - generic [ref=e1950]:
+            - generic [ref=e1952]: keyboard_arrow_down
+            - paragraph [ref=e1955]: ⚠️ 45 · body_text · Требует проверки · уверенность 1.92
+        - generic [ref=e1957]:
+          - paragraph [ref=e1962]:
+            - strong [ref=e1963]: Оригинальный текст блока
+          - code [ref=e1968]: "Мерой рассогласования между фактическими значениями и значениями, оцененными моделью в методе наименьших квадратов, служит сумма квадратов разностей между ними, т.е.:"
+          - paragraph [ref=e1973]:
+            - strong [ref=e1974]: Причина ручной проверки
+          - paragraph [ref=e1979]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e1984]:
+            - strong [ref=e1985]: Нарушенные правила
+          - paragraph [ref=e1990]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e1993]:
+        - generic "keyboard_arrow_down ⚠️ 47 · body_text · Требует проверки · уверенность 0.48" [ref=e1994] [cursor=pointer]:
+          - generic [ref=e1995]:
+            - generic [ref=e1997]: keyboard_arrow_down
+            - paragraph [ref=e2000]: ⚠️ 47 · body_text · Требует проверки · уверенность 0.48
+        - generic [ref=e2002]:
+          - paragraph [ref=e2007]:
+            - strong [ref=e2008]: Оригинальный текст блока
+          - code [ref=e2013]: где — оценка, полученная с помощью модели;
+          - paragraph [ref=e2018]:
+            - strong [ref=e2019]: Причина ручной проверки
+          - paragraph [ref=e2024]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2029]:
+            - strong [ref=e2030]: Нарушенные правила
+          - paragraph [ref=e2035]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2038]:
+        - generic "keyboard_arrow_down ⚠️ 48 · list_item · Требует проверки · уверенность 0.97" [ref=e2039] [cursor=pointer]:
+          - generic [ref=e2040]:
+            - generic [ref=e2042]: keyboard_arrow_down
+            - paragraph [ref=e2045]: ⚠️ 48 · list_item · Требует проверки · уверенность 0.97
+        - generic [ref=e2047]:
+          - paragraph [ref=e2052]:
+            - strong [ref=e2053]: Оригинальный текст блока
+          - code [ref=e2058]: — фактическое наблюдаемое значение.
+          - paragraph [ref=e2063]:
+            - strong [ref=e2064]: Причина ручной проверки
+          - paragraph [ref=e2069]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e2074]:
+            - strong [ref=e2075]: Нарушенные правила
+          - paragraph [ref=e2080]: list_item_layout, list_item_alignment
+      - group [ref=e2083]:
+        - generic "keyboard_arrow_down ⚠️ 49 · body_text · Требует проверки · уверенность 1.06" [ref=e2084] [cursor=pointer]:
+          - generic [ref=e2085]:
+            - generic [ref=e2087]: keyboard_arrow_down
+            - paragraph [ref=e2090]: ⚠️ 49 · body_text · Требует проверки · уверенность 1.06
+        - generic [ref=e2092]:
+          - paragraph [ref=e2097]:
+            - strong [ref=e2098]: Оригинальный текст блока
+          - code [ref=e2103]: Очевидно, что лучшей будет та модель, которая минимизирует данную сумму.
+          - paragraph [ref=e2108]:
+            - strong [ref=e2109]: Причина ручной проверки
+          - paragraph [ref=e2114]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2119]:
+            - strong [ref=e2120]: Нарушенные правила
+          - paragraph [ref=e2125]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2128]:
+        - generic "keyboard_arrow_down ⚠️ 50 · body_text · Требует проверки · уверенность 1.44" [ref=e2129] [cursor=pointer]:
+          - generic [ref=e2130]:
+            - generic [ref=e2132]: keyboard_arrow_down
+            - paragraph [ref=e2135]: ⚠️ 50 · body_text · Требует проверки · уверенность 1.44
+        - generic [ref=e2137]:
+          - paragraph [ref=e2142]:
+            - strong [ref=e2143]: Оригинальный текст блока
+          - code [ref=e2148]: Важнейшим применением МНК в анализе данных является линейная регрессия, где параметры регрессионной модели вычисляются таким образом, чтобы сумма квадратов расстояний от линии регрессии до фактических значений данных была минимальной.
+          - paragraph [ref=e2153]:
+            - strong [ref=e2154]: Причина ручной проверки
+          - paragraph [ref=e2159]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2164]:
+            - strong [ref=e2165]: Нарушенные правила
+          - paragraph [ref=e2170]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2173]:
+        - generic "keyboard_arrow_down ⚠️ 51 · body_text · Требует проверки · уверенность 0.90" [ref=e2174] [cursor=pointer]:
+          - generic [ref=e2175]:
+            - generic [ref=e2177]: keyboard_arrow_down
+            - paragraph [ref=e2180]: ⚠️ 51 · body_text · Требует проверки · уверенность 0.90
+        - generic [ref=e2182]:
+          - paragraph [ref=e2187]:
+            - strong [ref=e2188]: Оригинальный текст блока
+          - code [ref=e2193]: "Основные задачи регрессионного анализа следующие:"
+          - paragraph [ref=e2198]:
+            - strong [ref=e2199]: Причина ручной проверки
+          - paragraph [ref=e2204]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2209]:
+            - strong [ref=e2210]: Нарушенные правила
+          - paragraph [ref=e2215]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2218]:
+        - generic "keyboard_arrow_down ⚠️ 56 · list_item · Требует проверки · уверенность 0.80" [ref=e2219] [cursor=pointer]:
+          - generic [ref=e2220]:
+            - generic [ref=e2222]: keyboard_arrow_down
+            - paragraph [ref=e2225]: ⚠️ 56 · list_item · Требует проверки · уверенность 0.80
+        - generic [ref=e2227]:
+          - paragraph [ref=e2232]:
+            - strong [ref=e2233]: Оригинальный текст блока
+          - code [ref=e2238]: построение интервальных оценок коэффициентов.
+          - paragraph [ref=e2243]:
+            - strong [ref=e2244]: Причина ручной проверки
+          - paragraph [ref=e2249]: "list_item_alignment: expected alignment=JUSTIFY; list_item_line_spacing: expected line_spacing=1.5"
+          - paragraph [ref=e2254]:
+            - strong [ref=e2255]: Нарушенные правила
+          - paragraph [ref=e2260]: list_item_alignment, list_item_line_spacing
+      - group [ref=e2263]:
+        - generic "keyboard_arrow_down ⚠️ 57 · title_subsection · Требует проверки · уверенность 0.16" [ref=e2264] [cursor=pointer]:
+          - generic [ref=e2265]:
+            - generic [ref=e2267]: keyboard_arrow_down
+            - paragraph [ref=e2270]: ⚠️ 57 · title_subsection · Требует проверки · уверенность 0.16
+        - generic [ref=e2272]:
+          - paragraph [ref=e2277]:
+            - strong [ref=e2278]: Оригинальный текст блока
+          - code [ref=e2283]: 1.2 Elastic-Net
+          - paragraph [ref=e2288]:
+            - strong [ref=e2289]: Причина ручной проверки
+          - paragraph [ref=e2294]: heading_inherited_mismatch:field=first_line_indent_cm,actual=1.251,expected=0.0; heading_inherited_mismatch:field=space_before_pt,actual=42.5,expected=15.0; heading_inherited_mismatch:field=space_after_pt,actual=28.35,expected=10.0
+          - paragraph [ref=e2299]:
+            - strong [ref=e2300]: Нарушенные правила
+          - paragraph [ref=e2305]: heading_indent, heading_subsection_space_before_pt, heading_space_after_pt
+      - group [ref=e2308]:
+        - generic "keyboard_arrow_down ⚠️ 58 · body_text · Требует проверки · уверенность 2.03" [ref=e2309] [cursor=pointer]:
+          - generic [ref=e2310]:
+            - generic [ref=e2312]: keyboard_arrow_down
+            - paragraph [ref=e2315]: ⚠️ 58 · body_text · Требует проверки · уверенность 2.03
+        - generic [ref=e2317]:
+          - paragraph [ref=e2322]:
+            - strong [ref=e2323]: Оригинальный текст блока
+          - code [ref=e2328]: Метод Elastic-Net был предложен в статье 2005 года «Регуляризация и отбор переменных с помощью Elastic-Net». Разберёмся поподробнее с этим методом. [1.9]
+          - paragraph [ref=e2333]:
+            - strong [ref=e2334]: Причина ручной проверки
+          - paragraph [ref=e2339]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2344]:
+            - strong [ref=e2345]: Нарушенные правила
+          - paragraph [ref=e2350]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2353]:
+        - generic "keyboard_arrow_down ⚠️ 59 · body_text · Требует проверки · уверенность 1.70" [ref=e2354] [cursor=pointer]:
+          - generic [ref=e2355]:
+            - generic [ref=e2357]: keyboard_arrow_down
+            - paragraph [ref=e2360]: ⚠️ 59 · body_text · Требует проверки · уверенность 1.70
+        - generic [ref=e2362]:
+          - paragraph [ref=e2367]:
+            - strong [ref=e2368]: Оригинальный текст блока
+          - code [ref=e2373]: Регуляризация — метод добавления некоторых дополнительных ограничений к условию с целью предотвращения переобучения модели или решения некорректно поставленной задачи.
+          - paragraph [ref=e2378]:
+            - strong [ref=e2379]: Причина ручной проверки
+          - paragraph [ref=e2384]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2389]:
+            - strong [ref=e2390]: Нарушенные правила
+          - paragraph [ref=e2395]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2398]:
+        - generic "keyboard_arrow_down ⚠️ 60 · body_text · Требует проверки · уверенность 2.75" [ref=e2399] [cursor=pointer]:
+          - generic [ref=e2400]:
+            - generic [ref=e2402]: keyboard_arrow_down
+            - paragraph [ref=e2405]: ⚠️ 60 · body_text · Требует проверки · уверенность 2.75
+        - generic [ref=e2407]:
+          - paragraph [ref=e2412]:
+            - strong [ref=e2413]: Оригинальный текст блока
+          - code [ref=e2418]: Переобучение модели возникает, если, например, была выбрана достаточно сложная модель и при этом набор данных либо слишком мал, либо некачественный. В итоге можно получить модель, которая на обучающей выборке показывает хорошие результаты, но при этом на тестовую не обобщается.
+          - paragraph [ref=e2423]:
+            - strong [ref=e2424]: Причина ручной проверки
+          - paragraph [ref=e2429]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2434]:
+            - strong [ref=e2435]: Нарушенные правила
+          - paragraph [ref=e2440]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2443]:
+        - generic "keyboard_arrow_down ⚠️ 61 · body_text · Требует проверки · уверенность 1.57" [ref=e2444] [cursor=pointer]:
+          - generic [ref=e2445]:
+            - generic [ref=e2447]: keyboard_arrow_down
+            - paragraph [ref=e2450]: ⚠️ 61 · body_text · Требует проверки · уверенность 1.57
+        - generic [ref=e2452]:
+          - paragraph [ref=e2457]:
+            - strong [ref=e2458]: Оригинальный текст блока
+          - code [ref=e2463]: "Метод регуляризации Elastic-net является линейной комбинацией двух других методов регуляризации: Lasso и Ridge. [1.9]"
+          - paragraph [ref=e2468]:
+            - strong [ref=e2469]: Причина ручной проверки
+          - paragraph [ref=e2474]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2479]:
+            - strong [ref=e2480]: Нарушенные правила
+          - paragraph [ref=e2485]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2488]:
+        - generic "keyboard_arrow_down ⚠️ 62 · body_text · Требует проверки · уверенность 2.33" [ref=e2489] [cursor=pointer]:
+          - generic [ref=e2490]:
+            - generic [ref=e2492]: keyboard_arrow_down
+            - paragraph [ref=e2495]: ⚠️ 62 · body_text · Требует проверки · уверенность 2.33
+        - generic [ref=e2497]:
+          - paragraph [ref=e2502]:
+            - strong [ref=e2503]: Оригинальный текст блока
+          - code [ref=e2508]: Метод Ridge минимизирует остаточную сумму квадратов коэффициентов с учётом -нормы. Как метод непрерывного сокращения, гребневая регрессия обеспечивает лучшую эффективность прогнозирования за счет компромисса между смещением и дисперсией.
+          - paragraph [ref=e2513]:
+            - strong [ref=e2514]: Причина ручной проверки
+          - paragraph [ref=e2519]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2524]:
+            - strong [ref=e2525]: Нарушенные правила
+          - paragraph [ref=e2530]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2533]:
+        - generic "keyboard_arrow_down ⚠️ 63 · body_text · Требует проверки · уверенность 2.46" [ref=e2534] [cursor=pointer]:
+          - generic [ref=e2535]:
+            - generic [ref=e2537]: keyboard_arrow_down
+            - paragraph [ref=e2540]: ⚠️ 63 · body_text · Требует проверки · уверенность 2.46
+        - generic [ref=e2542]:
+          - paragraph [ref=e2547]:
+            - strong [ref=e2548]: Оригинальный текст блока
+          - code [ref=e2553]: Однако Ridge регрессия не может создать экономичную модель, поскольку она всегда сохраняет в модели все предикторы. Напротив, лучший выбор подмножества дает разреженную модель, но она чрезвычайно изменчива из-за присущей ей дискретности
+          - paragraph [ref=e2558]:
+            - strong [ref=e2559]: Причина ручной проверки
+          - paragraph [ref=e2564]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2569]:
+            - strong [ref=e2570]: Нарушенные правила
+          - paragraph [ref=e2575]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2578]:
+        - generic "keyboard_arrow_down ⚠️ 64 · body_text · Требует проверки · уверенность 1.42" [ref=e2579] [cursor=pointer]:
+          - generic [ref=e2580]:
+            - generic [ref=e2582]: keyboard_arrow_down
+            - paragraph [ref=e2585]: ⚠️ 64 · body_text · Требует проверки · уверенность 1.42
+        - generic [ref=e2587]:
+          - paragraph [ref=e2592]:
+            - strong [ref=e2593]: Оригинальный текст блока
+          - code [ref=e2598]: "Если взять в качестве функции потерь взять функцию из МНК, то Ridge-регуляризация определяется следующей формулой:"
+          - paragraph [ref=e2603]:
+            - strong [ref=e2604]: Причина ручной проверки
+          - paragraph [ref=e2609]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2614]:
+            - strong [ref=e2615]: Нарушенные правила
+          - paragraph [ref=e2620]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2623]:
+        - generic "keyboard_arrow_down ⚠️ 66 · body_text · Требует проверки · уверенность 0.48" [ref=e2624] [cursor=pointer]:
+          - generic [ref=e2625]:
+            - generic [ref=e2627]: keyboard_arrow_down
+            - paragraph [ref=e2630]: ⚠️ 66 · body_text · Требует проверки · уверенность 0.48
+        - generic [ref=e2632]:
+          - paragraph [ref=e2637]:
+            - strong [ref=e2638]: Оригинальный текст блока
+          - code [ref=e2643]: где — оценка, полученная с помощью модели;
+          - paragraph [ref=e2648]:
+            - strong [ref=e2649]: Причина ручной проверки
+          - paragraph [ref=e2654]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2659]:
+            - strong [ref=e2660]: Нарушенные правила
+          - paragraph [ref=e2665]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2668]:
+        - generic "keyboard_arrow_down ⚠️ 67 · list_item · Требует проверки · уверенность 1.09" [ref=e2669] [cursor=pointer]:
+          - generic [ref=e2670]:
+            - generic [ref=e2672]: keyboard_arrow_down
+            - paragraph [ref=e2675]: ⚠️ 67 · list_item · Требует проверки · уверенность 1.09
+        - generic [ref=e2677]:
+          - paragraph [ref=e2682]:
+            - strong [ref=e2683]: Оригинальный текст блока
+          - code [ref=e2688]: — фактическое наблюдаемое значение;
+          - paragraph [ref=e2693]:
+            - strong [ref=e2694]: Причина ручной проверки
+          - paragraph [ref=e2699]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e2704]:
+            - strong [ref=e2705]: Нарушенные правила
+          - paragraph [ref=e2710]: list_item_layout, list_item_alignment
+      - group [ref=e2713]:
+        - generic "keyboard_arrow_down ⚠️ 68 · list_item · Требует проверки · уверенность 1.11" [ref=e2714] [cursor=pointer]:
+          - generic [ref=e2715]:
+            - generic [ref=e2717]: keyboard_arrow_down
+            - paragraph [ref=e2720]: ⚠️ 68 · list_item · Требует проверки · уверенность 1.11
+        - generic [ref=e2722]:
+          - paragraph [ref=e2727]:
+            - strong [ref=e2728]: Оригинальный текст блока
+          - code [ref=e2733]: — вектор параметров модели;
+          - paragraph [ref=e2738]:
+            - strong [ref=e2739]: Причина ручной проверки
+          - paragraph [ref=e2744]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e2749]:
+            - strong [ref=e2750]: Нарушенные правила
+          - paragraph [ref=e2755]: list_item_layout, list_item_alignment
+      - group [ref=e2758]:
+        - generic "keyboard_arrow_down ⚠️ 69 · list_item · Требует проверки · уверенность 0.99" [ref=e2759] [cursor=pointer]:
+          - generic [ref=e2760]:
+            - generic [ref=e2762]: keyboard_arrow_down
+            - paragraph [ref=e2765]: ⚠️ 69 · list_item · Требует проверки · уверенность 0.99
+        - generic [ref=e2767]:
+          - paragraph [ref=e2772]:
+            - strong [ref=e2773]: Оригинальный текст блока
+          - code [ref=e2778]: — неотрицательный гиперпараметр.
+          - paragraph [ref=e2783]:
+            - strong [ref=e2784]: Причина ручной проверки
+          - paragraph [ref=e2789]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e2794]:
+            - strong [ref=e2795]: Нарушенные правила
+          - paragraph [ref=e2800]: list_item_layout, list_item_alignment
+      - group [ref=e2803]:
+        - generic "keyboard_arrow_down ⚠️ 70 · body_text · Требует проверки · уверенность 1.52" [ref=e2804] [cursor=pointer]:
+          - generic [ref=e2805]:
+            - generic [ref=e2807]: keyboard_arrow_down
+            - paragraph [ref=e2810]: ⚠️ 70 · body_text · Требует проверки · уверенность 1.52
+        - generic [ref=e2812]:
+          - paragraph [ref=e2817]:
+            - strong [ref=e2818]: Оригинальный текст блока
+          - code [ref=e2823]: Метод Lasso — это метод наименьших квадратов с наложением штрафа на коэффициенты регрессии соответствующие -норме.
+          - paragraph [ref=e2828]:
+            - strong [ref=e2829]: Причина ручной проверки
+          - paragraph [ref=e2834]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2839]:
+            - strong [ref=e2840]: Нарушенные правила
+          - paragraph [ref=e2845]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2848]:
+        - generic "keyboard_arrow_down ⚠️ 71 · body_text · Требует проверки · уверенность 1.39" [ref=e2849] [cursor=pointer]:
+          - generic [ref=e2850]:
+            - generic [ref=e2852]: keyboard_arrow_down
+            - paragraph [ref=e2855]: ⚠️ 71 · body_text · Требует проверки · уверенность 1.39
+        - generic [ref=e2857]:
+          - paragraph [ref=e2862]:
+            - strong [ref=e2863]: Оригинальный текст блока
+          - code [ref=e2868]: Из-за характера штрафа Lasso одновременно выполняет как непрерывное сжатие, так и выбор переменных.
+          - paragraph [ref=e2873]:
+            - strong [ref=e2874]: Причина ручной проверки
+          - paragraph [ref=e2879]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2884]:
+            - strong [ref=e2885]: Нарушенные правила
+          - paragraph [ref=e2890]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2893]:
+        - generic "keyboard_arrow_down ⚠️ 72 · body_text · Требует проверки · уверенность 1.31" [ref=e2894] [cursor=pointer]:
+          - generic [ref=e2895]:
+            - generic [ref=e2897]: keyboard_arrow_down
+            - paragraph [ref=e2900]: ⚠️ 72 · body_text · Требует проверки · уверенность 1.31
+        - generic [ref=e2902]:
+          - paragraph [ref=e2907]:
+            - strong [ref=e2908]: Оригинальный текст блока
+          - code [ref=e2913]: "При допущениях, аналогичных случаю Ridge-регрессии Lasso-регрессия определяется следующей формулой:"
+          - paragraph [ref=e2918]:
+            - strong [ref=e2919]: Причина ручной проверки
+          - paragraph [ref=e2924]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2929]:
+            - strong [ref=e2930]: Нарушенные правила
+          - paragraph [ref=e2935]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2938]:
+        - generic "keyboard_arrow_down ⚠️ 74 · body_text · Требует проверки · уверенность 0.48" [ref=e2939] [cursor=pointer]:
+          - generic [ref=e2940]:
+            - generic [ref=e2942]: keyboard_arrow_down
+            - paragraph [ref=e2945]: ⚠️ 74 · body_text · Требует проверки · уверенность 0.48
+        - generic [ref=e2947]:
+          - paragraph [ref=e2952]:
+            - strong [ref=e2953]: Оригинальный текст блока
+          - code [ref=e2958]: где — оценка, полученная с помощью модели;
+          - paragraph [ref=e2963]:
+            - strong [ref=e2964]: Причина ручной проверки
+          - paragraph [ref=e2969]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e2974]:
+            - strong [ref=e2975]: Нарушенные правила
+          - paragraph [ref=e2980]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e2983]:
+        - generic "keyboard_arrow_down ⚠️ 75 · list_item · Требует проверки · уверенность 1.09" [ref=e2984] [cursor=pointer]:
+          - generic [ref=e2985]:
+            - generic [ref=e2987]: keyboard_arrow_down
+            - paragraph [ref=e2990]: ⚠️ 75 · list_item · Требует проверки · уверенность 1.09
+        - generic [ref=e2992]:
+          - paragraph [ref=e2997]:
+            - strong [ref=e2998]: Оригинальный текст блока
+          - code [ref=e3003]: — фактическое наблюдаемое значение;
+          - paragraph [ref=e3008]:
+            - strong [ref=e3009]: Причина ручной проверки
+          - paragraph [ref=e3014]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e3019]:
+            - strong [ref=e3020]: Нарушенные правила
+          - paragraph [ref=e3025]: list_item_layout, list_item_alignment
+      - group [ref=e3028]:
+        - generic "keyboard_arrow_down ⚠️ 76 · list_item · Требует проверки · уверенность 1.11" [ref=e3029] [cursor=pointer]:
+          - generic [ref=e3030]:
+            - generic [ref=e3032]: keyboard_arrow_down
+            - paragraph [ref=e3035]: ⚠️ 76 · list_item · Требует проверки · уверенность 1.11
+        - generic [ref=e3037]:
+          - paragraph [ref=e3042]:
+            - strong [ref=e3043]: Оригинальный текст блока
+          - code [ref=e3048]: — вектор параметров модели;
+          - paragraph [ref=e3053]:
+            - strong [ref=e3054]: Причина ручной проверки
+          - paragraph [ref=e3059]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e3064]:
+            - strong [ref=e3065]: Нарушенные правила
+          - paragraph [ref=e3070]: list_item_layout, list_item_alignment
+      - group [ref=e3073]:
+        - generic "keyboard_arrow_down ⚠️ 77 · list_item · Требует проверки · уверенность 0.99" [ref=e3074] [cursor=pointer]:
+          - generic [ref=e3075]:
+            - generic [ref=e3077]: keyboard_arrow_down
+            - paragraph [ref=e3080]: ⚠️ 77 · list_item · Требует проверки · уверенность 0.99
+        - generic [ref=e3082]:
+          - paragraph [ref=e3087]:
+            - strong [ref=e3088]: Оригинальный текст блока
+          - code [ref=e3093]: — неотрицательный гиперпараметр.
+          - paragraph [ref=e3098]:
+            - strong [ref=e3099]: Причина ручной проверки
+          - paragraph [ref=e3104]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e3109]:
+            - strong [ref=e3110]: Нарушенные правила
+          - paragraph [ref=e3115]: list_item_layout, list_item_alignment
+      - group [ref=e3118]:
+        - generic "keyboard_arrow_down ⚠️ 78 · body_text · Требует проверки · уверенность 1.47" [ref=e3119] [cursor=pointer]:
+          - generic [ref=e3120]:
+            - generic [ref=e3122]: keyboard_arrow_down
+            - paragraph [ref=e3125]: ⚠️ 78 · body_text · Требует проверки · уверенность 1.47
+        - generic [ref=e3127]:
+          - paragraph [ref=e3132]:
+            - strong [ref=e3133]: Оригинальный текст блока
+          - code [ref=e3138]: Однако, насколько хорошими не были бы эти два методы, ни один из них не доминирует над другим.
+          - paragraph [ref=e3143]:
+            - strong [ref=e3144]: Причина ручной проверки
+          - paragraph [ref=e3149]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3154]:
+            - strong [ref=e3155]: Нарушенные правила
+          - paragraph [ref=e3160]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3163]:
+        - generic "keyboard_arrow_down ⚠️ 79 · body_text · Требует проверки · уверенность 2.01" [ref=e3164] [cursor=pointer]:
+          - generic [ref=e3165]:
+            - generic [ref=e3167]: keyboard_arrow_down
+            - paragraph [ref=e3170]: ⚠️ 79 · body_text · Требует проверки · уверенность 2.01
+        - generic [ref=e3172]:
+          - paragraph [ref=e3177]:
+            - strong [ref=e3178]: Оригинальный текст блока
+          - code [ref=e3183]: Тем не менее, Lasso-методика в настоящее время, когда выбор переменных является существенно важной частью анализа данных, гораздо более привлекательна. [1.9]
+          - paragraph [ref=e3188]:
+            - strong [ref=e3189]: Причина ручной проверки
+          - paragraph [ref=e3194]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3199]:
+            - strong [ref=e3200]: Нарушенные правила
+          - paragraph [ref=e3205]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3208]:
+        - generic "keyboard_arrow_down ⚠️ 80 · body_text · Требует проверки · уверенность 1.82" [ref=e3209] [cursor=pointer]:
+          - generic [ref=e3210]:
+            - generic [ref=e3212]: keyboard_arrow_down
+            - paragraph [ref=e3215]: ⚠️ 80 · body_text · Требует проверки · уверенность 1.82
+        - generic [ref=e3217]:
+          - paragraph [ref=e3222]:
+            - strong [ref=e3223]: Оригинальный текст блока
+          - code [ref=e3228]: "Несмотря на то, что методика Lasso хорошо показывает себя в большом количестве ситуаций, у неё есть некоторые ограничения. Рассмотрим их несколько подробнее:"
+          - paragraph [ref=e3233]:
+            - strong [ref=e3234]: Причина ручной проверки
+          - paragraph [ref=e3239]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3244]:
+            - strong [ref=e3245]: Нарушенные правила
+          - paragraph [ref=e3250]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3253]:
+        - generic "keyboard_arrow_down ⚠️ 81 · list_item · Требует проверки · уверенность 3.61" [ref=e3254] [cursor=pointer]:
+          - generic [ref=e3255]:
+            - generic [ref=e3257]: keyboard_arrow_down
+            - paragraph [ref=e3260]: ⚠️ 81 · list_item · Требует проверки · уверенность 3.61
+        - generic [ref=e3262]:
+          - paragraph [ref=e3267]:
+            - strong [ref=e3268]: Оригинальный текст блока
+          - code [ref=e3273]: В случае, когда число предикаторов больше, чем число наблюдений, Lasso выбирает не более n переменных, прежде чем оно насытится, из-за характера задачи выпуклой оптимизации. Это ограничивающая особенность метода выбора переменных. Более того, Lasso не является четко определенным, если граница L1-нормы коэффициентов меньше определенного значения.
+          - paragraph [ref=e3278]:
+            - strong [ref=e3279]: Причина ручной проверки
+          - paragraph [ref=e3284]: "list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e3289]:
+            - strong [ref=e3290]: Нарушенные правила
+          - paragraph [ref=e3295]: list_item_alignment
+      - group [ref=e3298]:
+        - generic "keyboard_arrow_down ⚠️ 82 · list_item · Требует проверки · уверенность 1.27" [ref=e3299] [cursor=pointer]:
+          - generic [ref=e3300]:
+            - generic [ref=e3302]: keyboard_arrow_down
+            - paragraph [ref=e3305]: ⚠️ 82 · list_item · Требует проверки · уверенность 1.27
+        - generic [ref=e3307]:
+          - paragraph [ref=e3312]:
+            - strong [ref=e3313]: Оригинальный текст блока
+          - code [ref=e3318]: Если есть группа переменных, где корреляция между любыми двумя из них очень высока, то Lasso стремится выбрать только одну переменную, не заботясь о том, что это за переменная.
+          - paragraph [ref=e3323]:
+            - strong [ref=e3324]: Причина ручной проверки
+          - paragraph [ref=e3329]: "list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e3334]:
+            - strong [ref=e3335]: Нарушенные правила
+          - paragraph [ref=e3340]: list_item_alignment
+      - group [ref=e3343]:
+        - generic "keyboard_arrow_down ⚠️ 83 · list_item · Требует проверки · уверенность 2.05" [ref=e3344] [cursor=pointer]:
+          - generic [ref=e3345]:
+            - generic [ref=e3347]: keyboard_arrow_down
+            - paragraph [ref=e3350]: ⚠️ 83 · list_item · Требует проверки · уверенность 2.05
+        - generic [ref=e3352]:
+          - paragraph [ref=e3357]:
+            - strong [ref=e3358]: Оригинальный текст блока
+          - code [ref=e3363]: В случае, когда число наблюдений больше, чем число предикатов и при этом между предикатами существует сильная корреляция, то Lasso уступает Ridge-методике.
+          - paragraph [ref=e3368]:
+            - strong [ref=e3369]: Причина ручной проверки
+          - paragraph [ref=e3374]: "list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e3379]:
+            - strong [ref=e3380]: Нарушенные правила
+          - paragraph [ref=e3385]: list_item_alignment
+      - group [ref=e3388]:
+        - generic "keyboard_arrow_down ⚠️ 84 · body_text · Требует проверки · уверенность 2.45" [ref=e3389] [cursor=pointer]:
+          - generic [ref=e3390]:
+            - generic [ref=e3392]: keyboard_arrow_down
+            - paragraph [ref=e3395]: ⚠️ 84 · body_text · Требует проверки · уверенность 2.45
+        - generic [ref=e3397]:
+          - paragraph [ref=e3402]:
+            - strong [ref=e3403]: Оригинальный текст блока
+          - code [ref=e3408]: Учёным был необходим метод, который работал бы также хорошо, как и Lasso, но при этом решал три проблемы, освещённые выше. В результате исследований на эту тематику была придумана методика Elastic-Net. [1.9]
+          - paragraph [ref=e3413]:
+            - strong [ref=e3414]: Причина ручной проверки
+          - paragraph [ref=e3419]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3424]:
+            - strong [ref=e3425]: Нарушенные правила
+          - paragraph [ref=e3430]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3433]:
+        - generic "keyboard_arrow_down ⚠️ 85 · body_text · Требует проверки · уверенность 2.11" [ref=e3434] [cursor=pointer]:
+          - generic [ref=e3435]:
+            - generic [ref=e3437]: keyboard_arrow_down
+            - paragraph [ref=e3440]: ⚠️ 85 · body_text · Требует проверки · уверенность 2.11
+        - generic [ref=e3442]:
+          - paragraph [ref=e3447]:
+            - strong [ref=e3448]: Оригинальный текст блока
+          - code [ref=e3453]: "Предположим, что имеется n наблюдений и p предикатов. Положим также, что это истинный результат измерений, — матрица модели, где — это предикаторы. После локализации и масштабирования мы можем полагать, что все результаты измерений центрированы, а предикаторы — стандартизированы, то есть удовлетворяют следующим условиям:"
+          - paragraph [ref=e3458]:
+            - strong [ref=e3459]: Причина ручной проверки
+          - paragraph [ref=e3464]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3469]:
+            - strong [ref=e3470]: Нарушенные правила
+          - paragraph [ref=e3475]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3478]:
+        - generic "keyboard_arrow_down ⚠️ 87 · body_text · Требует проверки · уверенность 1.15" [ref=e3479] [cursor=pointer]:
+          - generic [ref=e3480]:
+            - generic [ref=e3482]: keyboard_arrow_down
+            - paragraph [ref=e3485]: ⚠️ 87 · body_text · Требует проверки · уверенность 1.15
+        - generic [ref=e3487]:
+          - paragraph [ref=e3492]:
+            - strong [ref=e3493]: Оригинальный текст блока
+          - code [ref=e3498]: "В итоге формула для любых неотрицательных и будет иметь вид:"
+          - paragraph [ref=e3503]:
+            - strong [ref=e3504]: Причина ручной проверки
+          - paragraph [ref=e3509]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3514]:
+            - strong [ref=e3515]: Нарушенные правила
+          - paragraph [ref=e3520]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3523]:
+        - generic "keyboard_arrow_down ⚠️ 89 · body_text · Требует проверки · уверенность 1.28" [ref=e3524] [cursor=pointer]:
+          - generic [ref=e3525]:
+            - generic [ref=e3527]: keyboard_arrow_down
+            - paragraph [ref=e3530]: ⚠️ 89 · body_text · Требует проверки · уверенность 1.28
+        - generic [ref=e3532]:
+          - paragraph [ref=e3537]:
+            - strong [ref=e3538]: Оригинальный текст блока
+          - code [ref=e3543]: "Функция оценки для Elastic-Net это функция минимизация уравнения (7):"
+          - paragraph [ref=e3548]:
+            - strong [ref=e3549]: Причина ручной проверки
+          - paragraph [ref=e3554]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3559]:
+            - strong [ref=e3560]: Нарушенные правила
+          - paragraph [ref=e3565]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3568]:
+        - generic "keyboard_arrow_down ⚠️ 91 · body_text · Требует проверки · уверенность 1.61" [ref=e3569] [cursor=pointer]:
+          - generic [ref=e3570]:
+            - generic [ref=e3572]: keyboard_arrow_down
+            - paragraph [ref=e3575]: ⚠️ 91 · body_text · Требует проверки · уверенность 1.61
+        - generic [ref=e3577]:
+          - paragraph [ref=e3582]:
+            - strong [ref=e3583]: Оригинальный текст блока
+          - code [ref=e3588]: "Данная процедура может быть рассмотрена как МНК с наложением штрафа. Действительно, положим . Тогда, нахождение эквивалентно задаче оптимизации:"
+          - paragraph [ref=e3593]:
+            - strong [ref=e3594]: Причина ручной проверки
+          - paragraph [ref=e3599]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3604]:
+            - strong [ref=e3605]: Нарушенные правила
+          - paragraph [ref=e3610]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3613]:
+        - generic "keyboard_arrow_down ⚠️ 93 · body_text · Требует проверки · уверенность 2.03" [ref=e3614] [cursor=pointer]:
+          - generic [ref=e3615]:
+            - generic [ref=e3617]: keyboard_arrow_down
+            - paragraph [ref=e3620]: ⚠️ 93 · body_text · Требует проверки · уверенность 2.03
+        - generic [ref=e3622]:
+          - paragraph [ref=e3627]:
+            - strong [ref=e3628]: Оригинальный текст блока
+          - code [ref=e3633]: Функцию назовём штрафом по методике Elastic-Net. Она представляет собой выпуклую комбинацию штрафов по методикам Lasso и Ridge Когда Elastic-Net становится Ridge регрессией.
+          - paragraph [ref=e3638]:
+            - strong [ref=e3639]: Причина ручной проверки
+          - paragraph [ref=e3644]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3649]:
+            - strong [ref=e3650]: Нарушенные правила
+          - paragraph [ref=e3655]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3658]:
+        - generic "keyboard_arrow_down ⚠️ 94 · body_text · Требует проверки · уверенность 3.41" [ref=e3659] [cursor=pointer]:
+          - generic [ref=e3660]:
+            - generic [ref=e3662]: keyboard_arrow_down
+            - paragraph [ref=e3665]: ⚠️ 94 · body_text · Требует проверки · уверенность 3.41
+        - generic [ref=e3667]:
+          - paragraph [ref=e3672]:
+            - strong [ref=e3673]: Оригинальный текст блока
+          - code [ref=e3678]: Для всех функция штрафа по методу Elastic-Net не имеет производной в точке 0 и строго выпуклая для всех , благодаря чему она обладает всеми признаками Lasso и Ridge методик. Заметим, что при штраф-функция выпукла, но не строго выпукла. Это можно увидеть на Рисунке 1. [1.9]
+          - paragraph [ref=e3683]:
+            - strong [ref=e3684]: Причина ручной проверки
+          - paragraph [ref=e3689]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3694]:
+            - strong [ref=e3695]: Нарушенные правила
+          - paragraph [ref=e3700]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3703]:
+        - generic "keyboard_arrow_down ⚠️ 95 · figure_caption · Требует проверки · уверенность 1.14" [ref=e3704] [cursor=pointer]:
+          - generic [ref=e3705]:
+            - generic [ref=e3707]: keyboard_arrow_down
+            - paragraph [ref=e3710]: ⚠️ 95 · figure_caption · Требует проверки · уверенность 1.14
+        - generic [ref=e3712]:
+          - paragraph [ref=e3717]:
+            - strong [ref=e3718]: Оригинальный текст блока
+          - code [ref=e3723]: Рисунок 1 — График штраф-функции Elastic-Net методики при различных значениях
+          - paragraph [ref=e3728]:
+            - strong [ref=e3729]: Причина ручной проверки
+          - paragraph [ref=e3734]: "Formatting differences detected: bold"
+      - group [ref=e3737]:
+        - generic "keyboard_arrow_down ⚠️ 96 · body_text · Требует проверки · уверенность 2.29" [ref=e3738] [cursor=pointer]:
+          - generic [ref=e3739]:
+            - generic [ref=e3741]: keyboard_arrow_down
+            - paragraph [ref=e3744]: ⚠️ 96 · body_text · Требует проверки · уверенность 2.29
+        - generic [ref=e3746]:
+          - paragraph [ref=e3751]:
+            - strong [ref=e3752]: Оригинальный текст блока
+          - code [ref=e3757]: "Регрессия используется во многих областях: промышленность, здравоохранение, научные исследования, финансы, маркетинг, рынок недвижимости и прочее. Модели линейной регрессии считаются проверенным способом научного и надежного прогнозирования будущего."
+          - paragraph [ref=e3762]:
+            - strong [ref=e3763]: Причина ручной проверки
+          - paragraph [ref=e3768]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3773]:
+            - strong [ref=e3774]: Нарушенные правила
+          - paragraph [ref=e3779]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3782]:
+        - generic "keyboard_arrow_down ⚠️ 97 · body_text · Требует проверки · уверенность 2.54" [ref=e3783] [cursor=pointer]:
+          - generic [ref=e3784]:
+            - generic [ref=e3786]: keyboard_arrow_down
+            - paragraph [ref=e3789]: ⚠️ 97 · body_text · Требует проверки · уверенность 2.54
+        - generic [ref=e3791]:
+          - paragraph [ref=e3796]:
+            - strong [ref=e3797]: Оригинальный текст блока
+          - code [ref=e3802]: Линейная регрессия — это довольно простой, но мощный инструмент, который может существенно облегчить работу при изучении поведения потребителей, условий, влияющих на производительность и окупаемость, а также сможет улучшить понимание бизнес-процессов в целом.
+          - paragraph [ref=e3807]:
+            - strong [ref=e3808]: Причина ручной проверки
+          - paragraph [ref=e3813]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3818]:
+            - strong [ref=e3819]: Нарушенные правила
+          - paragraph [ref=e3824]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3827]:
+        - generic "keyboard_arrow_down ⚠️ 98 · body_text · Требует проверки · уверенность 1.07" [ref=e3828] [cursor=pointer]:
+          - generic [ref=e3829]:
+            - generic [ref=e3831]: keyboard_arrow_down
+            - paragraph [ref=e3834]: ⚠️ 98 · body_text · Требует проверки · уверенность 1.07
+        - generic [ref=e3836]:
+          - paragraph [ref=e3841]:
+            - strong [ref=e3842]: Оригинальный текст блока
+          - code [ref=e3847]: Рассмотрим применение регрессионного анализа на примере рынка недвижимости в Эдмонтоне.
+          - paragraph [ref=e3852]:
+            - strong [ref=e3853]: Причина ручной проверки
+          - paragraph [ref=e3858]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3863]:
+            - strong [ref=e3864]: Нарушенные правила
+          - paragraph [ref=e3869]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e3872]:
+        - generic "keyboard_arrow_down ⚠️ 99 · title_section · Требует проверки · уверенность 1.45" [ref=e3873] [cursor=pointer]:
+          - generic [ref=e3874]:
+            - generic [ref=e3876]: keyboard_arrow_down
+            - paragraph [ref=e3879]: ⚠️ 99 · title_section · Требует проверки · уверенность 1.45
+        - generic [ref=e3881]:
+          - paragraph [ref=e3886]:
+            - strong [ref=e3887]: Оригинальный текст блока
+          - code [ref=e3892]: 2 ПРАКТИЧЕСКАЯ ЧАСТЬ
+          - paragraph [ref=e3897]:
+            - strong [ref=e3898]: Причина ручной проверки
+          - paragraph [ref=e3903]: heading_inherited_mismatch:field=first_line_indent_cm,actual=1.251,expected=0.0; heading_inherited_mismatch:field=space_after_pt,actual=28.35,expected=10.0
+          - paragraph [ref=e3908]:
+            - strong [ref=e3909]: Нарушенные правила
+          - paragraph [ref=e3914]: heading_indent, heading_space_after_pt
+      - group [ref=e3917]:
+        - generic "keyboard_arrow_down ⚠️ 100 · title_subsection · Требует проверки · уверенность 0.55" [ref=e3918] [cursor=pointer]:
+          - generic [ref=e3919]:
+            - generic [ref=e3921]: keyboard_arrow_down
+            - paragraph [ref=e3924]: ⚠️ 100 · title_subsection · Требует проверки · уверенность 0.55
+        - generic [ref=e3926]:
+          - paragraph [ref=e3931]:
+            - strong [ref=e3932]: Оригинальный текст блока
+          - code [ref=e3937]: 2.1 Данные. Предобработка данных
+          - paragraph [ref=e3942]:
+            - strong [ref=e3943]: Причина ручной проверки
+          - paragraph [ref=e3948]: heading_inherited_mismatch:field=first_line_indent_cm,actual=1.251,expected=0.0; heading_inherited_mismatch:field=space_before_pt,actual=42.5,expected=15.0; heading_inherited_mismatch:field=space_after_pt,actual=28.35,expected=10.0
+          - paragraph [ref=e3953]:
+            - strong [ref=e3954]: Нарушенные правила
+          - paragraph [ref=e3959]: heading_indent, heading_subsection_space_before_pt, heading_space_after_pt
+      - group [ref=e3962]:
+        - generic "keyboard_arrow_down ⚠️ 101 · body_text · Требует проверки · уверенность 1.33" [ref=e3963] [cursor=pointer]:
+          - generic [ref=e3964]:
+            - generic [ref=e3966]: keyboard_arrow_down
+            - paragraph [ref=e3969]: ⚠️ 101 · body_text · Требует проверки · уверенность 1.33
+        - generic [ref=e3971]:
+          - paragraph [ref=e3976]:
+            - strong [ref=e3977]: Оригинальный текст блока
+          - code [ref=e3982]: В рамках данной курсовой работы будет рассмотрен набор данных Edmonton Neighborhood & Housing Data взятый с Kaggle.
+          - paragraph [ref=e3987]:
+            - strong [ref=e3988]: Причина ручной проверки
+          - paragraph [ref=e3993]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e3998]:
+            - strong [ref=e3999]: Нарушенные правила
+          - paragraph [ref=e4004]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4007]:
+        - generic "keyboard_arrow_down ⚠️ 102 · body_text · Требует проверки · уверенность 2.90" [ref=e4008] [cursor=pointer]:
+          - generic [ref=e4009]:
+            - generic [ref=e4011]: keyboard_arrow_down
+            - paragraph [ref=e4014]: ⚠️ 102 · body_text · Требует проверки · уверенность 2.90
+        - generic [ref=e4016]:
+          - paragraph [ref=e4021]:
+            - strong [ref=e4022]: Оригинальный текст блока
+          - code [ref=e4027]: Этот набор данных представляет собой полную коллекцию характеристик жилой недвижимости, данных о продажах и тенденциях на рынке жилья Эдмонтона, Канада. Он включает информацию о ценах, площади, количестве спален и ванных комнат, размере участка, годе постройки и других характеристиках недвижимости.
+          - paragraph [ref=e4032]:
+            - strong [ref=e4033]: Причина ручной проверки
+          - paragraph [ref=e4038]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4043]:
+            - strong [ref=e4044]: Нарушенные правила
+          - paragraph [ref=e4049]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4052]:
+        - generic "keyboard_arrow_down ⚠️ 103 · body_text · Требует проверки · уверенность 2.48" [ref=e4053] [cursor=pointer]:
+          - generic [ref=e4054]:
+            - generic [ref=e4056]: keyboard_arrow_down
+            - paragraph [ref=e4059]: ⚠️ 103 · body_text · Требует проверки · уверенность 2.48
+        - generic [ref=e4061]:
+          - paragraph [ref=e4066]:
+            - strong [ref=e4067]: Оригинальный текст блока
+          - code [ref=e4072]: Помимо характеристик недвижимости, в набор данных также включена информация о районе и географическом расположении объектов, что позволяет провести детальный анализ регионального рынка жилья. На Рисунке 2 приведён обзор исходных данных до их предобработки.
+          - paragraph [ref=e4077]:
+            - strong [ref=e4078]: Причина ручной проверки
+          - paragraph [ref=e4083]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4088]:
+            - strong [ref=e4089]: Нарушенные правила
+          - paragraph [ref=e4094]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4097]:
+        - generic "keyboard_arrow_down ⚠️ 104 · figure_caption · Требует проверки · уверенность 1.15" [ref=e4098] [cursor=pointer]:
+          - generic [ref=e4099]:
+            - generic [ref=e4101]: keyboard_arrow_down
+            - paragraph [ref=e4104]: ⚠️ 104 · figure_caption · Требует проверки · уверенность 1.15
+        - generic [ref=e4106]:
+          - paragraph [ref=e4111]:
+            - strong [ref=e4112]: Оригинальный текст блока
+          - code [ref=e4117]: Рисунок 2 — Исходные данные до предобработки
+          - paragraph [ref=e4122]:
+            - strong [ref=e4123]: Причина ручной проверки
+          - paragraph [ref=e4128]: "Formatting differences detected: bold"
+      - group [ref=e4131]:
+        - generic "keyboard_arrow_down ⚠️ 105 · body_text · Требует проверки · уверенность 1.66" [ref=e4132] [cursor=pointer]:
+          - generic [ref=e4133]:
+            - generic [ref=e4135]: keyboard_arrow_down
+            - paragraph [ref=e4138]: ⚠️ 105 · body_text · Требует проверки · уверенность 1.66
+        - generic [ref=e4140]:
+          - paragraph [ref=e4145]:
+            - strong [ref=e4146]: Оригинальный текст блока
+          - code [ref=e4151]: Начнем анализ с предобработки данных. В ходе предобработки был изменён формат данных в столбце Price с символьного на числовой.
+          - paragraph [ref=e4156]:
+            - strong [ref=e4157]: Причина ручной проверки
+          - paragraph [ref=e4162]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4167]:
+            - strong [ref=e4168]: Нарушенные правила
+          - paragraph [ref=e4173]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4176]:
+        - generic "keyboard_arrow_down ⚠️ 106 · body_text · Требует проверки · уверенность 2.88" [ref=e4177] [cursor=pointer]:
+          - generic [ref=e4178]:
+            - generic [ref=e4180]: keyboard_arrow_down
+            - paragraph [ref=e4183]: ⚠️ 106 · body_text · Требует проверки · уверенность 2.88
+        - generic [ref=e4185]:
+          - paragraph [ref=e4190]:
+            - strong [ref=e4191]: Оригинальный текст блока
+          - code [ref=e4196]: Далее необходимо избавиться от Not Available (NA) значений в датасете, если таковые имеются. Воспользуемся функциями colSums() и is.na() для определения количества таких значений в столбцах. На Рисунке 3 показан результат работы функций colSums() и is.na().
+          - paragraph [ref=e4201]:
+            - strong [ref=e4202]: Причина ручной проверки
+          - paragraph [ref=e4207]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4212]:
+            - strong [ref=e4213]: Нарушенные правила
+          - paragraph [ref=e4218]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4221]:
+        - generic "keyboard_arrow_down ⚠️ 107 · figure_caption · Требует проверки · уверенность 1.25" [ref=e4222] [cursor=pointer]:
+          - generic [ref=e4223]:
+            - generic [ref=e4225]: keyboard_arrow_down
+            - paragraph [ref=e4228]: ⚠️ 107 · figure_caption · Требует проверки · уверенность 1.25
+        - generic [ref=e4230]:
+          - paragraph [ref=e4235]:
+            - strong [ref=e4236]: Оригинальный текст блока
+          - code [ref=e4241]: Рисунок 3 — Результат подсчёта NA значений в датасете
+          - paragraph [ref=e4246]:
+            - strong [ref=e4247]: Причина ручной проверки
+          - paragraph [ref=e4252]: "Formatting differences detected: bold"
+      - group [ref=e4255]:
+        - generic "keyboard_arrow_down ⚠️ 108 · body_text · Требует проверки · уверенность 3.60" [ref=e4256] [cursor=pointer]:
+          - generic [ref=e4257]:
+            - generic [ref=e4259]: keyboard_arrow_down
+            - paragraph [ref=e4262]: ⚠️ 108 · body_text · Требует проверки · уверенность 3.60
+        - generic [ref=e4264]:
+          - paragraph [ref=e4269]:
+            - strong [ref=e4270]: Оригинальный текст блока
+          - code [ref=e4275]: Как видно из Рисунка 3, NA значения присутствуют в наборе данных, а это значит, что их надо на что-то заменить. В столбцах с числовыми данными будем заменять такие значения на медиану столбца. Во всех остальных заменим на самое часто встречающееся значение. В результате мы получим датасет без пропущенных значений (Рисунок 4).
+          - paragraph [ref=e4280]:
+            - strong [ref=e4281]: Причина ручной проверки
+          - paragraph [ref=e4286]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4291]:
+            - strong [ref=e4292]: Нарушенные правила
+          - paragraph [ref=e4297]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4300]:
+        - generic "keyboard_arrow_down ⚠️ 109 · figure_caption · Требует проверки · уверенность 1.26" [ref=e4301] [cursor=pointer]:
+          - generic [ref=e4302]:
+            - generic [ref=e4304]: keyboard_arrow_down
+            - paragraph [ref=e4307]: ⚠️ 109 · figure_caption · Требует проверки · уверенность 1.26
+        - generic [ref=e4309]:
+          - paragraph [ref=e4314]:
+            - strong [ref=e4315]: Оригинальный текст блока
+          - code [ref=e4320]: Рисунок 4 — Результат обработки NA значений
+          - paragraph [ref=e4325]:
+            - strong [ref=e4326]: Причина ручной проверки
+          - paragraph [ref=e4331]: "Formatting differences detected: bold"
+      - group [ref=e4334]:
+        - generic "keyboard_arrow_down ⚠️ 110 · body_text · Требует проверки · уверенность 1.74" [ref=e4335] [cursor=pointer]:
+          - generic [ref=e4336]:
+            - generic [ref=e4338]: keyboard_arrow_down
+            - paragraph [ref=e4341]: ⚠️ 110 · body_text · Требует проверки · уверенность 1.74
+        - generic [ref=e4343]:
+          - paragraph [ref=e4348]:
+            - strong [ref=e4349]: Оригинальный текст блока
+          - code [ref=e4354]: Следующим шагом в предобработке является обнаружение выбросов и их последующее удаление либо замена. На Рисунке 5 приведена визуализация исходного набора данных.
+          - paragraph [ref=e4359]:
+            - strong [ref=e4360]: Причина ручной проверки
+          - paragraph [ref=e4365]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4370]:
+            - strong [ref=e4371]: Нарушенные правила
+          - paragraph [ref=e4376]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4379]:
+        - generic "keyboard_arrow_down ⚠️ 111 · figure_caption · Требует проверки · уверенность 1.17" [ref=e4380] [cursor=pointer]:
+          - generic [ref=e4381]:
+            - generic [ref=e4383]: keyboard_arrow_down
+            - paragraph [ref=e4386]: ⚠️ 111 · figure_caption · Требует проверки · уверенность 1.17
+        - generic [ref=e4388]:
+          - paragraph [ref=e4393]:
+            - strong [ref=e4394]: Оригинальный текст блока
+          - code [ref=e4399]: Рисунок 5 — Визуализация изначального набора данных
+          - paragraph [ref=e4404]:
+            - strong [ref=e4405]: Причина ручной проверки
+          - paragraph [ref=e4410]: "Formatting differences detected: bold"
+      - group [ref=e4413]:
+        - generic "keyboard_arrow_down ⚠️ 112 · body_text · Требует проверки · уверенность 1.22" [ref=e4414] [cursor=pointer]:
+          - generic [ref=e4415]:
+            - generic [ref=e4417]: keyboard_arrow_down
+            - paragraph [ref=e4420]: ⚠️ 112 · body_text · Требует проверки · уверенность 1.22
+        - generic [ref=e4422]:
+          - paragraph [ref=e4427]:
+            - strong [ref=e4428]: Оригинальный текст блока
+          - code [ref=e4433]: На Рисунке 5 выбросы в данных явно заметны, поэтому займёмся их обработкой.
+          - paragraph [ref=e4438]:
+            - strong [ref=e4439]: Причина ручной проверки
+          - paragraph [ref=e4444]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4449]:
+            - strong [ref=e4450]: Нарушенные правила
+          - paragraph [ref=e4455]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4458]:
+        - generic "keyboard_arrow_down ⚠️ 113 · body_text · Требует проверки · уверенность 2.92" [ref=e4459] [cursor=pointer]:
+          - generic [ref=e4460]:
+            - generic [ref=e4462]: keyboard_arrow_down
+            - paragraph [ref=e4465]: ⚠️ 113 · body_text · Требует проверки · уверенность 2.92
+        - generic [ref=e4467]:
+          - paragraph [ref=e4472]:
+            - strong [ref=e4473]: Оригинальный текст блока
+          - code [ref=e4478]: Для детектирования выбросов воспользуемся методом, основанном на персинтелях. Суть этого метода, что все данные, находящиеся вне некоторого промежутка считаются выбросами. В качестве границ промежутка возьмём значения в 1% и 99% от выборки. Результат предобработки данных показан на Рисунке 6
+          - paragraph [ref=e4483]:
+            - strong [ref=e4484]: Причина ручной проверки
+          - paragraph [ref=e4489]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4494]:
+            - strong [ref=e4495]: Нарушенные правила
+          - paragraph [ref=e4500]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4503]:
+        - generic "keyboard_arrow_down ⚠️ 114 · figure_caption · Требует проверки · уверенность 1.24" [ref=e4504] [cursor=pointer]:
+          - generic [ref=e4505]:
+            - generic [ref=e4507]: keyboard_arrow_down
+            - paragraph [ref=e4510]: ⚠️ 114 · figure_caption · Требует проверки · уверенность 1.24
+        - generic [ref=e4512]:
+          - paragraph [ref=e4517]:
+            - strong [ref=e4518]: Оригинальный текст блока
+          - code [ref=e4523]: Рисунок 6 — Результат обработки выбросов
+          - paragraph [ref=e4528]:
+            - strong [ref=e4529]: Причина ручной проверки
+          - paragraph [ref=e4534]: "Formatting differences detected: bold"
+      - group [ref=e4537]:
+        - generic "keyboard_arrow_down ⚠️ 115 · body_text · Требует проверки · уверенность 2.28" [ref=e4538] [cursor=pointer]:
+          - generic [ref=e4539]:
+            - generic [ref=e4541]: keyboard_arrow_down
+            - paragraph [ref=e4544]: ⚠️ 115 · body_text · Требует проверки · уверенность 2.28
+        - generic [ref=e4546]:
+          - paragraph [ref=e4551]:
+            - strong [ref=e4552]: Оригинальный текст блока
+          - code [ref=e4557]: В результате предобработки было убрано примерно 120 значений, являющихся выбросами. Можно сделать вывод, что датасет собран качественно. На этом предобработка данных закончена, перейдём к подготовке данных к моделированию.
+          - paragraph [ref=e4562]:
+            - strong [ref=e4563]: Причина ручной проверки
+          - paragraph [ref=e4568]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4573]:
+            - strong [ref=e4574]: Нарушенные правила
+          - paragraph [ref=e4579]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4582]:
+        - generic "keyboard_arrow_down ⚠️ 116 · title_subsection · Требует проверки · уверенность 0.12" [ref=e4583] [cursor=pointer]:
+          - generic [ref=e4584]:
+            - generic [ref=e4586]: keyboard_arrow_down
+            - paragraph [ref=e4589]: ⚠️ 116 · title_subsection · Требует проверки · уверенность 0.12
+        - generic [ref=e4591]:
+          - paragraph [ref=e4596]:
+            - strong [ref=e4597]: Оригинальный текст блока
+          - code [ref=e4602]: 2.2 Подготовка данных к моделированию. Моделирование
+          - paragraph [ref=e4607]:
+            - strong [ref=e4608]: Причина ручной проверки
+          - paragraph [ref=e4613]: heading_inherited_mismatch:field=first_line_indent_cm,actual=1.251,expected=0.0; heading_inherited_mismatch:field=space_before_pt,actual=42.5,expected=15.0; heading_inherited_mismatch:field=space_after_pt,actual=28.35,expected=10.0
+          - paragraph [ref=e4618]:
+            - strong [ref=e4619]: Нарушенные правила
+          - paragraph [ref=e4624]: heading_indent, heading_subsection_space_before_pt, heading_space_after_pt
+      - group [ref=e4627]:
+        - generic "keyboard_arrow_down ⚠️ 117 · body_text · Требует проверки · уверенность 1.79" [ref=e4628] [cursor=pointer]:
+          - generic [ref=e4629]:
+            - generic [ref=e4631]: keyboard_arrow_down
+            - paragraph [ref=e4634]: ⚠️ 117 · body_text · Требует проверки · уверенность 1.79
+        - generic [ref=e4636]:
+          - paragraph [ref=e4641]:
+            - strong [ref=e4642]: Оригинальный текст блока
+          - code [ref=e4647]: "Так как логично анализировать стоимость жилья, разобьём исходный набор данных на два: в один набор уйдёт столбец Price, в другой — всё остальное."
+          - paragraph [ref=e4652]:
+            - strong [ref=e4653]: Причина ручной проверки
+          - paragraph [ref=e4658]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4663]:
+            - strong [ref=e4664]: Нарушенные правила
+          - paragraph [ref=e4669]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4672]:
+        - generic "keyboard_arrow_down ⚠️ 118 · body_text · Требует проверки · уверенность 1.58" [ref=e4673] [cursor=pointer]:
+          - generic [ref=e4674]:
+            - generic [ref=e4676]: keyboard_arrow_down
+            - paragraph [ref=e4679]: ⚠️ 118 · body_text · Требует проверки · уверенность 1.58
+        - generic [ref=e4681]:
+          - paragraph [ref=e4686]:
+            - strong [ref=e4687]: Оригинальный текст блока
+          - code [ref=e4692]: Методика Elastic-Net, так же как и Lasso, позволяет отобрать параметры, оказывающие наибольшее влияние на зависимую переменную.
+          - paragraph [ref=e4697]:
+            - strong [ref=e4698]: Причина ручной проверки
+          - paragraph [ref=e4703]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4708]:
+            - strong [ref=e4709]: Нарушенные правила
+          - paragraph [ref=e4714]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4717]:
+        - generic "keyboard_arrow_down ⚠️ 119 · body_text · Требует проверки · уверенность 2.67" [ref=e4718] [cursor=pointer]:
+          - generic [ref=e4719]:
+            - generic [ref=e4721]: keyboard_arrow_down
+            - paragraph [ref=e4724]: ⚠️ 119 · body_text · Требует проверки · уверенность 2.67
+        - generic [ref=e4726]:
+          - paragraph [ref=e4731]:
+            - strong [ref=e4732]: Оригинальный текст блока
+          - code [ref=e4737]: Вполне очевидно, что важность параметров не сильно зависит от того, какое значение альфа для нашей Elastic-Net регрессии мы возьмём. Поэтому положим, что и произведём отбор предикатов. На Рисунке 7 показан результат отбора предикатов.
+          - paragraph [ref=e4742]:
+            - strong [ref=e4743]: Причина ручной проверки
+          - paragraph [ref=e4748]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4753]:
+            - strong [ref=e4754]: Нарушенные правила
+          - paragraph [ref=e4759]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4762]:
+        - generic "keyboard_arrow_down ⚠️ 120 · figure_caption · Требует проверки · уверенность 1.24" [ref=e4763] [cursor=pointer]:
+          - generic [ref=e4764]:
+            - generic [ref=e4766]: keyboard_arrow_down
+            - paragraph [ref=e4769]: ⚠️ 120 · figure_caption · Требует проверки · уверенность 1.24
+        - generic [ref=e4771]:
+          - paragraph [ref=e4776]:
+            - strong [ref=e4777]: Оригинальный текст блока
+          - code [ref=e4782]: Рисунок 7 — Результат отбора предикатов
+          - paragraph [ref=e4787]:
+            - strong [ref=e4788]: Причина ручной проверки
+          - paragraph [ref=e4793]: "Formatting differences detected: bold"
+      - group [ref=e4796]:
+        - generic "keyboard_arrow_down ⚠️ 121 · body_text · Требует проверки · уверенность 2.29" [ref=e4797] [cursor=pointer]:
+          - generic [ref=e4798]:
+            - generic [ref=e4800]: keyboard_arrow_down
+            - paragraph [ref=e4803]: ⚠️ 121 · body_text · Требует проверки · уверенность 2.29
+        - generic [ref=e4805]:
+          - paragraph [ref=e4810]:
+            - strong [ref=e4811]: Оригинальный текст блока
+          - code [ref=e4816]: "Из Рисунка 7 видно, что наибольшее влияние на зависимую переменную Price оказывают 1, 2, 19, 3, 41, 42, 5 столбцы из набора без столбца Price. Этим индексам соответствуют следующие столбцы:"
+          - paragraph [ref=e4821]:
+            - strong [ref=e4822]: Причина ручной проверки
+          - paragraph [ref=e4827]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4832]:
+            - strong [ref=e4833]: Нарушенные правила
+          - paragraph [ref=e4838]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4841]:
+        - generic "keyboard_arrow_down ⚠️ 128 · body_text · Требует проверки · уверенность 0.93" [ref=e4842] [cursor=pointer]:
+          - generic [ref=e4843]:
+            - generic [ref=e4845]: keyboard_arrow_down
+            - paragraph [ref=e4848]: ⚠️ 128 · body_text · Требует проверки · уверенность 0.93
+        - generic [ref=e4850]:
+          - paragraph [ref=e4855]:
+            - strong [ref=e4856]: Оригинальный текст блока
+          - code [ref=e4861]: Возьмём эти параметры в качестве предикаторного набора данных, назовём его .
+          - paragraph [ref=e4866]:
+            - strong [ref=e4867]: Причина ручной проверки
+          - paragraph [ref=e4872]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4877]:
+            - strong [ref=e4878]: Нарушенные правила
+          - paragraph [ref=e4883]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4886]:
+        - generic "keyboard_arrow_down ⚠️ 129 · body_text · Требует проверки · уверенность 2.20" [ref=e4887] [cursor=pointer]:
+          - generic [ref=e4888]:
+            - generic [ref=e4890]: keyboard_arrow_down
+            - paragraph [ref=e4893]: ⚠️ 129 · body_text · Требует проверки · уверенность 2.20
+        - generic [ref=e4895]:
+          - paragraph [ref=e4900]:
+            - strong [ref=e4901]: Оригинальный текст блока
+          - code [ref=e4906]: В набор данных, который назовём , положим столбец Price из исходного набора данных, заранее преобразовав его значения таким образом, чтобы их среднее значение равнялось нулю, а дисперсия равна единице.
+          - paragraph [ref=e4911]:
+            - strong [ref=e4912]: Причина ручной проверки
+          - paragraph [ref=e4917]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4922]:
+            - strong [ref=e4923]: Нарушенные правила
+          - paragraph [ref=e4928]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4931]:
+        - generic "keyboard_arrow_down ⚠️ 130 · body_text · Требует проверки · уверенность 1.68" [ref=e4932] [cursor=pointer]:
+          - generic [ref=e4933]:
+            - generic [ref=e4935]: keyboard_arrow_down
+            - paragraph [ref=e4938]: ⚠️ 130 · body_text · Требует проверки · уверенность 1.68
+        - generic [ref=e4940]:
+          - paragraph [ref=e4945]:
+            - strong [ref=e4946]: Оригинальный текст блока
+          - code [ref=e4951]: Разобьём эти наборы данных на тестовую и обучающую выборки. Размер обучающей выборки возьмём равным 80% от размера исходных данных.
+          - paragraph [ref=e4956]:
+            - strong [ref=e4957]: Причина ручной проверки
+          - paragraph [ref=e4962]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e4967]:
+            - strong [ref=e4968]: Нарушенные правила
+          - paragraph [ref=e4973]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e4976]:
+        - generic "keyboard_arrow_down ⚠️ 131 · body_text · Требует проверки · уверенность 2.13" [ref=e4977] [cursor=pointer]:
+          - generic [ref=e4978]:
+            - generic [ref=e4980]: keyboard_arrow_down
+            - paragraph [ref=e4983]: ⚠️ 131 · body_text · Требует проверки · уверенность 2.13
+        - generic [ref=e4985]:
+          - paragraph [ref=e4990]:
+            - strong [ref=e4991]: Оригинальный текст блока
+          - code [ref=e4996]: Так как Elastic-Net модель определяется значениями альфа в интервале от 0 до 1, чтоб выбрать модель с наилучшими показателями необходимо выбрать подходящее альфа из этого интервала.
+          - paragraph [ref=e5001]:
+            - strong [ref=e5002]: Причина ручной проверки
+          - paragraph [ref=e5007]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5012]:
+            - strong [ref=e5013]: Нарушенные правила
+          - paragraph [ref=e5018]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5021]:
+        - generic "keyboard_arrow_down ⚠️ 132 · body_text · Требует проверки · уверенность 1.67" [ref=e5022] [cursor=pointer]:
+          - generic [ref=e5023]:
+            - generic [ref=e5025]: keyboard_arrow_down
+            - paragraph [ref=e5028]: ⚠️ 132 · body_text · Требует проверки · уверенность 1.67
+        - generic [ref=e5030]:
+          - paragraph [ref=e5035]:
+            - strong [ref=e5036]: Оригинальный текст блока
+          - code [ref=e5041]: Для этого воспользуемся встроенной в R библиотекой glmnet, а именно функцией cv.glmnet(), которая симулирует процесс кросс-валидации.
+          - paragraph [ref=e5046]:
+            - strong [ref=e5047]: Причина ручной проверки
+          - paragraph [ref=e5052]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5057]:
+            - strong [ref=e5058]: Нарушенные правила
+          - paragraph [ref=e5063]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5066]:
+        - generic "keyboard_arrow_down ⚠️ 133 · body_text · Требует проверки · уверенность 3.52" [ref=e5067] [cursor=pointer]:
+          - generic [ref=e5068]:
+            - generic [ref=e5070]: keyboard_arrow_down
+            - paragraph [ref=e5073]: ⚠️ 133 · body_text · Требует проверки · уверенность 3.52
+        - generic [ref=e5075]:
+          - paragraph [ref=e5080]:
+            - strong [ref=e5081]: Оригинальный текст блока
+          - code [ref=e5086]: Возьмём сто значений альфа из промежутка [1;99] и на этих значениях произведём обучение моделей, выбрав потом из них ту, которая даст наименьшее значение среднеквадратической ошибки. Параметр nfold, отвечающий за количество повторений в процессе кросс-валидации, зададим равным 10. На Рисунке 8 приведён результат рассмотрения различных значений параметра альфа.
+          - paragraph [ref=e5091]:
+            - strong [ref=e5092]: Причина ручной проверки
+          - paragraph [ref=e5097]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5102]:
+            - strong [ref=e5103]: Нарушенные правила
+          - paragraph [ref=e5108]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5111]:
+        - generic "keyboard_arrow_down ⚠️ 134 · figure_caption · Требует проверки · уверенность 1.26" [ref=e5112] [cursor=pointer]:
+          - generic [ref=e5113]:
+            - generic [ref=e5115]: keyboard_arrow_down
+            - paragraph [ref=e5118]: ⚠️ 134 · figure_caption · Требует проверки · уверенность 1.26
+        - generic [ref=e5120]:
+          - paragraph [ref=e5125]:
+            - strong [ref=e5126]: Оригинальный текст блока
+          - code [ref=e5131]: Рисунок 8 — Результат рассмотрения различных параметров альфа
+          - paragraph [ref=e5136]:
+            - strong [ref=e5137]: Причина ручной проверки
+          - paragraph [ref=e5142]: "Formatting differences detected: bold"
+      - group [ref=e5145]:
+        - generic "keyboard_arrow_down ⚠️ 135 · body_text · Требует проверки · уверенность 2.29" [ref=e5146] [cursor=pointer]:
+          - generic [ref=e5147]:
+            - generic [ref=e5149]: keyboard_arrow_down
+            - paragraph [ref=e5152]: ⚠️ 135 · body_text · Требует проверки · уверенность 2.29
+        - generic [ref=e5154]:
+          - paragraph [ref=e5159]:
+            - strong [ref=e5160]: Оригинальный текст блока
+          - code [ref=e5165]: На основе Рисунка 8 можно сделать вывод, что наиболее подходящим значением альфа для модели является значение 0.98, так как при нём была получена наименьшая среднеквадратическая ошибка.
+          - paragraph [ref=e5170]:
+            - strong [ref=e5171]: Причина ручной проверки
+          - paragraph [ref=e5176]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5181]:
+            - strong [ref=e5182]: Нарушенные правила
+          - paragraph [ref=e5187]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5190]:
+        - generic "keyboard_arrow_down ⚠️ 136 · body_text · Требует проверки · уверенность 1.90" [ref=e5191] [cursor=pointer]:
+          - generic [ref=e5192]:
+            - generic [ref=e5194]: keyboard_arrow_down
+            - paragraph [ref=e5197]: ⚠️ 136 · body_text · Требует проверки · уверенность 1.90
+        - generic [ref=e5199]:
+          - paragraph [ref=e5204]:
+            - strong [ref=e5205]: Оригинальный текст блока
+          - code [ref=e5210]: Далее перейдём к процессу подбора параметра лямбда при фиксированном альфа, полученном на предыдущем шаге. На Рисунке 9 приведен результат рассмотрения различных значений параметра лямбда.
+          - paragraph [ref=e5215]:
+            - strong [ref=e5216]: Причина ручной проверки
+          - paragraph [ref=e5221]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5226]:
+            - strong [ref=e5227]: Нарушенные правила
+          - paragraph [ref=e5232]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5235]:
+        - generic "keyboard_arrow_down ⚠️ 137 · figure_caption · Требует проверки · уверенность 1.25" [ref=e5236] [cursor=pointer]:
+          - generic [ref=e5237]:
+            - generic [ref=e5239]: keyboard_arrow_down
+            - paragraph [ref=e5242]: ⚠️ 137 · figure_caption · Требует проверки · уверенность 1.25
+        - generic [ref=e5244]:
+          - paragraph [ref=e5249]:
+            - strong [ref=e5250]: Оригинальный текст блока
+          - code [ref=e5255]: Рисунок 9 — Результат рассмотрения различных значений параметра лямбда при параметре альфа равном 0.98
+          - paragraph [ref=e5260]:
+            - strong [ref=e5261]: Причина ручной проверки
+          - paragraph [ref=e5266]: "Formatting differences detected: bold"
+      - group [ref=e5269]:
+        - generic "keyboard_arrow_down ⚠️ 138 · body_text · Требует проверки · уверенность 2.46" [ref=e5270] [cursor=pointer]:
+          - generic [ref=e5271]:
+            - generic [ref=e5273]: keyboard_arrow_down
+            - paragraph [ref=e5276]: ⚠️ 138 · body_text · Требует проверки · уверенность 2.46
+        - generic [ref=e5278]:
+          - paragraph [ref=e5283]:
+            - strong [ref=e5284]: Оригинальный текст блока
+          - code [ref=e5289]: На Рисунке 9 отмечен промежуток из которого оптимально взять лямбда. Возьмём его равным , так как именно при этом значении мы получили наименьшее значение среднеквадратической ошибки при фиксированном альфа равным 0.98.
+          - paragraph [ref=e5294]:
+            - strong [ref=e5295]: Причина ручной проверки
+          - paragraph [ref=e5300]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5305]:
+            - strong [ref=e5306]: Нарушенные правила
+          - paragraph [ref=e5311]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5314]:
+        - generic "keyboard_arrow_down ⚠️ 139 · body_text · Требует проверки · уверенность 2.09" [ref=e5315] [cursor=pointer]:
+          - generic [ref=e5316]:
+            - generic [ref=e5318]: keyboard_arrow_down
+            - paragraph [ref=e5321]: ⚠️ 139 · body_text · Требует проверки · уверенность 2.09
+        - generic [ref=e5323]:
+          - paragraph [ref=e5328]:
+            - strong [ref=e5329]: Оригинальный текст блока
+          - code [ref=e5334]: Произведём обучение нашей модели на обучающей выборки. Воспользуемся для этого функцией glmnet() из библиотеки glmnet, передав в неё все параметры, полученные на предыдущих шагах.
+          - paragraph [ref=e5339]:
+            - strong [ref=e5340]: Причина ручной проверки
+          - paragraph [ref=e5345]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5350]:
+            - strong [ref=e5351]: Нарушенные правила
+          - paragraph [ref=e5356]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5359]:
+        - generic "keyboard_arrow_down ⚠️ 140 · body_text · Требует проверки · уверенность 3.01" [ref=e5360] [cursor=pointer]:
+          - generic [ref=e5361]:
+            - generic [ref=e5363]: keyboard_arrow_down
+            - paragraph [ref=e5366]: ⚠️ 140 · body_text · Требует проверки · уверенность 3.01
+        - generic [ref=e5368]:
+          - paragraph [ref=e5373]:
+            - strong [ref=e5374]: Оригинальный текст блока
+          - code [ref=e5379]: С помощью функции predict выполним построение прогнозов значений стоимости жилья от параметров, которые мы посчитали самыми важными, и сравним их со значениями в тестовой выборке. На Рисунке 10 приведена визуализация на двух соседних графиках предсказаний модели и исходной тестовой выборки соответственно.
+          - paragraph [ref=e5384]:
+            - strong [ref=e5385]: Причина ручной проверки
+          - paragraph [ref=e5390]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5395]:
+            - strong [ref=e5396]: Нарушенные правила
+          - paragraph [ref=e5401]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5404]:
+        - generic "keyboard_arrow_down ⚠️ 141 · figure_caption · Требует проверки · уверенность 1.17" [ref=e5405] [cursor=pointer]:
+          - generic [ref=e5406]:
+            - generic [ref=e5408]: keyboard_arrow_down
+            - paragraph [ref=e5411]: ⚠️ 141 · figure_caption · Требует проверки · уверенность 1.17
+        - generic [ref=e5413]:
+          - paragraph [ref=e5418]:
+            - strong [ref=e5419]: Оригинальный текст блока
+          - code [ref=e5424]: Рисунок 10 — Визуализация результатов работы модели и реальных значений из тестовой выборки
+          - paragraph [ref=e5429]:
+            - strong [ref=e5430]: Причина ручной проверки
+          - paragraph [ref=e5435]: "Formatting differences detected: bold"
+      - group [ref=e5438]:
+        - generic "keyboard_arrow_down ⚠️ 142 · body_text · Требует проверки · уверенность 3.08" [ref=e5439] [cursor=pointer]:
+          - generic [ref=e5440]:
+            - generic [ref=e5442]: keyboard_arrow_down
+            - paragraph [ref=e5445]: ⚠️ 142 · body_text · Требует проверки · уверенность 3.08
+        - generic [ref=e5447]:
+          - paragraph [ref=e5452]:
+            - strong [ref=e5453]: Оригинальный текст блока
+          - code [ref=e5458]: Коэффициент при в уравнении линейной регрессии для нашей модели получился равным 0.00527, а свободный член получился равен -10.484. Коэффициент при в уравнении линейной регрессии для исходных данных получился равным 0.00515, а свободный член получился равен -10.235.
+          - paragraph [ref=e5463]:
+            - strong [ref=e5464]: Причина ручной проверки
+          - paragraph [ref=e5469]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5474]:
+            - strong [ref=e5475]: Нарушенные правила
+          - paragraph [ref=e5480]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5483]:
+        - generic "keyboard_arrow_down ⚠️ 143 · body_text · Требует проверки · уверенность 1.11" [ref=e5484] [cursor=pointer]:
+          - generic [ref=e5485]:
+            - generic [ref=e5487]: keyboard_arrow_down
+            - paragraph [ref=e5490]: ⚠️ 143 · body_text · Требует проверки · уверенность 1.11
+        - generic [ref=e5492]:
+          - paragraph [ref=e5497]:
+            - strong [ref=e5498]: Оригинальный текст блока
+          - code [ref=e5503]: Можно сделать вывод, что построенная модель оказалась довольно качественной.
+          - paragraph [ref=e5508]:
+            - strong [ref=e5509]: Причина ручной проверки
+          - paragraph [ref=e5514]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5519]:
+            - strong [ref=e5520]: Нарушенные правила
+          - paragraph [ref=e5525]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5528]:
+        - generic "keyboard_arrow_down ⚠️ 144 · body_text · Требует проверки · уверенность 1.30" [ref=e5529] [cursor=pointer]:
+          - generic [ref=e5530]:
+            - generic [ref=e5532]: keyboard_arrow_down
+            - paragraph [ref=e5535]: ⚠️ 144 · body_text · Требует проверки · уверенность 1.30
+        - generic [ref=e5537]:
+          - paragraph [ref=e5542]:
+            - strong [ref=e5543]: Оригинальный текст блока
+          - code [ref=e5548]: Оценить качество модели позволяет коэффициент детерминации или иначе r-квадрат.
+          - paragraph [ref=e5553]:
+            - strong [ref=e5554]: Причина ручной проверки
+          - paragraph [ref=e5559]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5564]:
+            - strong [ref=e5565]: Нарушенные правила
+          - paragraph [ref=e5570]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5573]:
+        - generic "keyboard_arrow_down ⚠️ 146 · body_text · Требует проверки · уверенность 0.49" [ref=e5574] [cursor=pointer]:
+          - generic [ref=e5575]:
+            - generic [ref=e5577]: keyboard_arrow_down
+            - paragraph [ref=e5580]: ⚠️ 146 · body_text · Требует проверки · уверенность 0.49
+        - generic [ref=e5582]:
+          - paragraph [ref=e5587]:
+            - strong [ref=e5588]: Оригинальный текст блока
+          - code [ref=e5593]: где — значение, предсказанное моделью;
+          - paragraph [ref=e5598]:
+            - strong [ref=e5599]: Причина ручной проверки
+          - paragraph [ref=e5604]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5609]:
+            - strong [ref=e5610]: Нарушенные правила
+          - paragraph [ref=e5615]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5618]:
+        - generic "keyboard_arrow_down ⚠️ 147 · list_item · Требует проверки · уверенность 0.96" [ref=e5619] [cursor=pointer]:
+          - generic [ref=e5620]:
+            - generic [ref=e5622]: keyboard_arrow_down
+            - paragraph [ref=e5625]: ⚠️ 147 · list_item · Требует проверки · уверенность 0.96
+        - generic [ref=e5627]:
+          - paragraph [ref=e5632]:
+            - strong [ref=e5633]: Оригинальный текст блока
+          - code [ref=e5638]: — значение набора данных, поданного модели для обработки;
+          - paragraph [ref=e5643]:
+            - strong [ref=e5644]: Причина ручной проверки
+          - paragraph [ref=e5649]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e5654]:
+            - strong [ref=e5655]: Нарушенные правила
+          - paragraph [ref=e5660]: list_item_layout, list_item_alignment
+      - group [ref=e5663]:
+        - generic "keyboard_arrow_down ⚠️ 148 · list_item · Требует проверки · уверенность 0.96" [ref=e5664] [cursor=pointer]:
+          - generic [ref=e5665]:
+            - generic [ref=e5667]: keyboard_arrow_down
+            - paragraph [ref=e5670]: ⚠️ 148 · list_item · Требует проверки · уверенность 0.96
+        - generic [ref=e5672]:
+          - paragraph [ref=e5677]:
+            - strong [ref=e5678]: Оригинальный текст блока
+          - code [ref=e5683]: — среднее значение набора данных.
+          - paragraph [ref=e5688]:
+            - strong [ref=e5689]: Причина ручной проверки
+          - paragraph [ref=e5694]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e5699]:
+            - strong [ref=e5700]: Нарушенные правила
+          - paragraph [ref=e5705]: list_item_layout, list_item_alignment
+      - group [ref=e5708]:
+        - generic "keyboard_arrow_down ⚠️ 149 · body_text · Требует проверки · уверенность 1.44" [ref=e5709] [cursor=pointer]:
+          - generic [ref=e5710]:
+            - generic [ref=e5712]: keyboard_arrow_down
+            - paragraph [ref=e5715]: ⚠️ 149 · body_text · Требует проверки · уверенность 1.44
+        - generic [ref=e5717]:
+          - paragraph [ref=e5722]:
+            - strong [ref=e5723]: Оригинальный текст блока
+          - code [ref=e5728]: Коэффициент детерминации для модели получился равным 0.78, что позволяет классифицировать модель как хорошую.
+          - paragraph [ref=e5733]:
+            - strong [ref=e5734]: Причина ручной проверки
+          - paragraph [ref=e5739]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5744]:
+            - strong [ref=e5745]: Нарушенные правила
+          - paragraph [ref=e5750]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5753]:
+        - generic "keyboard_arrow_down ⚠️ 150 · body_text · Требует проверки · уверенность 1.04" [ref=e5754] [cursor=pointer]:
+          - generic [ref=e5755]:
+            - generic [ref=e5757]: keyboard_arrow_down
+            - paragraph [ref=e5760]: ⚠️ 150 · body_text · Требует проверки · уверенность 1.04
+        - generic [ref=e5762]:
+          - paragraph [ref=e5767]:
+            - strong [ref=e5768]: Оригинальный текст блока
+          - code [ref=e5773]: Существует также скорректированный коэффициент детерминации.
+          - paragraph [ref=e5778]:
+            - strong [ref=e5779]: Причина ручной проверки
+          - paragraph [ref=e5784]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5789]:
+            - strong [ref=e5790]: Нарушенные правила
+          - paragraph [ref=e5795]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5798]:
+        - generic "keyboard_arrow_down ⚠️ 152 · body_text · Требует проверки · уверенность 0.47" [ref=e5799] [cursor=pointer]:
+          - generic [ref=e5800]:
+            - generic [ref=e5802]: keyboard_arrow_down
+            - paragraph [ref=e5805]: ⚠️ 152 · body_text · Требует проверки · уверенность 0.47
+        - generic [ref=e5807]:
+          - paragraph [ref=e5812]:
+            - strong [ref=e5813]: Оригинальный текст блока
+          - code [ref=e5818]: где — число независимых переменных модели;
+          - paragraph [ref=e5823]:
+            - strong [ref=e5824]: Причина ручной проверки
+          - paragraph [ref=e5829]: "body_text_alignment: expected alignment=JUSTIFY; body_text_indent: expected first_line_indent_cm=1.25; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5834]:
+            - strong [ref=e5835]: Нарушенные правила
+          - paragraph [ref=e5840]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5843]:
+        - generic "keyboard_arrow_down ⚠️ 153 · list_item · Требует проверки · уверенность 0.98" [ref=e5844] [cursor=pointer]:
+          - generic [ref=e5845]:
+            - generic [ref=e5847]: keyboard_arrow_down
+            - paragraph [ref=e5850]: ⚠️ 153 · list_item · Требует проверки · уверенность 0.98
+        - generic [ref=e5852]:
+          - paragraph [ref=e5857]:
+            - strong [ref=e5858]: Оригинальный текст блока
+          - code [ref=e5863]: — количество наблюдений в наборе данных
+          - paragraph [ref=e5868]:
+            - strong [ref=e5869]: Причина ручной проверки
+          - paragraph [ref=e5874]: "list_item_layout: list layout is inherited or incomplete; list_item_alignment: expected alignment=JUSTIFY"
+          - paragraph [ref=e5879]:
+            - strong [ref=e5880]: Нарушенные правила
+          - paragraph [ref=e5885]: list_item_layout, list_item_alignment
+      - group [ref=e5888]:
+        - generic "keyboard_arrow_down ⚠️ 154 · body_text · Требует проверки · уверенность 0.85" [ref=e5889] [cursor=pointer]:
+          - generic [ref=e5890]:
+            - generic [ref=e5892]: keyboard_arrow_down
+            - paragraph [ref=e5895]: ⚠️ 154 · body_text · Требует проверки · уверенность 0.85
+        - generic [ref=e5897]:
+          - paragraph [ref=e5902]:
+            - strong [ref=e5903]: Оригинальный текст блока
+          - code [ref=e5908]: ЗАКЛЮЧЕНИЕ
+          - paragraph [ref=e5913]:
+            - strong [ref=e5914]: Причина ручной проверки
+          - paragraph [ref=e5919]: "style_guard_block: rule_class=body_text paragraph_style_class=heading"
+      - group [ref=e5922]:
+        - generic "keyboard_arrow_down ⚠️ 155 · body_text · Требует проверки · уверенность 3.99" [ref=e5923] [cursor=pointer]:
+          - generic [ref=e5924]:
+            - generic [ref=e5926]: keyboard_arrow_down
+            - paragraph [ref=e5929]: ⚠️ 155 · body_text · Требует проверки · уверенность 3.99
+        - generic [ref=e5931]:
+          - paragraph [ref=e5936]:
+            - strong [ref=e5937]: Оригинальный текст блока
+          - code [ref=e5942]: "Подводя итог, можно отметить, что исследование зависимости стоимости жилья от характеристик недвижимости, а также их тенденций, является неотъемлемой частью в развитии рынка недвижимости, поскольку подходит широкому кругу людей: профессионалам, область деятельности которых связана с рынком недвижимости; обычным людям, которые хотят приобрести или продать недвижимость, и им необходимо разбираться в ценообразовании жилья, чтобы сделать наиболее рациональный выбор."
+          - paragraph [ref=e5947]:
+            - strong [ref=e5948]: Причина ручной проверки
+          - paragraph [ref=e5953]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e5958]:
+            - strong [ref=e5959]: Нарушенные правила
+          - paragraph [ref=e5964]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e5967]:
+        - generic "keyboard_arrow_down ⚠️ 156 · body_text · Требует проверки · уверенность 1.82" [ref=e5968] [cursor=pointer]:
+          - generic [ref=e5969]:
+            - generic [ref=e5971]: keyboard_arrow_down
+            - paragraph [ref=e5974]: ⚠️ 156 · body_text · Требует проверки · уверенность 1.82
+        - generic [ref=e5976]:
+          - paragraph [ref=e5981]:
+            - strong [ref=e5982]: Оригинальный текст блока
+          - code [ref=e5987]: В результате данных нужд возникает потребность в анализе влияния на стоимость жилья значений, которые описывают недвижимость. Для данной потребности подойдет регрессионный анализ.
+          - paragraph [ref=e5992]:
+            - strong [ref=e5993]: Причина ручной проверки
+          - paragraph [ref=e5998]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e6003]:
+            - strong [ref=e6004]: Нарушенные правила
+          - paragraph [ref=e6009]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e6012]:
+        - generic "keyboard_arrow_down ⚠️ 157 · body_text · Требует проверки · уверенность 1.90" [ref=e6013] [cursor=pointer]:
+          - generic [ref=e6014]:
+            - generic [ref=e6016]: keyboard_arrow_down
+            - paragraph [ref=e6019]: ⚠️ 157 · body_text · Требует проверки · уверенность 1.90
+        - generic [ref=e6021]:
+          - paragraph [ref=e6026]:
+            - strong [ref=e6027]: Оригинальный текст блока
+          - code [ref=e6032]: Цель, поставленная в данной курсовой работе, а именно проведение регрессионного анализа влияния основных характеристик жилья на стоимость жилья в Эдмонтоне, оказалась достигнутой.
+          - paragraph [ref=e6037]:
+            - strong [ref=e6038]: Причина ручной проверки
+          - paragraph [ref=e6043]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e6048]:
+            - strong [ref=e6049]: Нарушенные правила
+          - paragraph [ref=e6054]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e6057]:
+        - generic "keyboard_arrow_down ⚠️ 158 · body_text · Требует проверки · уверенность 3.84" [ref=e6058] [cursor=pointer]:
+          - generic [ref=e6059]:
+            - generic [ref=e6061]: keyboard_arrow_down
+            - paragraph [ref=e6064]: ⚠️ 158 · body_text · Требует проверки · уверенность 3.84
+        - generic [ref=e6066]:
+          - paragraph [ref=e6071]:
+            - strong [ref=e6072]: Оригинальный текст блока
+          - code [ref=e6077]: Во время выполнения данной курсовой работы был проведён регрессионный анализ влияния основных характеристик жилья на стоимость этого жилья. В результате регрессионного анализа была получена модель, для которой был подсчитан коэффициент детерминации. Он получился равным 0.78. Это говорит нам, что для практически 80 процентов значений из исходного датасета наша модель даёт объяснение их изменчивости.
+          - paragraph [ref=e6082]:
+            - strong [ref=e6083]: Причина ручной проверки
+          - paragraph [ref=e6088]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e6093]:
+            - strong [ref=e6094]: Нарушенные правила
+          - paragraph [ref=e6099]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e6102]:
+        - generic "keyboard_arrow_down ⚠️ 159 · body_text · Требует проверки · уверенность 0.95" [ref=e6103] [cursor=pointer]:
+          - generic [ref=e6104]:
+            - generic [ref=e6106]: keyboard_arrow_down
+            - paragraph [ref=e6109]: ⚠️ 159 · body_text · Требует проверки · уверенность 0.95
+        - generic [ref=e6111]:
+          - paragraph [ref=e6116]:
+            - strong [ref=e6117]: Оригинальный текст блока
+          - code [ref=e6122]: "Задачи, которые изучены в результате проведения данной курсовой работы:"
+          - paragraph [ref=e6127]:
+            - strong [ref=e6128]: Причина ручной проверки
+          - paragraph [ref=e6133]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e6138]:
+            - strong [ref=e6139]: Нарушенные правила
+          - paragraph [ref=e6144]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e6147]:
+        - generic "keyboard_arrow_down ⚠️ 164 · bibliography_title · Требует проверки · уверенность 0.45" [ref=e6148] [cursor=pointer]:
+          - generic [ref=e6149]:
+            - generic [ref=e6151]: keyboard_arrow_down
+            - paragraph [ref=e6154]: ⚠️ 164 · bibliography_title · Требует проверки · уверенность 0.45
+        - generic [ref=e6156]:
+          - paragraph [ref=e6161]:
+            - strong [ref=e6162]: Оригинальный текст блока
+          - code [ref=e6167]: ТЕОРЕТИЧЕСКАЯ ЧАСТЬ
+          - paragraph [ref=e6172]:
+            - strong [ref=e6173]: Причина ручной проверки
+          - paragraph [ref=e6178]: "bibliography_section_title_prefix: bibliography section title needs numbering"
+          - paragraph [ref=e6183]:
+            - strong [ref=e6184]: Нарушенные правила
+          - paragraph [ref=e6189]: bibliography_section_title_prefix
+      - group [ref=e6192]:
+        - generic "keyboard_arrow_down ⚠️ 165 · bibliography_item · Требует проверки · уверенность 1.68" [ref=e6193] [cursor=pointer]:
+          - generic [ref=e6194]:
+            - generic [ref=e6196]: keyboard_arrow_down
+            - paragraph [ref=e6199]: ⚠️ 165 · bibliography_item · Требует проверки · уверенность 1.68
+        - generic [ref=e6201]:
+          - paragraph [ref=e6206]:
+            - strong [ref=e6207]: Оригинальный текст блока
+          - code [ref=e6212]: Особенности формирования и развития рынка недвижимости // С. А. Никифоров // Statistics, Accounting and Audit. — 2011. — No. 3(42).
+          - paragraph [ref=e6217]:
+            - strong [ref=e6218]: Причина ручной проверки
+          - paragraph [ref=e6223]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6228]:
+            - strong [ref=e6229]: Нарушенные правила
+          - paragraph [ref=e6234]: bibliography_item_format
+      - group [ref=e6237]:
+        - generic "keyboard_arrow_down ⚠️ 166 · bibliography_item · Требует проверки · уверенность 1.75" [ref=e6238] [cursor=pointer]:
+          - generic [ref=e6239]:
+            - generic [ref=e6241]: keyboard_arrow_down
+            - paragraph [ref=e6244]: ⚠️ 166 · bibliography_item · Требует проверки · уверенность 1.75
+        - generic [ref=e6246]:
+          - paragraph [ref=e6251]:
+            - strong [ref=e6252]: Оригинальный текст блока
+          - code [ref=e6257]: "Герасимова Е.А. Эконометрика: регрессионный анализ: учебно-методическое пособие / Е. А. Герасимова, М. Ю. Карышев. — Самара: СамГУПС, 2016. — 98 с."
+          - paragraph [ref=e6262]:
+            - strong [ref=e6263]: Причина ручной проверки
+          - paragraph [ref=e6268]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6273]:
+            - strong [ref=e6274]: Нарушенные правила
+          - paragraph [ref=e6279]: bibliography_item_format
+      - group [ref=e6282]:
+        - generic "keyboard_arrow_down ⚠️ 167 · bibliography_item · Требует проверки · уверенность 1.63" [ref=e6283] [cursor=pointer]:
+          - generic [ref=e6284]:
+            - generic [ref=e6286]: keyboard_arrow_down
+            - paragraph [ref=e6289]: ⚠️ 167 · bibliography_item · Требует проверки · уверенность 1.63
+        - generic [ref=e6291]:
+          - paragraph [ref=e6296]:
+            - strong [ref=e6297]: Оригинальный текст блока
+          - code [ref=e6302]: "Дрейпер Н., Смит Г. Прикладной регрессионный анализ. Книга 1 / пер.с англ. — М.: Финансы и статистика, 1986. — 366 с."
+          - paragraph [ref=e6307]:
+            - strong [ref=e6308]: Причина ручной проверки
+          - paragraph [ref=e6313]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6318]:
+            - strong [ref=e6319]: Нарушенные правила
+          - paragraph [ref=e6324]: bibliography_item_format
+      - group [ref=e6327]:
+        - generic "keyboard_arrow_down ⚠️ 168 · bibliography_item · Требует проверки · уверенность 1.49" [ref=e6328] [cursor=pointer]:
+          - generic [ref=e6329]:
+            - generic [ref=e6331]: keyboard_arrow_down
+            - paragraph [ref=e6334]: ⚠️ 168 · bibliography_item · Требует проверки · уверенность 1.49
+        - generic [ref=e6336]:
+          - paragraph [ref=e6341]:
+            - strong [ref=e6342]: Оригинальный текст блока
+          - code [ref=e6347]: "Айвазян С.А. и др. Прикладная статистика: Исследование зависимостей. — М.: Финансы и статистика, 1985. — 487 с."
+          - paragraph [ref=e6352]:
+            - strong [ref=e6353]: Причина ручной проверки
+          - paragraph [ref=e6358]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6363]:
+            - strong [ref=e6364]: Нарушенные правила
+          - paragraph [ref=e6369]: bibliography_item_format
+      - group [ref=e6372]:
+        - generic "keyboard_arrow_down ⚠️ 169 · bibliography_item · Требует проверки · уверенность 1.93" [ref=e6373] [cursor=pointer]:
+          - generic [ref=e6374]:
+            - generic [ref=e6376]: keyboard_arrow_down
+            - paragraph [ref=e6379]: ⚠️ 169 · bibliography_item · Требует проверки · уверенность 1.93
+        - generic [ref=e6381]:
+          - paragraph [ref=e6386]:
+            - strong [ref=e6387]: Оригинальный текст блока
+          - code [ref=e6392]: "Прикладная статистика. Основы эконометрики: В 2 т. 2-е изд., испр. — Т.2: Айвазян С.А. Основы эконометрики. — М.: ЮНИТИ-ДАНА, 2001. — 432 с."
+          - paragraph [ref=e6397]:
+            - strong [ref=e6398]: Причина ручной проверки
+          - paragraph [ref=e6403]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6408]:
+            - strong [ref=e6409]: Нарушенные правила
+          - paragraph [ref=e6414]: bibliography_item_format
+      - group [ref=e6417]:
+        - generic "keyboard_arrow_down ⚠️ 170 · bibliography_item · Требует проверки · уверенность 1.64" [ref=e6418] [cursor=pointer]:
+          - generic [ref=e6419]:
+            - generic [ref=e6421]: keyboard_arrow_down
+            - paragraph [ref=e6424]: ⚠️ 170 · bibliography_item · Требует проверки · уверенность 1.64
+        - generic [ref=e6426]:
+          - paragraph [ref=e6431]:
+            - strong [ref=e6432]: Оригинальный текст блока
+          - code [ref=e6437]: "Брюс П. Практическая статистика для специалистов Data Science / пер. с англ. — СПб.: БХВ-Петербург, 2018. — 304 с."
+          - paragraph [ref=e6442]:
+            - strong [ref=e6443]: Причина ручной проверки
+          - paragraph [ref=e6448]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6453]:
+            - strong [ref=e6454]: Нарушенные правила
+          - paragraph [ref=e6459]: bibliography_item_format
+      - group [ref=e6462]:
+        - generic "keyboard_arrow_down ⚠️ 171 · bibliography_item · Требует проверки · уверенность 1.80" [ref=e6463] [cursor=pointer]:
+          - generic [ref=e6464]:
+            - generic [ref=e6466]: keyboard_arrow_down
+            - paragraph [ref=e6469]: ⚠️ 171 · bibliography_item · Требует проверки · уверенность 1.80
+        - generic [ref=e6471]:
+          - paragraph [ref=e6476]:
+            - strong [ref=e6477]: Оригинальный текст блока
+          - code [ref=e6482]: "Уатт Дж. и др. Машинное обучение: основы, алгоритмы и практика применения / пер. с англ. — СПб.: БХВ-Петербург, 2022. — 640 с."
+          - paragraph [ref=e6487]:
+            - strong [ref=e6488]: Причина ручной проверки
+          - paragraph [ref=e6493]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6498]:
+            - strong [ref=e6499]: Нарушенные правила
+          - paragraph [ref=e6504]: bibliography_item_format
+      - group [ref=e6507]:
+        - generic "keyboard_arrow_down ⚠️ 172 · bibliography_item · Требует проверки · уверенность 1.93" [ref=e6508] [cursor=pointer]:
+          - generic [ref=e6509]:
+            - generic [ref=e6511]: keyboard_arrow_down
+            - paragraph [ref=e6514]: ⚠️ 172 · bibliography_item · Требует проверки · уверенность 1.93
+        - generic [ref=e6516]:
+          - paragraph [ref=e6521]:
+            - strong [ref=e6522]: Оригинальный текст блока
+          - code [ref=e6527]: "Полякова, В.В. Основы теории статистики: [учеб. пособие] / В. В. Полякова, Н. В. Шаброва. — Екатеринбург: Изд-во Урал. ун-та, 2016. — 148 с."
+          - paragraph [ref=e6532]:
+            - strong [ref=e6533]: Причина ручной проверки
+          - paragraph [ref=e6538]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6543]:
+            - strong [ref=e6544]: Нарушенные правила
+          - paragraph [ref=e6549]: bibliography_item_format
+      - group [ref=e6552]:
+        - generic "keyboard_arrow_down ⚠️ 173 · bibliography_item · Требует проверки · уверенность 2.49" [ref=e6553] [cursor=pointer]:
+          - generic [ref=e6554]:
+            - generic [ref=e6556]: keyboard_arrow_down
+            - paragraph [ref=e6559]: ⚠️ 173 · bibliography_item · Требует проверки · уверенность 2.49
+        - generic [ref=e6561]:
+          - paragraph [ref=e6566]:
+            - strong [ref=e6567]: Оригинальный текст блока
+          - code [ref=e6572]: "Regularization and Variable Selection Via the Elastic Net / Hui Zou, Trevor Hastie // Journal of the Royal Statistical Society Series B: Statistical Methodology, Volume 67, Issue 2, April 2005, Pages 301–320"
+          - paragraph [ref=e6577]:
+            - strong [ref=e6578]: Причина ручной проверки
+          - paragraph [ref=e6583]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6588]:
+            - strong [ref=e6589]: Нарушенные правила
+          - paragraph [ref=e6594]: bibliography_item_format
+      - group [ref=e6597]:
+        - generic "keyboard_arrow_down ⚠️ 174 · bibliography_title · Требует проверки · уверенность 0.40" [ref=e6598] [cursor=pointer]:
+          - generic [ref=e6599]:
+            - generic [ref=e6601]: keyboard_arrow_down
+            - paragraph [ref=e6604]: ⚠️ 174 · bibliography_title · Требует проверки · уверенность 0.40
+        - generic [ref=e6606]:
+          - paragraph [ref=e6611]:
+            - strong [ref=e6612]: Оригинальный текст блока
+          - code [ref=e6617]: ПРАКТИЧЕСКАЯ ЧАСТЬ
+          - paragraph [ref=e6622]:
+            - strong [ref=e6623]: Причина ручной проверки
+          - paragraph [ref=e6628]: "bibliography_section_title_prefix: bibliography section title needs numbering"
+          - paragraph [ref=e6633]:
+            - strong [ref=e6634]: Нарушенные правила
+          - paragraph [ref=e6639]: bibliography_section_title_prefix
+      - group [ref=e6642]:
+        - generic "keyboard_arrow_down ⚠️ 175 · bibliography_item · Требует проверки · уверенность 2.13" [ref=e6643] [cursor=pointer]:
+          - generic [ref=e6644]:
+            - generic [ref=e6646]: keyboard_arrow_down
+            - paragraph [ref=e6649]: ⚠️ 175 · bibliography_item · Требует проверки · уверенность 2.13
+        - generic [ref=e6651]:
+          - paragraph [ref=e6656]:
+            - strong [ref=e6657]: Оригинальный текст блока
+          - code [ref=e6662]: "Прокофьев, К. Ю. Рынок недвижимости: понятие, анализ (на примере рынка городской жилой недвижимости) / К. Ю. Прокофьев // Экономический анализ: теория и практика. — 2014. — № 3(354). — С. 43-55."
+          - paragraph [ref=e6667]:
+            - strong [ref=e6668]: Причина ручной проверки
+          - paragraph [ref=e6673]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6678]:
+            - strong [ref=e6679]: Нарушенные правила
+          - paragraph [ref=e6684]: bibliography_item_format
+      - group [ref=e6687]:
+        - generic "keyboard_arrow_down ⚠️ 176 · bibliography_item · Требует проверки · уверенность 2.23" [ref=e6688] [cursor=pointer]:
+          - generic [ref=e6689]:
+            - generic [ref=e6691]: keyboard_arrow_down
+            - paragraph [ref=e6694]: ⚠️ 176 · bibliography_item · Требует проверки · уверенность 2.23
+        - generic [ref=e6696]:
+          - paragraph [ref=e6701]:
+            - strong [ref=e6702]: Оригинальный текст блока
+          - code [ref=e6707]: "Rafael A. Irizarry. Introduction to Data Science. Data Analysis and Prediction Algorithms with R: [учеб. пособие] / Rafael A. Irizarry. – HarvargX Data Science Series, 2019. — Pages 708"
+          - paragraph [ref=e6712]:
+            - strong [ref=e6713]: Причина ручной проверки
+          - paragraph [ref=e6718]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6723]:
+            - strong [ref=e6724]: Нарушенные правила
+          - paragraph [ref=e6729]: bibliography_item_format
+      - group [ref=e6732]:
+        - generic "keyboard_arrow_down ⚠️ 177 · bibliography_item · Требует проверки · уверенность 1.37" [ref=e6733] [cursor=pointer]:
+          - generic [ref=e6734]:
+            - generic [ref=e6736]: keyboard_arrow_down
+            - paragraph [ref=e6739]: ⚠️ 177 · bibliography_item · Требует проверки · уверенность 1.37
+        - generic [ref=e6741]:
+          - paragraph [ref=e6746]:
+            - strong [ref=e6747]: Оригинальный текст блока
+          - code [ref=e6752]: Черемухин А. Д. УСТОЙЧИВОСТЬ АЛГОРИТМОВ ОТБОРА ПРИЗНАКОВ К ОШИБКАМ ВТОРОГО РОДА // ВК. 2021. №4 (44).
+          - paragraph [ref=e6757]:
+            - strong [ref=e6758]: Причина ручной проверки
+          - paragraph [ref=e6763]: "bibliography_item_format: bibliography item is not numbered/formatted"
+          - paragraph [ref=e6768]:
+            - strong [ref=e6769]: Нарушенные правила
+          - paragraph [ref=e6774]: bibliography_item_format
+      - group [ref=e6777]:
+        - generic "keyboard_arrow_down ⚠️ 178 · body_text · Требует проверки · уверенность 0.86" [ref=e6778] [cursor=pointer]:
+          - generic [ref=e6779]:
+            - generic [ref=e6781]: keyboard_arrow_down
+            - paragraph [ref=e6784]: ⚠️ 178 · body_text · Требует проверки · уверенность 0.86
+        - generic [ref=e6786]:
+          - paragraph [ref=e6791]:
+            - strong [ref=e6792]: Оригинальный текст блока
+          - code [ref=e6797]: ПРИЛОЖЕНИЯ
+          - paragraph [ref=e6802]:
+            - strong [ref=e6803]: Причина ручной проверки
+          - paragraph [ref=e6808]: "style_guard_block: rule_class=body_text paragraph_style_class=heading"
+      - group [ref=e6811]:
+        - generic "keyboard_arrow_down ⚠️ 181 · body_text · Требует проверки · уверенность 0.41" [ref=e6812] [cursor=pointer]:
+          - generic [ref=e6813]:
+            - generic [ref=e6815]: keyboard_arrow_down
+            - paragraph [ref=e6818]: ⚠️ 181 · body_text · Требует проверки · уверенность 0.41
+        - generic [ref=e6820]:
+          - paragraph [ref=e6825]:
+            - strong [ref=e6826]: Оригинальный текст блока
+          - code [ref=e6831]: Программный код для курсовой работы на языке программирования R представлен на листинге A.1.
+          - paragraph [ref=e6836]:
+            - strong [ref=e6837]: Причина ручной проверки
+          - paragraph [ref=e6842]: "body_text_alignment: current alignment is inherited or unavailable; body_text_indent: current first_line_indent_cm is inherited or unavailable; body_text_line_spacing: current line_spacing is inherited or unavailable"
+          - paragraph [ref=e6847]:
+            - strong [ref=e6848]: Нарушенные правила
+          - paragraph [ref=e6853]: body_text_alignment, body_text_indent, body_text_line_spacing
+      - group [ref=e6856]:
+        - generic "keyboard_arrow_down ⚠️ 182 · body_text · Требует проверки · уверенность 0.63" [ref=e6857] [cursor=pointer]:
+          - generic [ref=e6858]:
+            - generic [ref=e6860]: keyboard_arrow_down
+            - paragraph [ref=e6863]: ⚠️ 182 · body_text · Требует проверки · уверенность 0.63
+        - generic [ref=e6865]:
+          - paragraph [ref=e6870]:
+            - strong [ref=e6871]: Оригинальный текст блока
+          - code [ref=e6876]: Листинг А.1
+          - paragraph [ref=e6881]:
+            - strong [ref=e6882]: Причина ручной проверки
+          - paragraph [ref=e6887]: "style_guard_block: rule_class=body_text paragraph_style_class=caption"
+      - heading "Без изменений (20)" [level=3] [ref=e6892]:
+        - text: Без изменений (20)
+        - generic [ref=e6893]:
+          - link "Link to heading":
+            - /url: "#bez-izmeneniy-20"
+            - img
+      - group [ref=e6896]:
+        - generic "keyboard_arrow_right ● 8 · list_item · Без изменений · уверенность 1.41" [ref=e6897] [cursor=pointer]:
+          - generic [ref=e6898]:
+            - generic [ref=e6900]: keyboard_arrow_right
+            - paragraph [ref=e6903]: ● 8 · list_item · Без изменений · уверенность 1.41
+      - group [ref=e6906]:
+        - generic "keyboard_arrow_right ● 9 · list_item · Без изменений · уверенность 1.38" [ref=e6907] [cursor=pointer]:
+          - generic [ref=e6908]:
+            - generic [ref=e6910]: keyboard_arrow_right
+            - paragraph [ref=e6913]: ● 9 · list_item · Без изменений · уверенность 1.38
+      - group [ref=e6916]:
+        - generic "keyboard_arrow_right ● 10 · list_item · Без изменений · уверенность 0.85" [ref=e6917] [cursor=pointer]:
+          - generic [ref=e6918]:
+            - generic [ref=e6920]: keyboard_arrow_right
+            - paragraph [ref=e6923]: ● 10 · list_item · Без изменений · уверенность 0.85
+      - group [ref=e6926]:
+        - generic "keyboard_arrow_right ● 12 · list_item · Без изменений · уверенность 0.61" [ref=e6927] [cursor=pointer]:
+          - generic [ref=e6928]:
+            - generic [ref=e6930]: keyboard_arrow_right
+            - paragraph [ref=e6933]: ● 12 · list_item · Без изменений · уверенность 0.61
+      - group [ref=e6936]:
+        - generic "keyboard_arrow_right ● 52 · list_item · Без изменений · уверенность 1.02" [ref=e6937] [cursor=pointer]:
+          - generic [ref=e6938]:
+            - generic [ref=e6940]: keyboard_arrow_right
+            - paragraph [ref=e6943]: ● 52 · list_item · Без изменений · уверенность 1.02
+      - group [ref=e6946]:
+        - generic "keyboard_arrow_right ● 53 · list_item · Без изменений · уверенность 1.11" [ref=e6947] [cursor=pointer]:
+          - generic [ref=e6948]:
+            - generic [ref=e6950]: keyboard_arrow_right
+            - paragraph [ref=e6953]: ● 53 · list_item · Без изменений · уверенность 1.11
+      - group [ref=e6956]:
+        - generic "keyboard_arrow_right ● 54 · list_item · Без изменений · уверенность 1.13" [ref=e6957] [cursor=pointer]:
+          - generic [ref=e6958]:
+            - generic [ref=e6960]: keyboard_arrow_right
+            - paragraph [ref=e6963]: ● 54 · list_item · Без изменений · уверенность 1.13
+      - group [ref=e6966]:
+        - generic "keyboard_arrow_right ● 55 · list_item · Без изменений · уверенность 1.19" [ref=e6967] [cursor=pointer]:
+          - generic [ref=e6968]:
+            - generic [ref=e6970]: keyboard_arrow_right
+            - paragraph [ref=e6973]: ● 55 · list_item · Без изменений · уверенность 1.19
+      - group [ref=e6976]:
+        - generic "keyboard_arrow_right ● 122 · list_item · Без изменений · уверенность 0.63" [ref=e6977] [cursor=pointer]:
+          - generic [ref=e6978]:
+            - generic [ref=e6980]: keyboard_arrow_right
+            - paragraph [ref=e6983]: ● 122 · list_item · Без изменений · уверенность 0.63
+      - group [ref=e6986]:
+        - generic "keyboard_arrow_right ● 123 · list_item · Без изменений · уверенность 0.66" [ref=e6987] [cursor=pointer]:
+          - generic [ref=e6988]:
+            - generic [ref=e6990]: keyboard_arrow_right
+            - paragraph [ref=e6993]: ● 123 · list_item · Без изменений · уверенность 0.66
+      - group [ref=e6996]:
+        - generic "keyboard_arrow_right ● 124 · list_item · Без изменений · уверенность 0.64" [ref=e6997] [cursor=pointer]:
+          - generic [ref=e6998]:
+            - generic [ref=e7000]: keyboard_arrow_right
+            - paragraph [ref=e7003]: ● 124 · list_item · Без изменений · уверенность 0.64
+      - group [ref=e7006]:
+        - generic "keyboard_arrow_right ● 125 · list_item · Без изменений · уверенность 0.69" [ref=e7007] [cursor=pointer]:
+          - generic [ref=e7008]:
+            - generic [ref=e7010]: keyboard_arrow_right
+            - paragraph [ref=e7013]: ● 125 · list_item · Без изменений · уверенность 0.69
+      - group [ref=e7016]:
+        - generic "keyboard_arrow_right ● 126 · list_item · Без изменений · уверенность 0.67" [ref=e7017] [cursor=pointer]:
+          - generic [ref=e7018]:
+            - generic [ref=e7020]: keyboard_arrow_right
+            - paragraph [ref=e7023]: ● 126 · list_item · Без изменений · уверенность 0.67
+      - group [ref=e7026]:
+        - generic "keyboard_arrow_right ● 127 · list_item · Без изменений · уверенность 0.75" [ref=e7027] [cursor=pointer]:
+          - generic [ref=e7028]:
+            - generic [ref=e7030]: keyboard_arrow_right
+            - paragraph [ref=e7033]: ● 127 · list_item · Без изменений · уверенность 0.75
+      - group [ref=e7036]:
+        - generic "keyboard_arrow_right ● 160 · list_item · Без изменений · уверенность 1.41" [ref=e7037] [cursor=pointer]:
+          - generic [ref=e7038]:
+            - generic [ref=e7040]: keyboard_arrow_right
+            - paragraph [ref=e7043]: ● 160 · list_item · Без изменений · уверенность 1.41
+      - group [ref=e7046]:
+        - generic "keyboard_arrow_right ● 161 · list_item · Без изменений · уверенность 1.38" [ref=e7047] [cursor=pointer]:
+          - generic [ref=e7048]:
+            - generic [ref=e7050]: keyboard_arrow_right
+            - paragraph [ref=e7053]: ● 161 · list_item · Без изменений · уверенность 1.38
+      - group [ref=e7056]:
+        - generic "keyboard_arrow_right ● 162 · list_item · Без изменений · уверенность 0.85" [ref=e7057] [cursor=pointer]:
+          - generic [ref=e7058]:
+            - generic [ref=e7060]: keyboard_arrow_right
+            - paragraph [ref=e7063]: ● 162 · list_item · Без изменений · уверенность 0.85
+      - group [ref=e7066]:
+        - generic "keyboard_arrow_right ● 163 · bibliography_title · Без изменений · уверенность 0.93" [ref=e7067] [cursor=pointer]:
+          - generic [ref=e7068]:
+            - generic [ref=e7070]: keyboard_arrow_right
+            - paragraph [ref=e7073]: ● 163 · bibliography_title · Без изменений · уверенность 0.93
+      - group [ref=e7076]:
+        - generic "keyboard_arrow_right ● 179 · appendix_title · Без изменений · уверенность 0.84" [ref=e7077] [cursor=pointer]:
+          - generic [ref=e7078]:
+            - generic [ref=e7080]: keyboard_arrow_right
+            - paragraph [ref=e7083]: ● 179 · appendix_title · Без изменений · уверенность 0.84
+      - group [ref=e7086]:
+        - generic "keyboard_arrow_right ● 180 · appendix_title · Без изменений · уверенность 2.88" [ref=e7087] [cursor=pointer]:
+          - generic [ref=e7088]:
+            - generic [ref=e7090]: keyboard_arrow_right
+            - paragraph [ref=e7093]: ● 180 · appendix_title · Без изменений · уверенность 2.88
+      - heading "Скачать результаты" [level=3] [ref=e7098]:
+        - text: Скачать результаты
+        - generic [ref=e7099]:
+          - link "Link to heading":
+            - /url: "#skachat-rezultaty"
+            - img
+      - generic [ref=e7104]:
+        - heading "Отчёт CSV" [level=4] [ref=e7106]:
+          - text: Отчёт CSV
+          - generic [ref=e7107]:
+            - link "Link to heading":
+              - /url: "#otchyot-csv"
+              - img
+        - paragraph [ref=e7108]: "Таблица по блокам: статусы, нарушенные правила, исправления, объяснения."
+      - button "Скачать tmp3o51bcwm_audit_audit_20260515_150617.csv" [ref=e7111] [cursor=pointer]:
+        - paragraph [ref=e7115]: Скачать tmp3o51bcwm_audit_audit_20260515_150617.csv
+      - paragraph [ref=e7120]: /Users/fedorova.van/experiments/gost_formatter/.claude/worktrees/agent-ae7c41d1/results/reports/tmp3o51bcwm_audit_audit_20260515_150617.csv
+      - generic [ref=e7125]:
+        - heading "Сводка JSON" [level=4] [ref=e7127]:
+          - text: Сводка JSON
+          - generic [ref=e7128]:
+            - link "Link to heading":
+              - /url: "#svodka-json"
+              - img
+        - paragraph [ref=e7129]: Счётчики статусов и технические данные запуска.
+      - button "Скачать summary_20260515_150617.json" [ref=e7132] [cursor=pointer]:
+        - paragraph [ref=e7136]: Скачать summary_20260515_150617.json
+      - paragraph [ref=e7141]: /Users/fedorova.van/experiments/gost_formatter/.claude/worktrees/agent-ae7c41d1/results/reports/summary_20260515_150617.json
+      - button "Скачать журнал запуска (JSON)" [ref=e7144] [cursor=pointer]:
+        - paragraph [ref=e7148]: Скачать журнал запуска (JSON)

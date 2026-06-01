@@ -177,3 +177,24 @@ def get_audit_policy(profile: dict[str, Any], label: str) -> dict[str, Any]:
 
 def get_global_audit_policy(profile: dict[str, Any]) -> dict[str, Any]:
     return profile.get("global_audit_policy", {})
+
+
+def get_list_detection_thresholds(profile: dict[str, Any]) -> tuple[int, int]:
+    """D-11: return (max_fallback_words, max_fallback_chars). Defaults 40/300.
+
+    Profile JSON shape:
+        {"list_detection": {"max_fallback_words": 40, "max_fallback_chars": 300}}
+    """
+    cfg = profile.get("list_detection", {}) or {}
+    return int(cfg.get("max_fallback_words", 40)), int(cfg.get("max_fallback_chars", 300))
+
+
+def get_bibliography_numbering_scope(profile: dict[str, Any]) -> str:
+    """D-03: return numbering.bibliography.scope. Default 'per_section'.
+
+    Profile JSON shape:
+        {"numbering": {"bibliography": {"scope": "per_section"}}}
+    """
+    return str(
+        profile.get("numbering", {}).get("bibliography", {}).get("scope", "per_section")
+    )

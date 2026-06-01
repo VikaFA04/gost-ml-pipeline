@@ -1,0 +1,12 @@
+{
+  "audits": 17,
+  "report_csv": "results/reports/regression_audit_phase4_worst_offenders.csv",
+  "summary_json": "results/reports/regression_audit_phase4_worst_offenders.json",
+  "workspace_dir": "/Users/fedorova.van/experiments/gost_formatter/results/reports/regression_audit/20260513_224009",
+  "total_changed": 774,
+  "total_errors": 0,
+  "worse_count": 9,
+  "improved_count": 4,
+  "field_mismatch_delta": -805,
+  "profile_id": "gost_7_32_2017"
+}

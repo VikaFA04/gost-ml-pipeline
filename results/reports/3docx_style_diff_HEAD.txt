@@ -1,0 +1,48 @@
+# Wave A 3.docx bisect trace
+# Format: bisect <SHA> 3.docx after_diff_rate=<value> before=<value> after_field_mismatches=<int> field_mismatch_delta=<int>
+# Pair: positive=3.docx negative=3_formatted_20260413_194927.docx
+# Probe method: single-doc audit dir (/tmp/wave_a_3docx_neg), profile gost_7_32_2017, no --limit
+# Phase 2/3 suspect ranking from 04-RESEARCH.md Probe 3 (highest suspicion first):
+#   HIGH:  c4d67ac (Phase 2 D-06 numId coerce), 666f888 (Phase 2 D-05 multilevel), 7207cbe (Phase 3 D-05/D-06 heading routing)
+#   MED:   ac41aaa (Phase 3 +17 heading rules), 2ab21f0 (postprocess D-04), 3c3b179 (ambiguous list)
+#   LOW-MED: 9202539 (bibliography strip), LOW: 9195efb (Phase 1 guard)
+# FORMAT_FIX_PLAN Этап 8 historic datapoints: pre-Phase-2 0.318328 -> post-Phase-2 0.334405
+bisect HEAD 3.docx after_diff_rate=0.359712 before=0.356115 after_field_mismatches=630 field_mismatch_delta=-62
+HEAD-SHA: c0904b4
+
+# === Bisect probes (order: ranked-suspect guided, not blind binary search) ===
+# Probe 1: median high-suspect 7207cbe (Phase 3 D-05/D-06 heading routing)
+bisect 7207cbe 3.docx after_diff_rate=0.359712 before=0.356115 after_field_mismatches=630 field_mismatch_delta=-62
+# -> DRIFT PRESENT at 7207cbe (same value as HEAD: no further regression after Phase 3 wave 3).
+
+# Probe 2: highest-suspect Phase 2 c4d67ac (D-06 numId coerce)
+bisect c4d67ac 3.docx after_diff_rate=0.356115 before=0.356115 after_field_mismatches=611 field_mismatch_delta=-81
+# -> NO DRIFT at c4d67ac (safe-formatter idempotent: after_diff_rate == before_diff_rate).
+# -> Drift was introduced BETWEEN c4d67ac and 7207cbe.
+
+# Probe 3: phase-boundary 92fcfee (end of Phase 2)
+bisect 92fcfee 3.docx after_diff_rate=0.356115 before=0.356115 after_field_mismatches=629 field_mismatch_delta=-63
+# -> NO DRIFT at end of Phase 2. Drift entered DURING Phase 3.
+
+# Probe 4: ac41aaa (Phase 3 wave 3, +17 heading rules JSON only — immediately precedes 7207cbe)
+bisect ac41aaa 3.docx after_diff_rate=0.356115 before=0.356115 after_field_mismatches=629 field_mismatch_delta=-63
+# -> NO DRIFT at ac41aaa. Adding heading rules to JSON without changing rule_engine dispatcher
+# -> did NOT move the metric (autocorrect=false on most new rules, no D-05/D-06 dispatcher yet).
+
+# === CONCLUSION ===
+# `7207cbe` is the sole responsible commit. Boundary is one-commit wide (ac41aaa good, 7207cbe drift).
+# What 7207cbe did:
+#   - Removed the blanket heading guard from _apply_scalar_rule (which used to refuse all heading autofixes).
+#   - Added per-field D-05 / D-06 dispatcher in apply_rules_to_paragraph:
+#       * D-05 (inherited mismatch) -> review, no autofix
+#       * D-06 (direct mismatch)    -> autofix via apply_heading_scalar_fix (with bibliography guard)
+#   - Phase 3 D-05/D-06 are documented decisions (Phase 3 CONTEXT.md), not bugs.
+# Classification: LEGITIMATE Phase 3 BEHAVIOUR CHANGE.
+#   - +0.003597 after_diff_rate corresponds to ~1 paragraph that flipped from "safe-formatter
+#     skips" to "safe-formatter fixes" because of the new D-06 direct-mismatch autofix on a
+#     heading field.
+#   - field_mismatch_delta improved net (-62 at HEAD vs -63 at Phase 2 end): the dispatcher
+#     correctly autofixes direct heading-property mismatches; the +1 paragraph counted in
+#     diff_rate is partially offset by the field-level fix counted in field_mismatches.
+# Branch decision for D-05: BRANCH B (legit behaviour change -> amend ROADMAP success criterion 2).
+
