@@ -73,7 +73,7 @@ def test_sc1_slow_tier() -> None:
     fixtures = []
     for d in (positive_dir, negative_dir):
         if d.exists():
-            fixtures.extend(sorted(d.rglob("*.docx")))
+            fixtures.extend(sorted(p for p in d.rglob("*.docx") if not p.name.startswith("~$")))
     assert fixtures, "Slow-tier dirs exist but contain no .docx files"
     for fixture in fixtures:
         report_csv = _run_fixture(fixture)
