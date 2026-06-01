@@ -98,3 +98,49 @@ def test_row_data_list_instance_drives_restart_through_rule_engine() -> None:
     num_id = _num_id_of(paragraph)
     assert num_id is not None
     assert _start_override_of(numbering_root, num_id) == "1"
+
+
+def test_get_list_num_id_revalidates_stale_cache_entry() -> None:
+    """Defect-2 review #1: the per-(doc,instance) numId cache is keyed by
+    id(document.part), which CPython reuses after GC. A stale entry from a
+    freed document must NOT leak a numId that does not exist in the current
+    document — the allocator must re-validate against the live numbering."""
+    from src.rules import rule_engine
+
+    rule_engine._LIST_NUM_IDS.clear()
+    document = Document(str(FIXTURE))
+    numbering_root = document.part.numbering_part.element
+    p = document.add_paragraph("пункт списка")
+
+    # Simulate id() reuse: a numId cached under this doc's key but absent here.
+    rule_engine._LIST_NUM_IDS[(rule_engine._document_cache_key(p), 1)] = 99999
+    try:
+        rule_engine.apply_list_numbering(p, "numbered", list_instance=1, list_level=0)
+        nid = _num_id_of(p)
+        assert nid != "99999", "leaked stale cross-document numId"
+        assert any(
+            n.get(qn("w:numId")) == nid for n in numbering_root.findall(qn("w:num"))
+        ), "assigned numId must exist in this document's numbering"
+    finally:
+        rule_engine._LIST_NUM_IDS.clear()
+
+
+def test_restart_preserves_existing_nested_numbering() -> None:
+    """Defect-2 review #2: forcing a per-instance restart must not flatten a
+    paragraph that already carries valid nested numbering (ilvl > 0)."""
+    from src.rules import rule_engine
+
+    rule_engine._LIST_NUM_IDS.clear()
+    document = Document(str(FIXTURE))
+    p = document.add_paragraph("вложенный пункт")
+    apply_list_numbering(p, "numbered")  # valid numPr at ilvl=0
+    numpr = p._p.pPr.find(qn("w:numPr"))
+    numpr.find(qn("w:ilvl")).set(qn("w:val"), "2")  # source is nested at level 2
+    num_before = numpr.find(qn("w:numId")).get(qn("w:val"))
+
+    apply_list_numbering(p, "numbered", list_instance=1, list_level=0)
+
+    numpr = p._p.pPr.find(qn("w:numPr"))
+    assert numpr.find(qn("w:ilvl")).get(qn("w:val")) == "2", "flattened nested level"
+    assert numpr.find(qn("w:numId")).get(qn("w:val")) == num_before, "clobbered valid nested numId"
+    rule_engine._LIST_NUM_IDS.clear()

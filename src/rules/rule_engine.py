@@ -253,7 +253,10 @@ def _get_list_num_id(
     doc_key = _document_cache_key(paragraph)
     key = (doc_key, int(list_instance))
     cached = _LIST_NUM_IDS.get(key)
-    if cached is not None:
+    # Re-validate against the live document: id(document.part) is reused by
+    # CPython after GC, so a cached numId may belong to a freed document and
+    # not exist here. Only trust the cache when the numId is really present.
+    if cached is not None and _num_id_exists(paragraph, cached):
         return int(cached)
 
     numbering_root = paragraph.part.numbering_part.element
@@ -262,6 +265,22 @@ def _get_list_num_id(
     num_id = _create_num_with_start_override(numbering_root, abstract_num_id, list_level, start=1)
     _LIST_NUM_IDS[key] = num_id
     return num_id
+
+
+def _existing_ilvl(paragraph: Paragraph) -> int | None:
+    p_pr = paragraph._p.pPr
+    if p_pr is None:
+        return None
+    num_pr = p_pr.find(qn("w:numPr"))
+    if num_pr is None:
+        return None
+    ilvl = num_pr.find(qn("w:ilvl"))
+    if ilvl is None:
+        return None
+    try:
+        return int(ilvl.get(qn("w:val")))
+    except (TypeError, ValueError):
+        return None
 
 
 def _set_paragraph_numpr(paragraph: Paragraph, num_id: int, ilvl: int) -> None:
@@ -292,6 +311,12 @@ def apply_list_numbering(
     # restarting numId — even if the source numbering is "valid" — so a new
     # list never continues the previous list's counter.
     if list_instance is not None:
+        # Preserve already-valid nested numbering (ilvl > 0): the per-list
+        # restart targets flat lists; reassigning would flatten a real
+        # multi-level list down to list_level.
+        existing = _existing_ilvl(paragraph)
+        if existing is not None and existing > 0 and paragraph_numbering_reference_is_valid(paragraph):
+            return []
         num_id = _get_list_num_id(paragraph, list_instance, list_type, list_level)
         _set_paragraph_numpr(paragraph, num_id, list_level)
         return ["numbering"]
